@@ -20,7 +20,7 @@ Built on Avalanche C-Chain — fast, cheap, and fully on-chain.
 
 ---
 
-## 🚧 Project Status
+##  Project Status
 
 Avadix is actively under development. We are aware that several features are still incomplete or in early stages. Our team is continuously working to improve the platform — new features, smart contract integrations, and UI enhancements are being added regularly.
 
@@ -49,7 +49,7 @@ Avadix is a decentralized prediction market platform built natively on Avalanche
 - Full trading history and activity log
 - Win rate, total trades, and performance stats
 
-### 🏛️ DAO Governance
+### DAO Governance
 - Browse and vote on community proposals
 - **Submit your own proposal** — any token holder can participate
 - On-chain voting with live result tracking
@@ -156,7 +156,7 @@ avadix/
 
 ---
 
-## 🌐 Network Configuration
+##  Network Configuration
 
 ### Avalanche Fuji Testnet
 ```
