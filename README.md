@@ -9,8 +9,9 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
 [![Wagmi](https://img.shields.io/badge/Wagmi_v2-1C1C1E?style=for-the-badge)](https://wagmi.sh)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F59E0B?style=for-the-badge)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-In_Development-22c55e?style=for-the-badge)](https://github.com/sinirlibiber/Avadix_)
 
-**Trade on real-world events. Govern the protocol. Support the community.**  
+**Trade on real-world events. Govern the protocol. Support the community.**
 Built on Avalanche C-Chain — fast, cheap, and fully on-chain.
 
 [Live Demo](https://avadix.vercel.app) · [Report Bug](https://github.com/sinirlibiber/Avadix_/issues) · [Request Feature](https://github.com/sinirlibiber/Avadix_/issues)
@@ -19,9 +20,17 @@ Built on Avalanche C-Chain — fast, cheap, and fully on-chain.
 
 ---
 
+## 🚧 Project Status
+
+Avadix is actively under development. We are aware that several features are still incomplete or in early stages. Our team is continuously working to improve the platform — new features, smart contract integrations, and UI enhancements are being added regularly.
+
+> We appreciate your patience and feedback as we build. If you encounter issues or have ideas, feel free to open an issue or reach out.
+
+---
+
 ## 🌟 What is Avadix?
 
-Avadix is a next-generation decentralized prediction market platform inspired by Polymarket, built natively on Avalanche. Users trade binary YES/NO outcomes on crypto, politics, sports, and technology events — with real-time price discovery, DAO governance, and on-chain community donations.
+Avadix is a decentralized prediction market platform built natively on Avalanche. Users trade binary YES/NO outcomes on crypto, politics, sports, and technology events — with real-time price discovery, DAO governance, and on-chain community donations.
 
 > *"Don't just watch the future unfold — bet on it."*
 
@@ -123,26 +132,25 @@ NEXT_PUBLIC_CHAIN_ID=43113
 avadix/
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx          # Root layout + providers
-│   │   └── page.tsx            # Main page
+│   │   ├── layout.tsx           # Root layout + providers
+│   │   └── page.tsx             # Main page
 │   ├── components/
-│   │   ├── Navbar.tsx          # Navigation + wallet connect
-│   │   ├── Hero.tsx            # Landing hero section
-│   │   ├── MarketsSection.tsx  # Market list + create market
-│   │   ├── MarketCard.tsx      # Individual market card + trading
+│   │   ├── Navbar.tsx           # Navigation + wallet connect
+│   │   ├── Hero.tsx             # Landing hero section
+│   │   ├── MarketsSection.tsx   # Market list + create market
+│   │   ├── MarketCard.tsx       # Individual market card + trading
 │   │   ├── PortfolioSection.tsx # Positions, activity, stats
-│   │   ├── DAOSection.tsx      # Proposals + voting
-│   │   ├── DonationSection.tsx # Campaigns + donate
+│   │   ├── DAOSection.tsx       # Proposals + voting
+│   │   ├── DonationSection.tsx  # Campaigns + donate
 │   │   └── Footer.tsx
 │   ├── lib/
-│   │   ├── wagmi.ts            # Wagmi + RainbowKit config
-│   │   ├── data.ts             # Types, mock data, helpers
-│   │   └── async-storage-mock.js # React Native compat shim
+│   │   ├── wagmi.ts             # Wagmi + RainbowKit config
+│   │   ├── data.ts              # Types, mock data, helpers
+│   │   └── async-storage-mock.js
 │   └── styles/
-│       └── globals.css         # Global styles + CSS variables
+│       └── globals.css          # Global styles + CSS variables
 ├── next.config.js
 ├── tailwind.config.ts
-├── vercel.json
 └── package.json
 ```
 
@@ -152,18 +160,18 @@ avadix/
 
 ### Avalanche Fuji Testnet
 ```
-Chain ID:      43113
-RPC URL:       https://api.avax-test.network/ext/bc/C/rpc
-Explorer:      https://testnet.snowtrace.io
-Currency:      AVAX
+Chain ID:   43113
+RPC URL:    https://api.avax-test.network/ext/bc/C/rpc
+Explorer:   https://testnet.snowtrace.io
+Currency:   AVAX
 ```
 
 ### Avalanche Mainnet
 ```
-Chain ID:      43114
-RPC URL:       https://api.avax.network/ext/bc/C/rpc
-Explorer:      https://snowtrace.io
-Currency:      AVAX
+Chain ID:   43114
+RPC URL:    https://api.avax.network/ext/bc/C/rpc
+Explorer:   https://snowtrace.io
+Currency:   AVAX
 ```
 
 🚰 **Get free testnet AVAX:** [faucet.avax.network](https://faucet.avax.network)
@@ -172,7 +180,7 @@ Currency:      AVAX
 
 ## 🤝 Contributing
 
-Contributions are welcome!
+Contributions are welcome! We are especially looking for help with smart contract development, UI improvements, and testing.
 
 1. Fork the project
 2. Create your branch → `git checkout -b feature/your-feature`
@@ -191,6 +199,8 @@ Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 <div align="center">
 
 **Built with ❤️ on Avalanche · Avadix Labs · 2025**
+
+*This project is a work in progress. More updates coming soon.*
 
 [![Avalanche](https://img.shields.io/badge/Powered_by-Avalanche-E84142?style=flat-square&logo=avalanche&logoColor=white)](https://avax.network)
 
