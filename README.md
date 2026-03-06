@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ AVADIX
+# 🔺 AVADIX
 
 ### Decentralized Prediction Markets on Avalanche
 
