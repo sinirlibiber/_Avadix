@@ -28,7 +28,7 @@ Avadix is actively under development. We are aware that several features are sti
 
 ---
 
-## 🌟 What is Avadix?
+##  What is Avadix?
 
 Avadix is a decentralized prediction market platform built natively on Avalanche. Users trade binary YES/NO outcomes on crypto, politics, sports, and technology events — with real-time price discovery, DAO governance, and on-chain community donations.
 
@@ -36,15 +36,15 @@ Avadix is a decentralized prediction market platform built natively on Avalanche
 
 ---
 
-## ✨ Features
+##  Features
 
-### 📊 Prediction Markets
+###  Prediction Markets
 - Binary YES/NO markets with live AMM pricing (0–100¢ scale)
 - Filter by category: **Crypto · AVAX · Politics · Sports · Tech**
 - Sort by volume, trending, or recency
 - **Create your own market** — write a question, set a date, publish instantly
 
-### 📈 Portfolio Dashboard
+###  Portfolio Dashboard
 - Track all open positions with real-time PnL
 - Full trading history and activity log
 - Win rate, total trades, and performance stats
@@ -54,19 +54,19 @@ Avadix is a decentralized prediction market platform built natively on Avalanche
 - **Submit your own proposal** — any token holder can participate
 - On-chain voting with live result tracking
 
-### 💚 Community Donations
+###  Community Donations
 - Donate AVAX to active community campaigns
 - **Launch your own fundraising campaign** with a custom goal
 - Every transaction is transparent and recorded on-chain
 
-### 🔗 Web3 Native
+###  Web3 Native
 - RainbowKit + WalletConnect v2 integration
 - Supports **Avalanche Mainnet** and **Fuji Testnet**
 - Live balance display, MAX button, transaction status feedback
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -79,7 +79,7 @@ Avadix is a decentralized prediction market platform built natively on Avalanche
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 
@@ -111,7 +111,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## ⚙️ Environment Variables
+## Environment Variables
 
 Create a `.env.local` file in the root directory:
 
