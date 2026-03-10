@@ -17,7 +17,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <title>Avadix — Prediction Markets on Avalanche</title>
         <meta name="description" content="Trade on real-world events. Decentralized prediction markets powered by Avalanche." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/logo.jpg" type="image/jpeg" />
+        <link rel="apple-touch-icon" href="/logo.jpg" />
       </head>
       <body>
         <WagmiProvider config={config}>

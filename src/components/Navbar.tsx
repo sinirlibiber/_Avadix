@@ -4,7 +4,6 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 const NAV_LINKS = [
@@ -29,7 +28,8 @@ export default function Navbar() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, overflow: 'hidden', boxShadow: '0 0 20px rgba(232,65,66,0.4)', flexShrink: 0 }}>
-              <Image src="/logo.jpg" alt="Avadix" width={36} height={36} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src="/logo.jpg" alt="Avadix" width={36} height={36} style={{ objectFit: 'cover', width: '100%', height: '100%', display: 'block' }} />
             </div>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: '#E2E2F0', letterSpacing: '-0.02em' }}>
               AVA<span style={{ color: '#E84142' }}>DIX</span>
