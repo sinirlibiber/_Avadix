@@ -1,26 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  webpack: (config, { isServer }) => {
-    // Fix React Native / MetaMask SDK dependencies in browser build
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-      };
-    }
-
-    // Stub out React Native async storage completely
+  images: {
+    unoptimized: true,
+  },
+  webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@react-native-async-storage/async-storage': require.resolve(
-        './src/lib/async-storage-mock.js'
-      ),
+      '@react-native-async-storage/async-storage': require.resolve('./src/lib/async-storage-mock.js'),
+      'pino-pretty': false,
     };
-
-    config.externals.push('pino-pretty', 'lokijs', 'encoding');
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+    };
     return config;
   },
 };
