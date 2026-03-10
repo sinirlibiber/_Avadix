@@ -35,9 +35,9 @@ export default function Footer() {
             </p>
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               {[
-                { icon: Twitter, href: '#' },
+                { icon: Twitter, href: 'https://x.com/AvadixLabs' },
                 { icon: Github, href: '#' },
-                { icon: MessageCircle, href: '#' },
+                { icon: MessageCircle, href: 'https://discord.gg/nG9UyBFhMK' },
               ].map(({ icon: Icon, href }, i) => (
                 <a key={i} href={href} style={{
                   width: 36, height: 36,
@@ -95,7 +95,7 @@ export default function Footer() {
           flexWrap: 'wrap', gap: 12,
         }}>
           <p style={{ fontSize: 13, color: '#8888AA', fontFamily: 'var(--font-mono)' }}>
-            © 2025 Avadix. Built on Avalanche.
+            © 2026 Avadix. Built on Avalanche.
           </p>
           <div style={{ display: 'flex', gap: 24 }}>
             {['Privacy', 'Terms', 'Risk Disclosure'].map(item => (
