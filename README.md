@@ -31,7 +31,7 @@ All three Avadix contracts are **live on Avalanche Fuji Testnet** — fully veri
 | **AvadixDonations** | `0xC7f1D448570f052aA879326ec3BA60C20005Fcd2` | [View](https://testnet.snowtrace.io/address/0xC7f1D448570f052aA879326ec3BA60C20005Fcd2) |
 
 > **Network:** Avalanche Fuji Testnet (Chain ID: 43113)  
-> **Mainnet deployment:** Planned for Q3 2025
+
 
 ---
 
