@@ -203,9 +203,9 @@ Currency:   AVAX
 
 | Period | Milestone |
 |---|---|
-| **Q1-2 2026 ✅** | Deploy 3 smart contracts on Fuji Testnet, launch avadix.xyz, Build Games |
+| **Q1-2 2026 ✅** | Deploy 3 smart contracts on Fuji Testnet, launch avadix.xyz |
 | **Q3 2026** | Security audit, Chainlink oracle integration, community beta |
-| **Q4 2026** | Avalanche Mainnet deployment, AVMKT governance token launch |
+| **Q4 2026** | Avalanche Mainnet deployment, TOKEN governance token launch |
 | **Q1 2026** | Leaderboard, DAO treasury, liquidity mining rewards |
 
 ---
