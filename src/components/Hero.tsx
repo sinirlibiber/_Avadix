@@ -8,84 +8,84 @@ import { getAddresses } from '@/lib/contracts/addresses';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
 import { useEffect, useState } from 'react';
 
-// ─── Hook: fetch live stats from contract ─────────────────────────────────────
-function useLiveStats() {
-  const chainId = useChainId();
-  const contracts = getAddresses(chainId);
-
-  // Total market count
-  const { data: marketCount } = useReadContract({
-    address: contracts.PredictionMarket,
-    abi: MARKET_ABI,
-    functionName: 'marketCount',
-  }) as { data: bigint | undefined };
-
-  const count = Number(marketCount ?? 0n);
-  const marketIds = Array.from({ length: count }, (_, i) => i + 1);
-
-  // Fetch all markets to calculate total volume and unique traders
-  const [totalVolume, setTotalVolume] = useState<number>(0);
-  const [traderSet, setTraderSet] = useState<Set<string>>(new Set());
-
-  // Read each market's pool data
-  const marketResults = marketIds.map(id => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { data } = useReadContract({
-      address: contracts.PredictionMarket,
-      abi: MARKET_ABI,
-      functionName: 'getMarket',
-      args: [BigInt(id)],
-    }) as { data: any };
-    return data;
-  });
-
-  useEffect(() => {
-    let vol = 0;
-    const traders = new Set<string>();
-
-    marketResults.forEach((market) => {
-      if (!market?.exists) return;
-      const yesPool = parseFloat(formatEther(market.yesPool ?? 0n));
-      const noPool  = parseFloat(formatEther(market.noPool  ?? 0n));
-      vol += yesPool + noPool;
-      if (market.creator) traders.add(market.creator.toLowerCase());
-    });
-
-    setTotalVolume(vol);
-    setTraderSet(traders);
-  }, [JSON.stringify(marketResults.map(m => m?.yesPool?.toString() + m?.noPool?.toString()))]);
-
-  return { count, totalVolume, traderCount: traderSet.size };
-}
-
 // ─── Format helpers ───────────────────────────────────────────────────────────
 function formatVolume(avax: number): string {
   if (avax === 0) return '0';
   if (avax >= 1_000_000) return `${(avax / 1_000_000).toFixed(1)}M+`;
   if (avax >= 1_000)     return `${(avax / 1_000).toFixed(1)}K+`;
-  return `${avax.toFixed(2)}`;
+  return `${avax.toFixed(3)}`;
 }
 
-// ─── Animated counter ─────────────────────────────────────────────────────────
-function AnimatedNumber({ value, prefix = '', suffix = '' }: { value: string; prefix?: string; suffix?: string }) {
-  const [display, setDisplay] = useState('...');
+// ─── Single market fetcher — her market için ayrı component ──────────────────
+// React hook kuralı: döngü içinde hook çağrılamaz.
+// Çözüm: her market ID'si için ayrı bir component render ediyoruz.
+function MarketStatFetcher({
+  marketId,
+  contractAddress,
+  onData,
+}: {
+  marketId: number;
+  contractAddress: `0x${string}`;
+  onData: (id: number, yesPool: bigint, noPool: bigint, creator: string) => void;
+}) {
+  const { data: market } = useReadContract({
+    address: contractAddress,
+    abi: MARKET_ABI,
+    functionName: 'getMarket',
+    args: [BigInt(marketId)],
+  }) as { data: any };
 
   useEffect(() => {
-    if (value === '...') return;
-    setDisplay(prefix + value + suffix);
-  }, [value, prefix, suffix]);
+    if (market?.exists) {
+      onData(
+        marketId,
+        market.yesPool ?? 0n,
+        market.noPool  ?? 0n,
+        market.creator ?? '',
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [market?.yesPool?.toString(), market?.noPool?.toString(), market?.creator]);
 
-  return <span>{display}</span>;
+  return null;
 }
 
 // ─── Main Hero ────────────────────────────────────────────────────────────────
 export default function Hero() {
-  const { count, totalVolume, traderCount } = useLiveStats();
+  const chainId   = useChainId();
+  const contracts = getAddresses(chainId);
+
+  // Kontrat'tan toplam market sayısını çek
+  const { data: marketCountRaw } = useReadContract({
+    address: contracts.PredictionMarket,
+    abi: MARKET_ABI,
+    functionName: 'marketCount',
+  }) as { data: bigint | undefined };
+
+  const count = Number(marketCountRaw ?? 0n);
+
+  // Her market'ten gelen pool ve creator verisi burada birikiyor
+  const [volumeMap,  setVolumeMap]  = useState<Record<number, number>>({});
+  const [creatorMap, setCreatorMap] = useState<Record<number, string>>({});
+
+  const handleMarketData = (
+    id: number,
+    yesPool: bigint,
+    noPool: bigint,
+    creator: string,
+  ) => {
+    const vol = parseFloat(formatEther(yesPool)) + parseFloat(formatEther(noPool));
+    setVolumeMap(prev  => ({ ...prev, [id]: vol }));
+    setCreatorMap(prev => ({ ...prev, [id]: creator.toLowerCase() }));
+  };
+
+  const totalVolume = Object.values(volumeMap).reduce((a, b) => a + b, 0);
+  const traderCount = new Set(Object.values(creatorMap).filter(Boolean)).size;
 
   const stats = [
     {
       label: 'Total Volume',
-      value: totalVolume > 0 ? formatVolume(totalVolume) + ' AVAX' : '—',
+      value: count === 0 ? '—' : `${formatVolume(totalVolume)} AVAX`,
       icon: BarChart3,
     },
     {
@@ -107,6 +107,17 @@ export default function Hero() {
 
   return (
     <section style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '120px 24px 80px', position: 'relative', overflow: 'hidden' }}>
+
+      {/* Görünmez fetcher'lar — her market için bir tane, hook kuralını ihlal etmez */}
+      {Array.from({ length: count }, (_, i) => (
+        <MarketStatFetcher
+          key={i + 1}
+          marketId={i + 1}
+          contractAddress={contracts.PredictionMarket}
+          onData={handleMarketData}
+        />
+      ))}
+
       <div style={{ position: 'absolute', top: '20%', left: '10%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(232,65,66,0.12) 0%, transparent 70%)', borderRadius: '50%', filter: 'blur(40px)', pointerEvents: 'none', animation: 'float 8s ease-in-out infinite' }} />
       <div style={{ position: 'absolute', bottom: '20%', right: '10%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(232,65,66,0.08) 0%, transparent 70%)', borderRadius: '50%', filter: 'blur(40px)', pointerEvents: 'none', animation: 'float 10s ease-in-out infinite reverse' }} />
       <div className="bg-grid" style={{ position: 'absolute', inset: 0, opacity: 0.4, pointerEvents: 'none' }} />
