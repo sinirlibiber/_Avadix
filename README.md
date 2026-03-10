@@ -20,7 +20,7 @@ Built natively on Avalanche C-Chain — fast, cheap, and fully on-chain.
 
 ---
 
-## 📦 Deployed Smart Contracts
+##  Deployed Smart Contracts
 
 All three Avadix contracts are **live on Avalanche Fuji Testnet** — fully verified and operational.
 
@@ -35,7 +35,7 @@ All three Avadix contracts are **live on Avalanche Fuji Testnet** — fully veri
 
 ---
 
-## 🚀 What is Avadix?
+##  What is Avadix?
 
 Avadix is a fully decentralized prediction market and community governance platform built natively on Avalanche C-Chain. Users trade binary YES/NO outcomes on real-world events across crypto, politics, sports, and technology — powered by an AMM pricing model, on-chain DAO governance, and transparent community donations.
 
@@ -48,9 +48,9 @@ Three smart contracts handle all core platform logic without any centralized int
 
 ---
 
-## ✨ Features
+##  Features
 
-### 📈 Prediction Markets
+###  Prediction Markets
 - Binary YES/NO markets with live AMM pricing
 - Filter by category: **Crypto · AVAX · Politics · Sports · Tech**
 - Sort by volume, trending, or recency
@@ -58,25 +58,25 @@ Three smart contracts handle all core platform logic without any centralized int
 - Market suggestion flow — community proposes, team publishes on-chain
 - Claim rewards after market resolution
 
-### 💼 Portfolio Dashboard
+###  Portfolio Dashboard
 - Track all open positions sourced from on-chain contract state
 - Real-time PnL, win rate, and total trade stats
 - Full trading history and activity log
 
-### 🗳️ DAO Governance
+###  DAO Governance
 - Browse and vote on proposals from **AvadixDAO** contract
 - Submit your own governance proposal on-chain
 - Filter by All / Active / Passed / Rejected
 - Live YES% bar with on-chain vote counts
 
-### ❤️ Community Donations
+### Community Donations
 - Browse campaigns from **AvadixDonations** contract
 - Donate AVAX directly on-chain (min 0.001 AVAX)
 - Launch your own fundraising campaign
 - Automatic goal enforcement — donations blocked when campaign is complete
 - Full donation history per campaign
 
-### 🔗 Web3 Native
+###  Web3 Native
 - RainbowKit + WalletConnect v2 integration
 - Supports **MetaMask**, **Core Wallet**, WalletConnect v2
 - Avalanche Mainnet + Fuji Testnet support
@@ -84,7 +84,7 @@ Three smart contracts handle all core platform logic without any centralized int
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -98,7 +98,7 @@ Three smart contracts handle all core platform logic without any centralized int
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -130,7 +130,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🔐 Environment Variables
+## Environment Variables
 
 Create a `.env.local` file in the root directory:
 
@@ -177,7 +177,7 @@ avadix/
 
 ---
 
-## 🌐 Network Configuration
+## Network Configuration
 
 ### Avalanche Fuji Testnet
 ```
@@ -199,18 +199,18 @@ Currency:   AVAX
 
 ---
 
-## 🗺️ Roadmap
+##  Roadmap
 
 | Period | Milestone |
 |---|---|
-| **Q2 2025 ✅** | Deploy 3 smart contracts on Fuji Testnet, launch avadix.xyz, Build Games |
-| **Q3 2025** | Security audit, Chainlink oracle integration, community beta |
-| **Q4 2025** | Avalanche Mainnet deployment, AVMKT governance token launch |
+| **Q1-2 2026 ✅** | Deploy 3 smart contracts on Fuji Testnet, launch avadix.xyz, Build Games |
+| **Q3 2026** | Security audit, Chainlink oracle integration, community beta |
+| **Q4 2026** | Avalanche Mainnet deployment, AVMKT governance token launch |
 | **Q1 2026** | Leaderboard, DAO treasury, liquidity mining rewards |
 
 ---
 
-## 💰 Revenue Model
+## Revenue Model
 
 Avadix's protocol fee starts at **0%** during the launch phase to maximize early adoption. As trading volume scales, a fee will be activated through a **DAO governance vote** — keeping the economic model fully community-governed.
 
@@ -222,7 +222,7 @@ Donation campaigns are permanently **fee-free**.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! We are especially looking for help with smart contract development, Chainlink oracle integration, and UI improvements.
 
@@ -234,7 +234,7 @@ Contributions are welcome! We are especially looking for help with smart contrac
 
 ---
 
-## 📜 License
+## License
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 
