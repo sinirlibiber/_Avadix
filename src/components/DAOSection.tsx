@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Vote, Plus, X, CheckCircle, XCircle, Clock, Users } from 'lucide-react';
-import { useAccount } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { DAO_PROPOSALS, DAOProposal } from '@/lib/data';
+import { getAddresses } from '@/lib/contracts/addresses';
+import DAO_ABI from '@/lib/contracts/AvadixDAO.json';
 
 const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
   active:   { bg: 'rgba(59,130,246,0.15)', color: '#3B82F6', label: 'Active' },
@@ -13,52 +14,188 @@ const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }
   pending:  { bg: 'rgba(245,158,11,0.15)', color: '#F59E0B', label: 'Pending' },
 };
 
+const STATUS_MAP: Record<number, string> = { 0: 'active', 1: 'passed', 2: 'rejected', 3: 'pending' };
+
+// ─── Single Proposal Row ──────────────────────────────────────────────────────
+function ProposalRow({ proposalId, daoAddress }: { proposalId: number; daoAddress: `0x${string}` }) {
+  const { address, isConnected } = useAccount();
+
+  const { data: proposal, refetch } = useReadContract({
+    address: daoAddress,
+    abi: DAO_ABI,
+    functionName: 'getProposal',
+    args: [BigInt(proposalId)],
+  }) as { data: any; refetch: () => void };
+
+  const { data: yesPercentage } = useReadContract({
+    address: daoAddress,
+    abi: DAO_ABI,
+    functionName: 'getYesPercentage',
+    args: [BigInt(proposalId)],
+  }) as { data: bigint | undefined };
+
+  const { data: votingOpen } = useReadContract({
+    address: daoAddress,
+    abi: DAO_ABI,
+    functionName: 'isVotingOpen',
+    args: [BigInt(proposalId)],
+  }) as { data: boolean | undefined };
+
+  const { data: voteStatus } = useReadContract({
+    address: daoAddress,
+    abi: DAO_ABI,
+    functionName: 'getVoteStatus',
+    args: [BigInt(proposalId), address ?? '0x0000000000000000000000000000000000000000'],
+    query: { enabled: !!address },
+  }) as { data: [boolean, boolean] | undefined };
+
+  const { writeContract, data: txHash, isPending } = useWriteContract();
+  const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+
+  useEffect(() => { if (isSuccess) refetch(); }, [isSuccess]);
+
+  if (!proposal?.exists) return null;
+
+  const yesPct = Number(yesPercentage ?? 0n);
+  const statusKey = STATUS_MAP[proposal.status] ?? 'active';
+  const st = STATUS_STYLES[statusKey];
+  const alreadyVoted = voteStatus?.[0] ?? false;
+  const myVote = voteStatus?.[1];
+  const endDate = new Date(Number(proposal.endTime) * 1000);
+  const daysLeft = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86400000));
+  const yesVotesDisplay = (Number(proposal.yesVotes) / 1000).toFixed(0);
+  const noVotesDisplay  = (Number(proposal.noVotes)  / 1000).toFixed(0);
+
+  const handleVote = (support: boolean) => {
+    writeContract({
+      address: daoAddress,
+      abi: DAO_ABI,
+      functionName: 'vote',
+      args: [BigInt(proposalId), support],
+    });
+  };
+
+  const shortAddr = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+
+  return (
+    <div
+      style={{
+        background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 16, padding: '22px 24px',
+        transition: 'border-color 0.2s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(232,65,66,0.25)')}
+      onMouseLeave={e => (e.currentTarget.style.borderColor = '#1E1E2E')}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: 'rgba(232,65,66,0.1)', color: '#E84142', border: '1px solid rgba(232,65,66,0.2)' }}>{proposal.category}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: st.bg, color: st.color }}>{st.label}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>by {shortAddr(proposal.proposer)}</span>
+          </div>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 17, color: '#E2E2F0', marginBottom: 8 }}>{proposal.title}</h3>
+          <p style={{ fontSize: 14, color: '#8888AA', lineHeight: 1.6, maxWidth: 700 }}>{proposal.description}</p>
+        </div>
+      </div>
+
+      {/* Vote bar */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>
+            YES {yesPct}% — {yesVotesDisplay}K votes
+          </span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#E84142' }}>
+            NO {100 - yesPct}% — {noVotesDisplay}K votes
+          </span>
+        </div>
+        <div style={{ background: '#1E1E2E', borderRadius: 6, height: 8, overflow: 'hidden' }}>
+          <div style={{ width: `${yesPct}%`, height: '100%', background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: 6, transition: 'width 0.8s ease' }} />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570' }}>
+          {votingOpen ? `${daysLeft}d remaining` : `Ended ${endDate.toLocaleDateString()}`}
+        </span>
+
+        {votingOpen && (
+          alreadyVoted ? (
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>
+              ✓ Voted {myVote ? 'YES' : 'NO'}
+            </div>
+          ) : isPending ? (
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#F59E0B' }}>⏳ Confirming...</div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {!isConnected && <ConnectButton accountStatus="avatar" showBalance={false} />}
+              <button onClick={() => handleVote(true)} style={{
+                padding: '8px 20px', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)',
+                borderRadius: 8, color: '#22c55e', cursor: 'pointer',
+                fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, transition: 'all 0.2s',
+              }}>✓ Vote Yes</button>
+              <button onClick={() => handleVote(false)} style={{
+                padding: '8px 20px', background: 'rgba(232,65,66,0.1)', border: '1px solid rgba(232,65,66,0.2)',
+                borderRadius: 8, color: '#E84142', cursor: 'pointer',
+                fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, transition: 'all 0.2s',
+              }}>✗ Vote No</button>
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Section ─────────────────────────────────────────────────────────────
 export default function DAOSection() {
   const { isConnected, address } = useAccount();
-  const [proposals, setProposals] = useState<DAOProposal[]>(DAO_PROPOSALS);
-  const [voted, setVoted] = useState<Record<number, 'yes' | 'no'>>({});
+  const chainId = useChainId();
+  const contracts = getAddresses(chainId);
+
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', category: 'Governance', endDate: '' });
+  const [form, setForm] = useState({ title: '', description: '', category: 'Governance', durationDays: '7' });
   const [createSuccess, setCreateSuccess] = useState(false);
   const [createError, setCreateError] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'passed' | 'rejected'>('all');
 
-  const handleVote = (id: number, vote: 'yes' | 'no') => {
-    if (!isConnected) { alert('Connect your wallet to vote!'); return; }
-    if (voted[id]) return;
-    setVoted(v => ({ ...v, [id]: vote }));
-    setProposals(ps => ps.map(p => p.id === id ? {
-      ...p,
-      yesVotes: vote === 'yes' ? p.yesVotes + 1000 : p.yesVotes,
-      noVotes: vote === 'no' ? p.noVotes + 1000 : p.noVotes,
-    } : p));
-  };
+  // Total proposal count from chain
+  const { data: proposalCount, refetch: refetchCount } = useReadContract({
+    address: contracts.AvadixDAO,
+    abi: DAO_ABI,
+    functionName: 'proposalCount',
+  }) as { data: bigint | undefined; refetch: () => void };
+
+  const count = Number(proposalCount ?? 0n);
+  const proposalIds = Array.from({ length: count }, (_, i) => i + 1);
+
+  // Create proposal
+  const { writeContract: writeCreate, data: createTxHash, isPending: isCreating } = useWriteContract();
+  const { isSuccess: createDone } = useWaitForTransactionReceipt({ hash: createTxHash });
+
+  useEffect(() => {
+    if (createDone) {
+      refetchCount();
+      setCreateSuccess(true);
+      setForm({ title: '', description: '', category: 'Governance', durationDays: '7' });
+      setTimeout(() => { setCreateSuccess(false); setShowCreate(false); }, 2000);
+    }
+  }, [createDone]);
 
   const handleCreate = () => {
     setCreateError('');
     if (!isConnected) { setCreateError('Connect your wallet to submit a proposal.'); return; }
     if (!form.title.trim()) { setCreateError('Title is required.'); return; }
     if (!form.description.trim()) { setCreateError('Description is required.'); return; }
-    if (!form.endDate) { setCreateError('End date is required.'); return; }
-    if (new Date(form.endDate) <= new Date()) { setCreateError('End date must be in the future.'); return; }
-    const newProp: DAOProposal = {
-      id: Date.now(),
-      title: form.title,
-      description: form.description,
-      proposer: `${address?.slice(0,6)}...${address?.slice(-4)}`,
-      yesVotes: 0,
-      noVotes: 0,
-      status: 'active',
-      endDate: form.endDate,
-      category: form.category,
-    };
-    setProposals(ps => [newProp, ...ps]);
-    setCreateSuccess(true);
-    setForm({ title: '', description: '', category: 'Governance', endDate: '' });
-    setTimeout(() => { setCreateSuccess(false); setShowCreate(false); }, 2000);
-  };
+    const days = parseInt(form.durationDays);
+    if (!days || days < 1) { setCreateError('Duration must be at least 1 day.'); return; }
 
-  const filtered = proposals.filter(p => filter === 'all' || p.status === filter);
+    writeCreate({
+      address: contracts.AvadixDAO,
+      abi: DAO_ABI,
+      functionName: 'createProposal',
+      args: [form.title, form.description, form.category, BigInt(days * 86400)],
+    });
+  };
 
   return (
     <section id="dao" style={{ padding: '80px 24px', maxWidth: 1280, margin: '0 auto' }}>
@@ -80,10 +217,10 @@ export default function DAOSection() {
       {/* DAO Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 32 }}>
         {[
-          { label: 'Total Proposals', value: proposals.length.toString(), icon: Vote },
-          { label: 'Active', value: proposals.filter(p => p.status === 'active').length.toString(), icon: Clock },
-          { label: 'Passed', value: proposals.filter(p => p.status === 'passed').length.toString(), icon: CheckCircle },
-          { label: 'Token Holders', value: '3,240', icon: Users },
+          { label: 'Total Proposals', value: count.toString(), icon: Vote },
+          { label: 'On-Chain', value: '✓', icon: Clock },
+          { label: 'Network', value: chainId === 43113 ? 'Fuji' : 'Mainnet', icon: CheckCircle },
+          { label: 'Contract', value: `${contracts.AvadixDAO.slice(0, 6)}...`, icon: Users },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 12, padding: '16px 18px' }}>
             <Icon size={16} color="#E84142" style={{ marginBottom: 8 }} />
@@ -105,78 +242,16 @@ export default function DAOSection() {
         ))}
       </div>
 
-      {/* Proposals list */}
+      {/* Proposals — rendered directly from chain */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {filtered.map(prop => {
-          const total = prop.yesVotes + prop.noVotes || 1;
-          const yesPct = Math.round((prop.yesVotes / total) * 100);
-          const st = STATUS_STYLES[prop.status];
-          const hasVoted = voted[prop.id];
-          const daysLeft = Math.max(0, Math.ceil((new Date(prop.endDate).getTime() - Date.now()) / 86400000));
-
-          return (
-            <div key={prop.id} style={{
-              background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 16, padding: '22px 24px',
-              transition: 'border-color 0.2s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(232,65,66,0.25)')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = '#1E1E2E')}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: 'rgba(232,65,66,0.1)', color: '#E84142', border: '1px solid rgba(232,65,66,0.2)' }}>{prop.category}</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: st.bg, color: st.color }}>{st.label}</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>by {prop.proposer}</span>
-                  </div>
-                  <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 17, color: '#E2E2F0', marginBottom: 8 }}>{prop.title}</h3>
-                  <p style={{ fontSize: 14, color: '#8888AA', lineHeight: 1.6, maxWidth: 700 }}>{prop.description}</p>
-                </div>
-              </div>
-
-              {/* Vote bar */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>
-                    YES {yesPct}% — {(prop.yesVotes / 1000).toFixed(0)}K votes
-                  </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#E84142' }}>
-                    NO {100 - yesPct}% — {(prop.noVotes / 1000).toFixed(0)}K votes
-                  </span>
-                </div>
-                <div style={{ background: '#1E1E2E', borderRadius: 6, height: 8, overflow: 'hidden' }}>
-                  <div style={{ width: `${yesPct}%`, height: '100%', background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: 6, transition: 'width 0.8s ease' }} />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570' }}>
-                  {prop.status === 'active' ? `${daysLeft}d remaining` : `Ended ${prop.endDate}`}
-                </span>
-                {prop.status === 'active' && (
-                  hasVoted ? (
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>
-                      ✓ Voted {hasVoted.toUpperCase()}
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      {!isConnected && <ConnectButton accountStatus="avatar" showBalance={false} />}
-                      <button onClick={() => handleVote(prop.id, 'yes')} style={{
-                        padding: '8px 20px', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)',
-                        borderRadius: 8, color: '#22c55e', cursor: 'pointer',
-                        fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, transition: 'all 0.2s',
-                      }}>✓ Vote Yes</button>
-                      <button onClick={() => handleVote(prop.id, 'no')} style={{
-                        padding: '8px 20px', background: 'rgba(232,65,66,0.1)', border: '1px solid rgba(232,65,66,0.2)',
-                        borderRadius: 8, color: '#E84142', cursor: 'pointer',
-                        fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, transition: 'all 0.2s',
-                      }}>✗ Vote No</button>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {count === 0 && (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>
+            No proposals yet. Be the first to submit one!
+          </div>
+        )}
+        {proposalIds.map(id => (
+          <ProposalRow key={id} proposalId={id} daoAddress={contracts.AvadixDAO} />
+        ))}
       </div>
 
       {/* Create Proposal Modal */}
@@ -189,13 +264,13 @@ export default function DAOSection() {
 
             {createSuccess ? (
               <div style={{ padding: 20, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 12, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-                ✓ Proposal submitted!
+                ✓ Proposal submitted on-chain!
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {[
                   { label: 'Proposal Title', key: 'title', placeholder: 'Short, clear title for your proposal', type: 'text' },
-                  { label: 'Full Description', key: 'description', placeholder: 'Describe your proposal in detail, including rationale and expected impact...', type: 'textarea' },
+                  { label: 'Full Description', key: 'description', placeholder: 'Describe your proposal in detail...', type: 'textarea' },
                 ].map(({ label, key, placeholder, type }) => (
                   <div key={key}>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>{label}</label>
@@ -214,19 +289,20 @@ export default function DAOSection() {
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Voting End</label>
-                    <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, color: '#E2E2F0', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none', colorScheme: 'dark' }} />
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Duration (days)</label>
+                    <input type="number" min="1" max="30" placeholder="7" value={form.durationDays} onChange={e => setForm(f => ({ ...f, durationDays: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, color: '#E2E2F0', fontFamily: 'var(--font-mono)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                 </div>
                 {createError && (
                   <div style={{ padding: '10px 14px', background: 'rgba(232,65,66,0.1)', border: '1px solid rgba(232,65,66,0.2)', borderRadius: 8, color: '#E84142', fontSize: 13, fontFamily: 'var(--font-mono)' }}>⚠ {createError}</div>
                 )}
-                <button onClick={handleCreate} style={{
+                <button onClick={handleCreate} disabled={isCreating} style={{
                   width: '100%', padding: '13px 0', background: '#E84142', border: 'none',
                   borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15,
-                  cursor: 'pointer', boxShadow: '0 0 20px rgba(232,65,66,0.3)',
+                  cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1,
+                  boxShadow: '0 0 20px rgba(232,65,66,0.3)',
                 }}>
-                  {!isConnected ? '⚠ Connect Wallet First' : 'Submit Proposal'}
+                  {isCreating ? '⏳ Submitting...' : !isConnected ? '⚠ Connect Wallet First' : 'Submit Proposal On-Chain'}
                 </button>
               </div>
             )}
