@@ -14,7 +14,7 @@
 **Trade on real-world events. Govern the protocol. Support the community.**
 Built on Avalanche C-Chain — fast, cheap, and fully on-chain.
 
-[Live Demo](https://avadix.vercel.app) · [Report Bug](https://github.com/sinirlibiber/Avadix_/issues) · [Request Feature](https://github.com/sinirlibiber/Avadix_/issues)
+[Live Demo](https://avadix.xyz) · [Report Bug](https://github.com/sinirlibiber/Avadix_/issues) · [Request Feature](https://github.com/sinirlibiber/Avadix_/issues)
 
 </div>
 
