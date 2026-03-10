@@ -150,6 +150,14 @@ export default function DonationSection() {
     const bal = parseFloat(balance?.formatted || '0');
     if (num > bal) { alert(`Insufficient balance. You have ${bal.toFixed(3)} AVAX`); return; }
 
+    // Goal reached kontrolü
+    const progress = selectedData?.progress ?? 0;
+    if (progress >= 100) { alert('This campaign has already reached its goal. No more donations are accepted.'); return; }
+
+    // Süre dolmuş kontrolü
+    const deadline = selectedData?.deadline ? Number(selectedData.deadline) * 1000 : null;
+    if (deadline && Date.now() > deadline) { alert('This campaign has ended. Donations are no longer accepted.'); return; }
+
     writeDonate({ address: contracts.AvadixDonations, abi: DONATIONS_ABI, functionName: 'donate', args: [BigInt(selectedId)], value: parseEther(amount) });
   };
 
@@ -254,13 +262,43 @@ export default function DonationSection() {
 
             {txPending && <div style={{ padding: '10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, color: '#F59E0B', fontSize: 12, fontFamily: 'var(--font-mono)', textAlign: 'center' }}>⏳ {isDonating ? 'Awaiting wallet...' : 'Confirming on-chain...'}</div>}
 
+            {/* Goal reached veya süre dolmuş uyarısı */}
+            {(selectedData?.progress >= 100) && (
+              <div style={{ padding: '12px 14px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 10, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14 }}>
+                🎯 Goal Reached — Campaign Complete
+              </div>
+            )}
+            {(selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000 && (selectedData?.progress ?? 0) < 100) && (
+              <div style={{ padding: '12px 14px', background: 'rgba(232,65,66,0.08)', border: '1px solid rgba(232,65,66,0.2)', borderRadius: 10, textAlign: 'center', color: '#E84142', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14 }}>
+                ⏰ Campaign Ended
+              </div>
+            )}
+
             {donateSuccess ? (
               <div style={{ padding: 14, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 10, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600 }}>💚 Donation confirmed on-chain!</div>
             ) : (
-              <button onClick={handleDonate} disabled={txPending} style={{ width: '100%', padding: '14px', background: isConnected ? '#E84142' : '#2A2A3E', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: txPending ? 'wait' : 'pointer', opacity: txPending ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: isConnected ? '0 0 20px rgba(232,65,66,0.2)' : 'none' }}>
+              <button
+                onClick={handleDonate}
+                disabled={
+                  txPending ||
+                  (selectedData?.progress >= 100) ||
+                  (selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000)
+                }
+                style={{
+                  width: '100%', padding: '14px',
+                  background: (selectedData?.progress >= 100) || (selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000)
+                    ? '#2A2A3E'
+                    : isConnected ? '#E84142' : '#2A2A3E',
+                  border: 'none', borderRadius: 10, color: 'white',
+                  fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15,
+                  cursor: (txPending || selectedData?.progress >= 100) ? 'not-allowed' : 'pointer',
+                  opacity: (txPending || selectedData?.progress >= 100 || (selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000)) ? 0.5 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  boxShadow: isConnected && (selectedData?.progress ?? 0) < 100 ? '0 0 20px rgba(232,65,66,0.2)' : 'none'
+                }}>
                 <Heart size={16} fill="white" />
-                {isDonating ? 'Awaiting wallet...' : isDonateConfirming ? 'Confirming...' : !isConnected ? 'Connect Wallet to Donate' : `Donate ${amount} AVAX`}
-                {isConnected && !txPending && <Sparkles size={14} />}
+                {isDonating ? 'Awaiting wallet...' : isDonateConfirming ? 'Confirming...' : !isConnected ? 'Connect Wallet to Donate' : (selectedData?.progress >= 100) ? 'Goal Reached' : `Donate ${amount} AVAX`}
+                {isConnected && !txPending && (selectedData?.progress ?? 0) < 100 && <Sparkles size={14} />}
               </button>
             )}
 
