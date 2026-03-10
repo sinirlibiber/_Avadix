@@ -17,7 +17,7 @@ const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }
 const STATUS_MAP: Record<number, string> = { 0: 'active', 1: 'passed', 2: 'rejected', 3: 'pending' };
 
 // ─── Single Proposal Row ──────────────────────────────────────────────────────
-function ProposalRow({ proposalId, daoAddress }: { proposalId: number; daoAddress: `0x${string}` }) {
+function ProposalRow({ proposalId, daoAddress, hidden, onStatus }: { proposalId: number; daoAddress: `0x${string}`; hidden?: boolean; onStatus?: (id: number, status: string) => void }) {
   const { address, isConnected } = useAccount();
 
   const { data: proposal, refetch } = useReadContract({
@@ -65,6 +65,14 @@ function ProposalRow({ proposalId, daoAddress }: { proposalId: number; daoAddres
   const daysLeft = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86400000));
   const yesVotesDisplay = (Number(proposal.yesVotes) / 1000).toFixed(0);
   const noVotesDisplay  = (Number(proposal.noVotes)  / 1000).toFixed(0);
+
+  // Parent'a status bildir
+  useEffect(() => {
+    if (proposal?.exists && onStatus) onStatus(proposalId, statusKey);
+  }, [statusKey]);
+
+  // Filtre uygulanmışsa gizle (ama unmount etme — hook kuralı)
+  if (hidden) return null;
 
   const handleVote = (support: boolean) => {
     writeContract({
@@ -157,6 +165,11 @@ export default function DAOSection() {
   const [createSuccess, setCreateSuccess] = useState(false);
   const [createError, setCreateError] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'passed' | 'rejected'>('all');
+  const [statusMap, setStatusMap] = useState<Record<number, string>>({});
+
+  const handleProposalStatus = (id: number, status: string) => {
+    setStatusMap(prev => prev[id] === status ? prev : { ...prev, [id]: status });
+  };
 
   // Total proposal count from chain
   const { data: proposalCount, refetch: refetchCount } = useReadContract({
@@ -250,7 +263,13 @@ export default function DAOSection() {
           </div>
         )}
         {proposalIds.map(id => (
-          <ProposalRow key={id} proposalId={id} daoAddress={contracts.AvadixDAO} />
+          <ProposalRow
+            key={id}
+            proposalId={id}
+            daoAddress={contracts.AvadixDAO}
+            onStatus={handleProposalStatus}
+            hidden={filter !== 'all' && statusMap[id] !== filter}
+          />
         ))}
       </div>
 
