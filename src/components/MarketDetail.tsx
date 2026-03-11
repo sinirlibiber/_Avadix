@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, TrendingUp, Clock, Users, BarChart3, Activity, AlertCircle, CheckCircle, Info, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Clock, Users, BarChart3, Activity, AlertCircle, CheckCircle, Info, ChevronUp, ChevronDown, Zap, Target } from 'lucide-react';
 import Link from 'next/link';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance, useChainId } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
@@ -177,6 +177,17 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
     query: { enabled: !!address },
   }) as { data: any };
 
+
+  // Chainlink canlı fiyat — sadece oracle marketlerde
+  const isOracle = market?.marketType === 1;
+  const { data: oraclePrice } = useReadContract({
+    address: contracts.PredictionMarket,
+    abi: MARKET_ABI,
+    functionName: 'getCurrentPrice',
+    args: [market?.tokenPair ?? 0],
+    query: { enabled: !!market && isOracle, refetchInterval: 30_000 },
+  }) as { data: [bigint, number] | undefined };
+
   const { writeContract, data: txHash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
@@ -324,6 +335,102 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
               </div>
             </div>
           </div>
+
+          {/* 🔴 CANLI FİYAT PANELİ — sadece oracle marketlerde */}
+          {isOracle && !market.resolved && oraclePrice && (() => {
+            const TOKEN_META: Record<number, { symbol: string; color: string; bg: string }> = {
+              0: { symbol: 'AVAX/USD', color: '#E84142', bg: 'rgba(232,65,66,0.08)' },
+              1: { symbol: 'BTC/USD',  color: '#F59E0B', bg: 'rgba(245,158,11,0.08)' },
+              2: { symbol: 'ETH/USD',  color: '#6366F1', bg: 'rgba(99,102,241,0.08)' },
+              3: { symbol: 'LINK/USD', color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' },
+            };
+            const meta       = TOKEN_META[Number(market.tokenPair)] ?? TOKEN_META[0];
+            const [rawP, dec] = oraclePrice;
+            const current    = Number(rawP) / 10 ** dec;
+            const target     = Number(market.targetPrice) / 1e8;
+            const winning    = market.targetAbove ? current >= target : current <= target;
+            const diff       = ((current - target) / target) * 100;
+            const progress   = market.targetAbove
+              ? Math.min(100, Math.max(0, (current / target) * 100))
+              : Math.min(100, Math.max(0, (target / current) * 100));
+
+            return (
+              <div style={{
+                background: winning ? 'rgba(34,197,94,0.06)' : 'rgba(232,65,66,0.06)',
+                border: `1px solid ${winning ? 'rgba(34,197,94,0.25)' : 'rgba(232,65,66,0.25)'}`,
+                borderRadius: 14, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12,
+              }}>
+                {/* Başlık */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Zap size={13} color={meta.color} />
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Chainlink · {meta.symbol} · Canlı
+                  </span>
+                  <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 6, background: winning ? 'rgba(34,197,94,0.15)' : 'rgba(232,65,66,0.15)', color: winning ? '#22c55e' : '#E84142', fontWeight: 700 }}>
+                    {winning ? '✓ YES bölgesi' : '✗ NO bölgesi'}
+                  </span>
+                </div>
+
+                {/* Fiyat grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr', gap: 0 }}>
+                  {/* Anlık fiyat */}
+                  <div style={{ paddingRight: 16 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4 }}>Anlık Fiyat</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26, color: meta.color, lineHeight: 1 }}>
+                      ${current.toLocaleString('en-US', { maximumFractionDigits: current > 1000 ? 0 : 2 })}
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 3 }}>30s'de güncellenir</div>
+                  </div>
+                  <div style={{ background: '#1E1E2E' }} />
+                  {/* Hedef fiyat */}
+                  <div style={{ padding: '0 16px' }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Target size={9} /> Hedef
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, color: '#E2E2F0', lineHeight: 1 }}>
+                      ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#8888AA', marginTop: 3 }}>
+                      {market.targetAbove ? 'fiyat ≥ hedef → YES' : 'fiyat ≤ hedef → YES'}
+                    </div>
+                  </div>
+                  <div style={{ background: '#1E1E2E' }} />
+                  {/* Fark */}
+                  <div style={{ paddingLeft: 16 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4 }}>Hedefe Fark</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, lineHeight: 1, color: winning ? '#22c55e' : '#E84142' }}>
+                      {diff > 0 ? '+' : ''}{diff.toFixed(1)}%
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 3 }}>
+                      {winning ? 'hedefe ulaşıldı' : Math.abs(diff).toFixed(1) + '% uzakta'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress bar — hedefe yakınlık */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570' }}>$0</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#8888AA' }}>Hedefe yakınlık</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: meta.color }}>
+                      ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div style={{ background: '#1E1E2E', borderRadius: 8, height: 8, overflow: 'hidden', position: 'relative' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 8,
+                      width: `${Math.min(progress, 100)}%`,
+                      background: winning
+                        ? 'linear-gradient(90deg, #16a34a, #22c55e)'
+                        : `linear-gradient(90deg, ${meta.color}88, ${meta.color})`,
+                      transition: 'width 0.8s ease',
+                    }} />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
 
           {/* Chart / Depth / Activity tabs */}
           <div style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 20, overflow: 'hidden' }}>
