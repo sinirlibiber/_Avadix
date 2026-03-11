@@ -1,6 +1,7 @@
 'use client';
 
-import { TrendingUp, Clock, ArrowRight, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { TrendingUp, Clock, ArrowRight, Zap, WifiOff } from 'lucide-react';
 import Link from 'next/link';
 import { useReadContract, useChainId } from 'wagmi';
 import { formatEther } from 'viem';
@@ -12,17 +13,48 @@ const CATEGORY_COLORS: Record<string, string> = {
   sports: '#10B981', tech: '#3B82F6',
 };
 
-// TokenPair enum → label + renk
-const TOKEN_PAIR_META: Record<number, { symbol: string; color: string; decimals: number }> = {
-  0: { symbol: 'AVAX', color: '#E84142', decimals: 8 },
-  1: { symbol: 'BTC',  color: '#F59E0B', decimals: 8 },
-  2: { symbol: 'ETH',  color: '#6366F1', decimals: 8 },
-  3: { symbol: 'LINK', color: '#3B82F6', decimals: 8 },
+const TOKEN_PAIR_META: Record<number, { symbol: string; color: string; coingeckoId: string }> = {
+  0: { symbol: 'AVAX', color: '#E84142', coingeckoId: 'avalanche-2' },
+  1: { symbol: 'BTC',  color: '#F59E0B', coingeckoId: 'bitcoin' },
+  2: { symbol: 'ETH',  color: '#6366F1', coingeckoId: 'ethereum' },
+  3: { symbol: 'LINK', color: '#3B82F6', coingeckoId: 'chainlink' },
 };
+
+// ─── CoinGecko fallback hook ──────────────────────────────────────────────────
+function useCoinGeckoPrice(coingeckoId: string, enabled: boolean) {
+  const [price, setPrice] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+
+    const fetch_ = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`
+        );
+        const json = await res.json();
+        if (!cancelled) setPrice(json[coingeckoId]?.usd ?? null);
+      } catch {
+        if (!cancelled) setPrice(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetch_();
+    const interval = setInterval(fetch_, 60_000); // refresh every 60s
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [coingeckoId, enabled]);
+
+  return { price, loading };
+}
 
 interface Props { marketId: number; }
 
-// ─── Fiyat chip bileşeni ───────────────────────────────────────────────────────
+// ─── Live price chip ──────────────────────────────────────────────────────────
 function LivePriceChip({
   tokenPair,
   targetPrice,
@@ -32,25 +64,59 @@ function LivePriceChip({
   targetPrice: bigint;
   targetAbove: boolean;
 }) {
-  const chainId = useChainId();
+  const chainId   = useChainId();
   const contracts = getAddresses(chainId);
-  const meta = TOKEN_PAIR_META[tokenPair];
+  const meta      = TOKEN_PAIR_META[tokenPair];
 
-  const { data } = useReadContract({
+  // 1️⃣ Try Chainlink onchain first
+  const { data: chainlinkData, isError: chainlinkError } = useReadContract({
     address: contracts.PredictionMarket,
     abi: MARKET_ABI,
     functionName: 'getCurrentPrice',
     args: [tokenPair],
-    query: { refetchInterval: 30_000 }, // 30 saniyede bir güncelle
-  }) as { data: [bigint, number] | undefined };
+    query: { refetchInterval: 30_000, retry: 1 },
+  }) as { data: [bigint, number] | undefined; isError: boolean };
 
-  if (!data || !meta) return null;
+  // 2️⃣ CoinGecko fallback — only kicks in if Chainlink fails
+  const needsFallback = !chainlinkData || chainlinkError;
+  const { price: geckoPrice, loading: geckoLoading } = useCoinGeckoPrice(
+    meta?.coingeckoId ?? '',
+    needsFallback && !!meta
+  );
 
-  const [rawPrice, decimals] = data;
-  const currentPrice = Number(rawPrice) / 10 ** decimals;
-  const target       = Number(targetPrice) / 1e8;
+  if (!meta) return null;
 
-  // Hedefe ne kadar yakın? (%)
+  // Resolve final price + source label
+  let currentPrice: number | null = null;
+  let source: 'chainlink' | 'coingecko' | null = null;
+
+  if (chainlinkData && !chainlinkError) {
+    const [rawPrice, decimals] = chainlinkData;
+    currentPrice = Number(rawPrice) / 10 ** decimals;
+    source = 'chainlink';
+  } else if (geckoPrice !== null) {
+    currentPrice = geckoPrice;
+    source = 'coingecko';
+  }
+
+  const target = Number(targetPrice) / 1e8;
+
+  // Loading state
+  if (currentPrice === null) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        background: 'rgba(85,85,112,0.1)', border: '1px solid #1E1E2E',
+        borderRadius: 10, padding: '8px 12px',
+      }}>
+        <WifiOff size={11} color="#555570" />
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>
+          {geckoLoading ? 'Fetching price...' : 'Price unavailable'}
+        </span>
+      </div>
+    );
+  }
+
   const diff    = ((currentPrice - target) / target) * 100;
   const winning = targetAbove ? currentPrice >= target : currentPrice <= target;
   const diffAbs = Math.abs(diff).toFixed(1);
@@ -62,7 +128,7 @@ function LivePriceChip({
       border: `1px solid ${winning ? 'rgba(34,197,94,0.2)' : 'rgba(232,65,66,0.2)'}`,
       borderRadius: 10, padding: '8px 12px', marginTop: 2,
     }}>
-      {/* Sol: sembol + anlık fiyat */}
+      {/* Left: symbol + price */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{
           width: 20, height: 20, borderRadius: '50%',
@@ -73,32 +139,45 @@ function LivePriceChip({
           {meta.symbol[0]}
         </div>
         <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', lineHeight: 1 }}>{meta.symbol}/USD</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', lineHeight: 1 }}>
+              {meta.symbol}/USD
+            </span>
+            {/* Source badge */}
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: 8, padding: '1px 5px',
+              borderRadius: 4, lineHeight: 1.4,
+              background: source === 'chainlink' ? 'rgba(59,130,246,0.15)' : 'rgba(245,158,11,0.15)',
+              color: source === 'chainlink' ? '#3B82F6' : '#F59E0B',
+            }}>
+              {source === 'chainlink' ? '⚡ CL' : '🦎 CG'}
+            </span>
+          </div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#E2E2F0', fontWeight: 700, lineHeight: 1.2 }}>
             ${currentPrice.toLocaleString('en-US', { maximumFractionDigits: currentPrice > 1000 ? 0 : 2 })}
           </div>
         </div>
       </div>
 
-      {/* Sağ: hedef + durum */}
+      {/* Right: target + status */}
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', lineHeight: 1 }}>
-          Hedef: ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+          Target: ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}
         </div>
         <div style={{
           fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, lineHeight: 1.2,
           color: winning ? '#22c55e' : '#E84142',
         }}>
-          {winning ? '✓ YES bölgesi' : `${diffAbs}% uzakta`}
+          {winning ? '✓ In YES zone' : `${diffAbs}% away`}
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Ana kart ─────────────────────────────────────────────────────────────────
+// ─── Main card ────────────────────────────────────────────────────────────────
 export default function MarketCard({ marketId }: Props) {
-  const chainId = useChainId();
+  const chainId   = useChainId();
   const contracts = getAddresses(chainId);
 
   const { data: market } = useReadContract({
@@ -117,17 +196,17 @@ export default function MarketCard({ marketId }: Props) {
 
   if (!market?.exists) return null;
 
-  const isOracle    = market.marketType === 1;
-  const yesPercent  = Number(probability ?? BigInt(50));
-  const noPercent   = 100 - yesPercent;
-  const category    = market.category?.toLowerCase() ?? 'crypto';
-  const catColor    = CATEGORY_COLORS[category] || '#E84142';
-  const endDate     = new Date(Number(market.endTime) * 1000);
-  const daysLeft    = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86400000));
-  const yesPool     = market.yesPool ?? BigInt(0);
-  const noPool      = market.noPool ?? BigInt(0);
-  const totalPool   = yesPool + noPool;
-  const totalPoolF  = parseFloat(formatEther(totalPool)).toFixed(3);
+  const isOracle   = market.marketType === 1;
+  const yesPercent = Number(probability ?? BigInt(50));
+  const noPercent  = 100 - yesPercent;
+  const category   = market.category?.toLowerCase() ?? 'crypto';
+  const catColor   = CATEGORY_COLORS[category] || '#E84142';
+  const endDate    = new Date(Number(market.endTime) * 1000);
+  const daysLeft   = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86400000));
+  const yesPool    = market.yesPool ?? BigInt(0);
+  const noPool     = market.noPool ?? BigInt(0);
+  const totalPool  = yesPool + noPool;
+  const totalPoolF = parseFloat(formatEther(totalPool)).toFixed(3);
 
   return (
     <Link href={`/markets/${marketId}`} style={{ textDecoration: 'none' }}>
@@ -174,10 +253,12 @@ export default function MarketCard({ marketId }: Props) {
               {market.outcome === 1 ? '✓ YES' : '✓ NO'}
             </span>
           )}
-          <span style={{ fontSize: 11, color: '#555570', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>#{marketId}</span>
+          <span style={{ fontSize: 11, color: '#555570', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>
+            #{marketId}
+          </span>
         </div>
 
-        {/* Soru */}
+        {/* Question */}
         <h3 style={{
           fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15,
           color: '#E2E2F0', lineHeight: 1.4, flex: 1, margin: 0,
@@ -185,7 +266,7 @@ export default function MarketCard({ marketId }: Props) {
           {market.question}
         </h3>
 
-        {/* 🔴 CANLI FİYAT — sadece oracle marketlerde */}
+        {/* 🔴 LIVE PRICE — oracle markets only */}
         {isOracle && !market.resolved && (
           <LivePriceChip
             tokenPair={Number(market.tokenPair)}
@@ -197,8 +278,12 @@ export default function MarketCard({ marketId }: Props) {
         {/* Probability bar */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#22c55e', fontWeight: 700 }}>{yesPercent}¢ YES</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#E84142', fontWeight: 700 }}>{noPercent}¢ NO</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#22c55e', fontWeight: 700 }}>
+              {yesPercent}¢ YES
+            </span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#E84142', fontWeight: 700 }}>
+              {noPercent}¢ NO
+            </span>
           </div>
           <div style={{ background: '#1E1E2E', borderRadius: 6, height: 6, overflow: 'hidden', display: 'flex' }}>
             <div style={{ width: `${yesPercent}%`, background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: '6px 0 0 6px' }} />
