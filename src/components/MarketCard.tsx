@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { TrendingUp, Clock, Droplets, ArrowRight } from 'lucide-react';
+import { TrendingUp, Clock, ArrowRight, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useReadContract, useChainId } from 'wagmi';
 import { formatEther } from 'viem';
@@ -13,60 +12,189 @@ const CATEGORY_COLORS: Record<string, string> = {
   sports: '#10B981', tech: '#3B82F6',
 };
 
+// TokenPair enum → label + renk
+const TOKEN_PAIR_META: Record<number, { symbol: string; color: string; decimals: number }> = {
+  0: { symbol: 'AVAX', color: '#E84142', decimals: 8 },
+  1: { symbol: 'BTC',  color: '#F59E0B', decimals: 8 },
+  2: { symbol: 'ETH',  color: '#6366F1', decimals: 8 },
+  3: { symbol: 'LINK', color: '#3B82F6', decimals: 8 },
+};
+
 interface Props { marketId: number; }
 
+// ─── Fiyat chip bileşeni ───────────────────────────────────────────────────────
+function LivePriceChip({
+  tokenPair,
+  targetPrice,
+  targetAbove,
+}: {
+  tokenPair: number;
+  targetPrice: bigint;
+  targetAbove: boolean;
+}) {
+  const chainId = useChainId();
+  const contracts = getAddresses(chainId);
+  const meta = TOKEN_PAIR_META[tokenPair];
+
+  const { data } = useReadContract({
+    address: contracts.PredictionMarket,
+    abi: MARKET_ABI,
+    functionName: 'getCurrentPrice',
+    args: [tokenPair],
+    query: { refetchInterval: 30_000 }, // 30 saniyede bir güncelle
+  }) as { data: [bigint, number] | undefined };
+
+  if (!data || !meta) return null;
+
+  const [rawPrice, decimals] = data;
+  const currentPrice = Number(rawPrice) / 10 ** decimals;
+  const target       = Number(targetPrice) / 1e8;
+
+  // Hedefe ne kadar yakın? (%)
+  const diff    = ((currentPrice - target) / target) * 100;
+  const winning = targetAbove ? currentPrice >= target : currentPrice <= target;
+  const diffAbs = Math.abs(diff).toFixed(1);
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      background: winning ? 'rgba(34,197,94,0.07)' : 'rgba(232,65,66,0.07)',
+      border: `1px solid ${winning ? 'rgba(34,197,94,0.2)' : 'rgba(232,65,66,0.2)'}`,
+      borderRadius: 10, padding: '8px 12px', marginTop: 2,
+    }}>
+      {/* Sol: sembol + anlık fiyat */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{
+          width: 20, height: 20, borderRadius: '50%',
+          background: meta.color + '22', border: `1px solid ${meta.color}44`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'var(--font-mono)', fontSize: 9, color: meta.color, fontWeight: 700,
+        }}>
+          {meta.symbol[0]}
+        </div>
+        <div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', lineHeight: 1 }}>{meta.symbol}/USD</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#E2E2F0', fontWeight: 700, lineHeight: 1.2 }}>
+            ${currentPrice.toLocaleString('en-US', { maximumFractionDigits: currentPrice > 1000 ? 0 : 2 })}
+          </div>
+        </div>
+      </div>
+
+      {/* Sağ: hedef + durum */}
+      <div style={{ textAlign: 'right' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', lineHeight: 1 }}>
+          Hedef: ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+        </div>
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, lineHeight: 1.2,
+          color: winning ? '#22c55e' : '#E84142',
+        }}>
+          {winning ? '✓ YES bölgesi' : `${diffAbs}% uzakta`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Ana kart ─────────────────────────────────────────────────────────────────
 export default function MarketCard({ marketId }: Props) {
   const chainId = useChainId();
   const contracts = getAddresses(chainId);
 
   const { data: market } = useReadContract({
-    address: contracts.PredictionMarket, abi: MARKET_ABI,
-    functionName: 'getMarket', args: [BigInt(marketId)],
+    address: contracts.PredictionMarket,
+    abi: MARKET_ABI,
+    functionName: 'getMarket',
+    args: [BigInt(marketId)],
   }) as { data: any };
 
   const { data: probability } = useReadContract({
-    address: contracts.PredictionMarket, abi: MARKET_ABI,
-    functionName: 'getYesProbability', args: [BigInt(marketId)],
+    address: contracts.PredictionMarket,
+    abi: MARKET_ABI,
+    functionName: 'getYesProbability',
+    args: [BigInt(marketId)],
   }) as { data: bigint | undefined };
 
   if (!market?.exists) return null;
 
-  const yesPercent = Number(probability ?? BigInt(50));
-  const noPercent  = 100 - yesPercent;
-  const category   = market.category?.toLowerCase() ?? 'crypto';
-  const catColor   = CATEGORY_COLORS[category] || '#E84142';
-  const endDate    = new Date(Number(market.endTime) * 1000);
-  const daysLeft   = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86400000));
-  const yesPool    = market.yesPool ?? BigInt(0);
-  const noPool     = market.noPool ?? BigInt(0);
-  const totalPool  = yesPool + noPool;
-  const totalPoolF = parseFloat(formatEther(totalPool)).toFixed(3);
-  const isUp = yesPercent >= 50;
+  const isOracle    = market.marketType === 1;
+  const yesPercent  = Number(probability ?? BigInt(50));
+  const noPercent   = 100 - yesPercent;
+  const category    = market.category?.toLowerCase() ?? 'crypto';
+  const catColor    = CATEGORY_COLORS[category] || '#E84142';
+  const endDate     = new Date(Number(market.endTime) * 1000);
+  const daysLeft    = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86400000));
+  const yesPool     = market.yesPool ?? BigInt(0);
+  const noPool      = market.noPool ?? BigInt(0);
+  const totalPool   = yesPool + noPool;
+  const totalPoolF  = parseFloat(formatEther(totalPool)).toFixed(3);
 
   return (
     <Link href={`/markets/${marketId}`} style={{ textDecoration: 'none' }}>
-      <div style={{
-        background: '#12121A', border: '1px solid #1E1E2E',
-        borderRadius: 16, padding: 20, transition: 'all 0.25s ease',
-        display: 'flex', flexDirection: 'column', gap: 14, cursor: 'pointer', height: '100%',
-      }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(232,65,66,0.3)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 30px rgba(0,0,0,0.3)'; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1E1E2E'; (e.currentTarget as HTMLElement).style.transform = 'none'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}>
-
+      <div
+        style={{
+          background: '#12121A', border: '1px solid #1E1E2E',
+          borderRadius: 16, padding: 20, transition: 'all 0.25s ease',
+          display: 'flex', flexDirection: 'column', gap: 12, cursor: 'pointer', height: '100%',
+        }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLElement).style.borderColor = 'rgba(232,65,66,0.3)';
+          (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+          (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 30px rgba(0,0,0,0.3)';
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLElement).style.borderColor = '#1E1E2E';
+          (e.currentTarget as HTMLElement).style.transform = 'none';
+          (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+        }}
+      >
         {/* Header */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 500, padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', background: `${catColor}18`, color: catColor, border: `1px solid ${catColor}30` }}>{category}</span>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 500,
+            padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase',
+            background: `${catColor}18`, color: catColor, border: `1px solid ${catColor}30`,
+          }}>{category}</span>
+
+          {isOracle && (
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 8px',
+              borderRadius: 20, background: 'rgba(59,130,246,0.1)', color: '#3B82F6',
+              border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              <Zap size={9} /> Oracle
+            </span>
+          )}
+
           {market.resolved && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px',
+              borderRadius: 20, background: 'rgba(34,197,94,0.12)', color: '#22c55e',
+            }}>
               {market.outcome === 1 ? '✓ YES' : '✓ NO'}
             </span>
           )}
           <span style={{ fontSize: 11, color: '#555570', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>#{marketId}</span>
         </div>
 
-        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, color: '#E2E2F0', lineHeight: 1.4, flex: 1 }}>{market.question}</h3>
+        {/* Soru */}
+        <h3 style={{
+          fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15,
+          color: '#E2E2F0', lineHeight: 1.4, flex: 1, margin: 0,
+        }}>
+          {market.question}
+        </h3>
 
-        {/* Mini probability bar */}
+        {/* 🔴 CANLI FİYAT — sadece oracle marketlerde */}
+        {isOracle && !market.resolved && (
+          <LivePriceChip
+            tokenPair={Number(market.tokenPair)}
+            targetPrice={market.targetPrice}
+            targetAbove={market.targetAbove}
+          />
+        )}
+
+        {/* Probability bar */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#22c55e', fontWeight: 700 }}>{yesPercent}¢ YES</span>
@@ -78,7 +206,7 @@ export default function MarketCard({ marketId }: Props) {
           </div>
         </div>
 
-        {/* Footer stats */}
+        {/* Footer */}
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', borderTop: '1px solid #1E1E2E', paddingTop: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <TrendingUp size={11} color="#555570" />
@@ -86,7 +214,9 @@ export default function MarketCard({ marketId }: Props) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <Clock size={11} color="#555570" />
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>{market.resolved ? 'Resolved' : `${daysLeft}d`}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>
+              {market.resolved ? 'Resolved' : `${daysLeft}d`}
+            </span>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, color: '#E84142', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
             Trade <ArrowRight size={11} />
