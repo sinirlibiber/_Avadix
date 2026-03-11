@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, TrendingUp, Clock, Users, BarChart3, Activity, AlertCircle, CheckCircle, Info, ChevronUp, ChevronDown, Zap, Target } from 'lucide-react';
 import Link from 'next/link';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance, useChainId } from 'wagmi';
@@ -8,6 +8,37 @@ import { parseEther, formatEther } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { getAddresses } from '@/lib/contracts/addresses';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
+
+
+// ─── CoinGecko fallback hook ──────────────────────────────────────────────────
+const TOKEN_PAIR_META: Record<number, { symbol: string; color: string; bg: string; coingeckoId: string }> = {
+  0: { symbol: 'AVAX/USD', color: '#E84142', bg: 'rgba(232,65,66,0.08)',  coingeckoId: 'avalanche-2' },
+  1: { symbol: 'BTC/USD',  color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', coingeckoId: 'bitcoin' },
+  2: { symbol: 'ETH/USD',  color: '#6366F1', bg: 'rgba(99,102,241,0.08)', coingeckoId: 'ethereum' },
+  3: { symbol: 'LINK/USD', color: '#3B82F6', bg: 'rgba(59,130,246,0.08)', coingeckoId: 'chainlink' },
+};
+
+function useCoinGeckoPrice(coingeckoId: string, enabled: boolean) {
+  const [price, setPrice] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!enabled || !coingeckoId) return;
+    let cancelled = false;
+    const fetch_ = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`);
+        const json = await res.json();
+        if (!cancelled) setPrice(json[coingeckoId]?.usd ?? null);
+      } catch { if (!cancelled) setPrice(null); }
+      finally { if (!cancelled) setLoading(false); }
+    };
+    fetch_();
+    const iv = setInterval(fetch_, 60_000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [coingeckoId, enabled]);
+  return { price, loading };
+}
 
 const MIN_AMOUNT = 0.001;
 
@@ -178,15 +209,34 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
   }) as { data: any };
 
 
-  // Chainlink canlı fiyat — sadece oracle marketlerde
+  // Chainlink live price — oracle markets only
   const isOracle = market?.marketType === 1;
-  const { data: oraclePrice } = useReadContract({
+  const { data: oraclePrice, isError: clError } = useReadContract({
     address: contracts.PredictionMarket,
     abi: MARKET_ABI,
     functionName: 'getCurrentPrice',
     args: [market?.tokenPair ?? 0],
-    query: { enabled: !!market && isOracle, refetchInterval: 30_000 },
-  }) as { data: [bigint, number] | undefined };
+    query: { enabled: !!market && isOracle, refetchInterval: 30_000, retry: 1 },
+  }) as { data: [bigint, number] | undefined; isError: boolean };
+
+  // CoinGecko fallback — activates only when Chainlink fails
+  const pairMeta       = TOKEN_PAIR_META[Number(market?.tokenPair ?? 0)];
+  const needsGecko     = isOracle && (!oraclePrice || clError);
+  const { price: geckoPrice, loading: geckoLoading } = useCoinGeckoPrice(
+    pairMeta?.coingeckoId ?? '', needsGecko
+  );
+
+  // Resolved price + source
+  let livePrice: number | null = null;
+  let priceSource: 'chainlink' | 'coingecko' | null = null;
+  if (oraclePrice && !clError) {
+    const [rp, dec] = oraclePrice;
+    livePrice = Number(rp) / 10 ** dec;
+    priceSource = 'chainlink';
+  } else if (geckoPrice !== null) {
+    livePrice = geckoPrice;
+    priceSource = 'coingecko';
+  }
 
   const { writeContract, data: txHash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -336,7 +386,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
             </div>
           </div>
 
-          {/* 🔴 CANLI FİYAT PANELİ — sadece oracle marketlerde */}
+          {/* 🔴 LIVE PRICE PANEL — oracle markets only */}
           {isOracle && !market.resolved && oraclePrice && (() => {
             const TOKEN_META: Record<number, { symbol: string; color: string; bg: string }> = {
               0: { symbol: 'AVAX/USD', color: '#E84142', bg: 'rgba(232,65,66,0.08)' },
@@ -360,58 +410,62 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                 border: `1px solid ${winning ? 'rgba(34,197,94,0.25)' : 'rgba(232,65,66,0.25)'}`,
                 borderRadius: 14, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12,
               }}>
-                {/* Başlık */}
+                {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Zap size={13} color={meta.color} />
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Chainlink · {meta.symbol} · Canlı
+                    {priceSource === 'chainlink' ? '⚡ Chainlink' : '🦎 CoinGecko'} · {meta.symbol} · Live
                   </span>
                   <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 6, background: winning ? 'rgba(34,197,94,0.15)' : 'rgba(232,65,66,0.15)', color: winning ? '#22c55e' : '#E84142', fontWeight: 700 }}>
-                    {winning ? '✓ YES bölgesi' : '✗ NO bölgesi'}
+                    {winning ? '✓ In YES zone' : '✗ In NO zone'}
                   </span>
                 </div>
 
-                {/* Fiyat grid */}
+                {/* Price grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr', gap: 0 }}>
-                  {/* Anlık fiyat */}
+                  {/* Live price */}
                   <div style={{ paddingRight: 16 }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4 }}>Anlık Fiyat</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4 }}>Live Price</div>
                     <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26, color: meta.color, lineHeight: 1 }}>
-                      ${current.toLocaleString('en-US', { maximumFractionDigits: current > 1000 ? 0 : 2 })}
+                      {current !== null
+                        ? `$${current.toLocaleString('en-US', { maximumFractionDigits: current > 1000 ? 0 : 2 })}`
+                        : geckoLoading ? 'Loading...' : 'Unavailable'}
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 3 }}>30s'de güncellenir</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 3 }}>
+                      {priceSource === 'chainlink' ? 'Updates every 30s' : priceSource === 'coingecko' ? 'Via CoinGecko · 60s' : '—'}
+                    </div>
                   </div>
                   <div style={{ background: '#1E1E2E' }} />
-                  {/* Hedef fiyat */}
+                  {/* Target price */}
                   <div style={{ padding: '0 16px' }}>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Target size={9} /> Hedef
+                      <Target size={9} /> Target
                     </div>
                     <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, color: '#E2E2F0', lineHeight: 1 }}>
                       ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                     </div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#8888AA', marginTop: 3 }}>
-                      {market.targetAbove ? 'fiyat ≥ hedef → YES' : 'fiyat ≤ hedef → YES'}
+                      {market.targetAbove ? 'price ≥ target → YES' : 'price ≤ target → YES'}
                     </div>
                   </div>
                   <div style={{ background: '#1E1E2E' }} />
                   {/* Fark */}
                   <div style={{ paddingLeft: 16 }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4 }}>Hedefe Fark</div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, lineHeight: 1, color: winning ? '#22c55e' : '#E84142' }}>
-                      {diff > 0 ? '+' : ''}{diff.toFixed(1)}%
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4 }}>Distance to Target</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, lineHeight: 1, color: current === null ? '#555570' : winning ? '#22c55e' : '#E84142' }}>
+                      {current !== null ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%` : '—'}
                     </div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 3 }}>
-                      {winning ? 'hedefe ulaşıldı' : Math.abs(diff).toFixed(1) + '% uzakta'}
+                      {current === null ? 'fetching...' : winning ? 'target reached' : Math.abs(diff).toFixed(1) + '% away'}
                     </div>
                   </div>
                 </div>
 
-                {/* Progress bar — hedefe yakınlık */}
+                {/* Progress bar — proximity to target */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570' }}>$0</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#8888AA' }}>Hedefe yakınlık</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#8888AA' }}>Proximity to target</span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: meta.color }}>
                       ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                     </span>
