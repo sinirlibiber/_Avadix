@@ -19,6 +19,15 @@ function CampaignCard({ campaignId, contractAddr, isSelected, onSelect }: {
   const { data: progress } = useReadContract({ address: contractAddr, abi: DONATIONS_ABI, functionName: 'getProgress', args: [BigInt(campaignId)] }) as { data: bigint | undefined };
   const { data: donationCount } = useReadContract({ address: contractAddr, abi: DONATIONS_ABI, functionName: 'getDonationCount', args: [BigInt(campaignId)] }) as { data: bigint | undefined };
 
+  // localStorage'dan resmi oku
+  const [localImage, setLocalImage] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const img = localStorage.getItem(`avadix_campaign_img_${campaignId}`);
+      if (img) setLocalImage(img);
+    } catch {}
+  }, [campaignId]);
+
   if (!campaign?.exists) return null;
 
   const pct    = Number(progress ?? 0n);
@@ -28,6 +37,8 @@ function CampaignCard({ campaignId, contractAddr, isSelected, onSelect }: {
   const deadline = new Date(Number(campaign.deadline) * 1000);
   const daysLeft = Math.max(0, Math.ceil((deadline.getTime() - Date.now()) / 86400000));
   const shortAddr = (a: string) => `${a.slice(0,6)}...${a.slice(-4)}`;
+  const isComplete = pct >= 100 || !campaign.active;
+  const displayImage = campaign.imageUrl || localImage;
 
   return (
     <div onClick={() => onSelect(campaignId, { ...campaign, id: campaignId, progress: pct })} style={{
@@ -35,11 +46,22 @@ function CampaignCard({ campaignId, contractAddr, isSelected, onSelect }: {
       border: `1px solid ${isSelected ? 'rgba(232,65,66,0.35)' : '#1E1E2E'}`,
       borderRadius: 14, padding: 16, cursor: 'pointer', transition: 'all 0.2s',
     }}>
-      {campaign.imageUrl && (
+      {/* Campaign image */}
+      {displayImage && (
         <div style={{ borderRadius: 10, overflow: 'hidden', height: 100, marginBottom: 12 }}>
-          <img src={campaign.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={displayImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
       )}
+
+      {/* Tamamlandı banner */}
+      {isComplete && (
+        <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 10, textAlign: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, color: '#22c55e' }}>
+            🎯 Donation goal reached — No more donations accepted
+          </span>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
         <span style={{ fontSize: 28 }}>{campaign.emoji}</span>
         <div style={{ flex: 1 }}>
@@ -49,13 +71,13 @@ function CampaignCard({ campaignId, contractAddr, isSelected, onSelect }: {
         </div>
       </div>
       <div style={{ background: '#1E1E2E', borderRadius: 4, height: 6, overflow: 'hidden', marginBottom: 8 }}>
-        <div style={{ width: `${Math.min(100, pct)}%`, height: '100%', background: 'linear-gradient(90deg, #E84142, #ff6b6b)', borderRadius: 4, transition: 'width 0.8s ease' }} />
+        <div style={{ width: `${Math.min(100, pct)}%`, height: '100%', background: isComplete ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #E84142, #ff6b6b)', borderRadius: 4, transition: 'width 0.8s ease' }} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: 10 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#E84142' }}>{pct}%</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: isComplete ? '#22c55e' : '#E84142', fontWeight: 600 }}>{pct}%</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{donors} donors</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{daysLeft}d left</span>
+          {!isComplete && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{daysLeft}d left</span>}
         </div>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>{raised}/{goal} AVAX</span>
       </div>
@@ -165,12 +187,21 @@ export default function DonationSection() {
   const { writeContract: writeCreate, data: createTxHash, isPending: isCreating } = useWriteContract();
   const { isSuccess: createDone } = useWaitForTransactionReceipt({ hash: createTxHash });
 
+  // Pending image - create işlemi tamamlandığında yeni campaign ID'ye kaydet
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+
   useEffect(() => {
     if (createDone) {
       refetchCount();
+      // Yeni campaign ID = mevcut count + 1
+      if (pendingImage) {
+        const newId = Number(campaignCount ?? 0n) + 1;
+        try { localStorage.setItem(`avadix_campaign_img_${newId}`, pendingImage); } catch {}
+      }
       setCreateSuccess(true);
       setForm({ name: '', description: '', goal: '', emoji: '💎', durationDays: '30' });
       setImagePreview(null);
+      setPendingImage(null);
       setTimeout(() => { setCreateSuccess(false); setShowCreate(false); }, 2000);
     }
   }, [createDone]);
@@ -193,6 +224,7 @@ export default function DonationSection() {
     const days = parseInt(form.durationDays);
     if (!days || days < 1) { setCreateError('Duration must be at least 1 day.'); return; }
 
+    setPendingImage(imagePreview);
     writeCreate({ address: contracts.AvadixDonations, abi: DONATIONS_ABI, functionName: 'createCampaign', args: [form.name, form.description, form.emoji, parseEther(form.goal), BigInt(days * 86400)] });
   };
 
@@ -262,15 +294,25 @@ export default function DonationSection() {
 
             {txPending && <div style={{ padding: '10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, color: '#F59E0B', fontSize: 12, fontFamily: 'var(--font-mono)', textAlign: 'center' }}>⏳ {isDonating ? 'Awaiting wallet...' : 'Confirming on-chain...'}</div>}
 
-            {/* Goal reached veya süre dolmuş uyarısı */}
-            {(selectedData?.progress >= 100) && (
-              <div style={{ padding: '12px 14px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 10, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14 }}>
-                🎯 Goal Reached — Campaign Complete
+            {/* Tamamlandı / süre dolmuş uyarısı */}
+            {(selectedData?.progress >= 100 || (selectedData && !selectedData.active)) && (
+              <div style={{ padding: '14px 16px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 10, textAlign: 'center' }}>
+                <div style={{ color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
+                  🎯 Donation goal reached!
+                </div>
+                <div style={{ color: '#8888AA', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                  This campaign is complete — no more donations accepted.
+                </div>
               </div>
             )}
-            {(selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000 && (selectedData?.progress ?? 0) < 100) && (
-              <div style={{ padding: '12px 14px', background: 'rgba(232,65,66,0.08)', border: '1px solid rgba(232,65,66,0.2)', borderRadius: 10, textAlign: 'center', color: '#E84142', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14 }}>
-                ⏰ Campaign Ended
+            {(selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000 && (selectedData?.progress ?? 0) < 100 && selectedData?.active) && (
+              <div style={{ padding: '14px 16px', background: 'rgba(232,65,66,0.08)', border: '1px solid rgba(232,65,66,0.2)', borderRadius: 10, textAlign: 'center' }}>
+                <div style={{ color: '#E84142', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
+                  ⏰ Campaign ended
+                </div>
+                <div style={{ color: '#8888AA', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                  The deadline has passed — no more donations accepted.
+                </div>
               </div>
             )}
 
@@ -282,23 +324,24 @@ export default function DonationSection() {
                 disabled={
                   txPending ||
                   (selectedData?.progress >= 100) ||
+                  (selectedData && !selectedData.active) ||
                   (selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000)
                 }
                 style={{
                   width: '100%', padding: '14px',
-                  background: (selectedData?.progress >= 100) || (selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000)
+                  background: (selectedData?.progress >= 100) || (selectedData && !selectedData.active) || (selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000)
                     ? '#2A2A3E'
                     : isConnected ? '#E84142' : '#2A2A3E',
                   border: 'none', borderRadius: 10, color: 'white',
                   fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15,
-                  cursor: (txPending || selectedData?.progress >= 100) ? 'not-allowed' : 'pointer',
-                  opacity: (txPending || selectedData?.progress >= 100 || (selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000)) ? 0.5 : 1,
+                  cursor: (txPending || selectedData?.progress >= 100 || (selectedData && !selectedData.active)) ? 'not-allowed' : 'pointer',
+                  opacity: (txPending || selectedData?.progress >= 100 || (selectedData && !selectedData.active) || (selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000)) ? 0.5 : 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   boxShadow: isConnected && (selectedData?.progress ?? 0) < 100 ? '0 0 20px rgba(232,65,66,0.2)' : 'none'
                 }}>
                 <Heart size={16} fill="white" />
-                {isDonating ? 'Awaiting wallet...' : isDonateConfirming ? 'Confirming...' : !isConnected ? 'Connect Wallet to Donate' : (selectedData?.progress >= 100) ? 'Goal Reached' : `Donate ${amount} AVAX`}
-                {isConnected && !txPending && (selectedData?.progress ?? 0) < 100 && <Sparkles size={14} />}
+                {isDonating ? 'Awaiting wallet...' : isDonateConfirming ? 'Confirming...' : !isConnected ? 'Connect Wallet to Donate' : (selectedData?.progress >= 100 || (selectedData && !selectedData.active)) ? 'Campaign Complete' : `Donate ${amount} AVAX`}
+                {isConnected && !txPending && (selectedData?.progress ?? 0) < 100 && selectedData?.active && <Sparkles size={14} />}
               </button>
             )}
 

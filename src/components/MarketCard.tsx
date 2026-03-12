@@ -52,7 +52,12 @@ function useCoinGeckoPrice(coingeckoId: string, enabled: boolean) {
   return { price, loading };
 }
 
-interface Props { marketId: number; }
+interface Props {
+  marketId: number;
+  filterCategory?: string;
+  filterSearch?: string;
+  sortBy?: string;
+}
 
 // ─── Live price chip ──────────────────────────────────────────────────────────
 function LivePriceChip({
@@ -176,7 +181,7 @@ function LivePriceChip({
 }
 
 // ─── Main card ────────────────────────────────────────────────────────────────
-export default function MarketCard({ marketId }: Props) {
+export default function MarketCard({ marketId, filterCategory, filterSearch, sortBy }: Props) {
   const chainId   = useChainId();
   const contracts = getAddresses(chainId);
 
@@ -195,6 +200,12 @@ export default function MarketCard({ marketId }: Props) {
   }) as { data: bigint | undefined };
 
   if (!market?.exists) return null;
+
+  // Filtre kontrolü
+  const cat = market.category?.toLowerCase() ?? '';
+  const question = market.question?.toLowerCase() ?? '';
+  if (filterCategory && filterCategory !== 'all' && cat !== filterCategory.toLowerCase()) return null;
+  if (filterSearch && filterSearch.trim() && !question.includes(filterSearch.toLowerCase())) return null;
 
   const isOracle   = market.marketType === 1;
   const yesPercent = Number(probability ?? BigInt(50));

@@ -46,7 +46,7 @@ function ProposalRow({ proposalId, daoAddress, hidden, onStatus }: { proposalId:
     abi: DAO_ABI,
     functionName: 'getVoteStatus',
     args: [BigInt(proposalId), address ?? '0x0000000000000000000000000000000000000000'],
-    query: { enabled: !!address },
+    query: { enabled: !!address && !!proposalId },
   }) as { data: [boolean, boolean] | undefined };
 
   const { writeContract, data: txHash, isPending } = useWriteContract();
@@ -54,6 +54,7 @@ function ProposalRow({ proposalId, daoAddress, hidden, onStatus }: { proposalId:
 
   useEffect(() => { if (isSuccess) refetch(); }, [isSuccess]);
 
+  if (!proposal) return null;
   if (!proposal?.exists) return null;
 
   const yesPct = Number(yesPercentage ?? 0n);
