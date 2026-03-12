@@ -76,7 +76,8 @@ function CampaignCard({
   const deadline = new Date(Number(campaign.deadline) * 1000);
   const daysLeft = Math.max(0, Math.ceil((deadline.getTime() - Date.now()) / 86400000));
   const shortAddr = (a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`;
-  const isComplete = pct >= 100 || !campaign.active;
+  const deadlineMs = Number(campaign.deadline) * 1000;
+  const isComplete = pct >= 100 || !campaign.active || (deadlineMs > 0 && Date.now() > deadlineMs);
 
   // Filter tab kontrolü
   if (filterTab === 'active' && isComplete) return null;
@@ -220,7 +221,8 @@ export default function DonationSection() {
   const liveRemaining = Math.max(0, liveGoal - liveRaised);
   const livePct    = Number(selectedProgressLive ?? 0n);
   const liveActive = selectedCampaignLive?.active ?? true;
-  const isComplete = livePct >= 100 || !liveActive;
+  const liveDeadlineMs = selectedCampaignLive ? Number(selectedCampaignLive.deadline) * 1000 : 0;
+  const isComplete = livePct >= 100 || !liveActive || (liveDeadlineMs > 0 && Date.now() > liveDeadlineMs);
 
   // ─── Amount clamp: max = kalan miktar ────────────────────────────────────
   const maxDonation = liveRemaining > 0 ? Math.floor(liveRemaining * 1000) / 1000 : 0;

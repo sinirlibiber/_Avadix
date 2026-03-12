@@ -12,7 +12,7 @@ const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }
   passed:   { bg: 'rgba(34,197,94,0.15)',  color: '#22c55e', label: 'Passed' },
   rejected: { bg: 'rgba(232,65,66,0.15)', color: '#E84142', label: 'Rejected' },
   pending:  { bg: 'rgba(245,158,11,0.15)', color: '#F59E0B', label: 'Pending' },
-  ended:    { bg: 'rgba(136,136,170,0.15)', color: '#8888AA', label: 'Ended' },
+
 };
 
 const STATUS_MAP: Record<number, string> = { 0: 'active', 1: 'passed', 2: 'rejected', 3: 'pending' };
@@ -64,7 +64,7 @@ function ProposalRow({
   // Contract status=0(active) olsa da endTime geçmişse frontend'de "ended" göster
   const rawStatusKey = proposal?.exists ? (STATUS_MAP[proposal.status] ?? 'active') : 'active';
   const isExpired = proposal?.exists && rawStatusKey === 'active' && votingOpen === false;
-  const statusKey = isExpired ? 'ended' : rawStatusKey;
+  const statusKey = isExpired ? 'passed' : rawStatusKey;
 
   useEffect(() => {
     if (isSuccess) refetch();
@@ -165,7 +165,7 @@ export default function DAOSection() {
   const [form, setForm] = useState({ title: '', description: '', category: 'Governance', durationDays: '7' });
   const [createSuccess, setCreateSuccess] = useState(false);
   const [createError, setCreateError] = useState('');
-  const [filter, setFilter] = useState<'all' | 'active' | 'passed' | 'rejected' | 'ended'>('all');
+  const [filter, setFilter] = useState<'all' | 'active' | 'passed' | 'rejected'>('all');
   const [statusMap, setStatusMap] = useState<Record<number, string>>({});
 
   const handleProposalStatus = (id: number, status: string) => {
@@ -239,7 +239,7 @@ export default function DAOSection() {
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap' }}>
-        {(['all', 'active', 'passed', 'rejected', 'ended'] as const).map(f => (
+        {(['all', 'active', 'passed', 'rejected'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 13, textTransform: 'capitalize', background: filter === f ? '#E84142' : '#12121A', color: filter === f ? 'white' : '#8888AA', transition: 'all 0.2s' }}>{f}</button>
         ))}
       </div>
