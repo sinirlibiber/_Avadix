@@ -17,7 +17,14 @@ const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }
 const STATUS_MAP: Record<number, string> = { 0: 'active', 1: 'passed', 2: 'rejected', 3: 'pending' };
 
 // ─── Single Proposal Row ──────────────────────────────────────────────────────
-function ProposalRow({ proposalId, daoAddress, hidden, onStatus }: { proposalId: number; daoAddress: `0x${string}`; hidden?: boolean; onStatus?: (id: number, status: string) => void }) {
+function ProposalRow({
+  proposalId, daoAddress, hidden, onStatus,
+}: {
+  proposalId: number;
+  daoAddress: `0x${string}`;
+  hidden?: boolean;
+  onStatus?: (id: number, status: string) => void;
+}) {
   const { address, isConnected } = useAccount();
 
   const { data: proposal, refetch } = useReadContract({
@@ -46,19 +53,31 @@ function ProposalRow({ proposalId, daoAddress, hidden, onStatus }: { proposalId:
     abi: DAO_ABI,
     functionName: 'getVoteStatus',
     args: [BigInt(proposalId), address ?? '0x0000000000000000000000000000000000000000'],
-    query: { enabled: !!address && !!proposalId },
+    query: { enabled: !!address },
   }) as { data: [boolean, boolean] | undefined };
 
   const { writeContract, data: txHash, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
-  useEffect(() => { if (isSuccess) refetch(); }, [isSuccess]);
+  // ─── TÜM HOOK'LAR BURADA — koşullu return'den önce ───────────────────────
+  const statusKey = proposal?.exists ? (STATUS_MAP[proposal.status] ?? 'active') : 'active';
 
-  if (!proposal) return null;
-  if (!proposal?.exists) return null;
+  useEffect(() => {
+    if (isSuccess) refetch();
+  }, [isSuccess]);
+
+  useEffect(() => {
+    if (proposal?.exists && onStatus) {
+      onStatus(proposalId, statusKey);
+    }
+  }, [proposal?.exists, statusKey, proposalId]);
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Koşullu return'ler hook'lardan SONRA
+  if (!proposal || !proposal.exists) return null;
+  if (hidden) return null;
 
   const yesPct = Number(yesPercentage ?? 0n);
-  const statusKey = STATUS_MAP[proposal.status] ?? 'active';
   const st = STATUS_STYLES[statusKey];
   const alreadyVoted = voteStatus?.[0] ?? false;
   const myVote = voteStatus?.[1];
@@ -66,14 +85,6 @@ function ProposalRow({ proposalId, daoAddress, hidden, onStatus }: { proposalId:
   const daysLeft = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86400000));
   const yesVotesDisplay = (Number(proposal.yesVotes) / 1000).toFixed(0);
   const noVotesDisplay  = (Number(proposal.noVotes)  / 1000).toFixed(0);
-
-  // Parent'a status bildir
-  useEffect(() => {
-    if (proposal?.exists && onStatus) onStatus(proposalId, statusKey);
-  }, [statusKey]);
-
-  // Filtre uygulanmışsa gizle (ama unmount etme — hook kuralı)
-  if (hidden) return null;
 
   const handleVote = (support: boolean) => {
     writeContract({
@@ -107,15 +118,10 @@ function ProposalRow({ proposalId, daoAddress, hidden, onStatus }: { proposalId:
         </div>
       </div>
 
-      {/* Vote bar */}
       <div style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>
-            YES {yesPct}% — {yesVotesDisplay}K votes
-          </span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#E84142' }}>
-            NO {100 - yesPct}% — {noVotesDisplay}K votes
-          </span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>YES {yesPct}% — {yesVotesDisplay}K votes</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#E84142' }}>NO {100 - yesPct}% — {noVotesDisplay}K votes</span>
         </div>
         <div style={{ background: '#1E1E2E', borderRadius: 6, height: 8, overflow: 'hidden' }}>
           <div style={{ width: `${yesPct}%`, height: '100%', background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: 6, transition: 'width 0.8s ease' }} />
@@ -129,24 +135,14 @@ function ProposalRow({ proposalId, daoAddress, hidden, onStatus }: { proposalId:
 
         {votingOpen && (
           alreadyVoted ? (
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>
-              ✓ Voted {myVote ? 'YES' : 'NO'}
-            </div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>✓ Voted {myVote ? 'YES' : 'NO'}</div>
           ) : isPending ? (
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#F59E0B' }}>⏳ Confirming...</div>
           ) : (
             <div style={{ display: 'flex', gap: 8 }}>
               {!isConnected && <ConnectButton accountStatus="avatar" showBalance={false} />}
-              <button onClick={() => handleVote(true)} style={{
-                padding: '8px 20px', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)',
-                borderRadius: 8, color: '#22c55e', cursor: 'pointer',
-                fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, transition: 'all 0.2s',
-              }}>✓ Vote Yes</button>
-              <button onClick={() => handleVote(false)} style={{
-                padding: '8px 20px', background: 'rgba(232,65,66,0.1)', border: '1px solid rgba(232,65,66,0.2)',
-                borderRadius: 8, color: '#E84142', cursor: 'pointer',
-                fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, transition: 'all 0.2s',
-              }}>✗ Vote No</button>
+              <button onClick={() => handleVote(true)} style={{ padding: '8px 20px', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: '#22c55e', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13 }}>✓ Vote Yes</button>
+              <button onClick={() => handleVote(false)} style={{ padding: '8px 20px', background: 'rgba(232,65,66,0.1)', border: '1px solid rgba(232,65,66,0.2)', borderRadius: 8, color: '#E84142', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13 }}>✗ Vote No</button>
             </div>
           )
         )}
@@ -172,7 +168,6 @@ export default function DAOSection() {
     setStatusMap(prev => prev[id] === status ? prev : { ...prev, [id]: status });
   };
 
-  // Total proposal count from chain
   const { data: proposalCount, refetch: refetchCount } = useReadContract({
     address: contracts.AvadixDAO,
     abi: DAO_ABI,
@@ -182,7 +177,6 @@ export default function DAOSection() {
   const count = Number(proposalCount ?? 0n);
   const proposalIds = Array.from({ length: count }, (_, i) => i + 1);
 
-  // Create proposal
   const { writeContract: writeCreate, data: createTxHash, isPending: isCreating } = useWriteContract();
   const { isSuccess: createDone } = useWaitForTransactionReceipt({ hash: createTxHash });
 
@@ -218,12 +212,7 @@ export default function DAOSection() {
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#E84142', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>// Governance</p>
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(32px,5vw,52px)', color: '#E2E2F0', letterSpacing: '-0.03em', lineHeight: 1 }}>DAO Proposals</h2>
         </div>
-        <button onClick={() => setShowCreate(true)} style={{
-          display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px',
-          background: '#E84142', border: 'none', borderRadius: 10, color: 'white',
-          cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14,
-          boxShadow: '0 0 20px rgba(232,65,66,0.3)', transition: 'all 0.2s',
-        }}>
+        <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px', background: '#E84142', border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, boxShadow: '0 0 20px rgba(232,65,66,0.3)', transition: 'all 0.2s' }}>
           <Plus size={16} /> New Proposal
         </button>
       </div>
@@ -247,21 +236,13 @@ export default function DAOSection() {
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap' }}>
         {(['all', 'active', 'passed', 'rejected'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{
-            padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 13, textTransform: 'capitalize',
-            background: filter === f ? '#E84142' : '#12121A',
-            color: filter === f ? 'white' : '#8888AA', transition: 'all 0.2s',
-          }}>{f}</button>
+          <button key={f} onClick={() => setFilter(f)} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 13, textTransform: 'capitalize', background: filter === f ? '#E84142' : '#12121A', color: filter === f ? 'white' : '#8888AA', transition: 'all 0.2s' }}>{f}</button>
         ))}
       </div>
 
-      {/* Proposals — rendered directly from chain */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {count === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>
-            No proposals yet. Be the first to submit one!
-          </div>
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No proposals yet. Be the first to submit one!</div>
         )}
         {proposalIds.map(id => (
           <ProposalRow
@@ -283,9 +264,7 @@ export default function DAOSection() {
             <p style={{ color: '#8888AA', fontSize: 14, marginBottom: 24 }}>Submit a proposal for community governance vote.</p>
 
             {createSuccess ? (
-              <div style={{ padding: 20, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 12, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-                ✓ Proposal submitted on-chain!
-              </div>
+              <div style={{ padding: 20, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 12, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600 }}>✓ Proposal submitted on-chain!</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {[
@@ -316,12 +295,7 @@ export default function DAOSection() {
                 {createError && (
                   <div style={{ padding: '10px 14px', background: 'rgba(232,65,66,0.1)', border: '1px solid rgba(232,65,66,0.2)', borderRadius: 8, color: '#E84142', fontSize: 13, fontFamily: 'var(--font-mono)' }}>⚠ {createError}</div>
                 )}
-                <button onClick={handleCreate} disabled={isCreating} style={{
-                  width: '100%', padding: '13px 0', background: '#E84142', border: 'none',
-                  borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15,
-                  cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1,
-                  boxShadow: '0 0 20px rgba(232,65,66,0.3)',
-                }}>
+                <button onClick={handleCreate} disabled={isCreating} style={{ width: '100%', padding: '13px 0', background: '#E84142', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1, boxShadow: '0 0 20px rgba(232,65,66,0.3)' }}>
                   {isCreating ? '⏳ Submitting...' : !isConnected ? '⚠ Connect Wallet First' : 'Submit Proposal On-Chain'}
                 </button>
               </div>

@@ -8,54 +8,97 @@ import { getAddresses } from '@/lib/contracts/addresses';
 import DONATIONS_ABI from '@/lib/contracts/AvadixDonations.json';
 import { DONATION_QUOTES } from '@/lib/data';
 
-const SUGGESTED = ['0.001', '0.01', '0.1', '1'];
 const EMOJIS = ['💎', '🚀', '🌱', '🔺', '📚', '🏆', '💡', '🤝'];
 const MIN_AMOUNT = 0.001;
+// Fotoğrafı emoji field'ına gömmek için ayraç
+const IMG_SEPARATOR = '|||';
 
-function CampaignCard({ campaignId, contractAddr, isSelected, onSelect }: {
-  campaignId: number; contractAddr: `0x${string}`; isSelected: boolean; onSelect: (id: number, data: any) => void;
+// ─── Resmi canvas ile küçült → base64 thumbnail ───────────────────────────────
+function resizeImageToBase64(file: File, maxPx = 160): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ratio = Math.min(maxPx / img.width, maxPx / img.height);
+        canvas.width  = Math.round(img.width  * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// emoji field'ından emoji ve resmi ayır
+function parseEmojiField(raw: string): { emoji: string; imageData: string | null } {
+  if (!raw) return { emoji: '💎', imageData: null };
+  const idx = raw.indexOf(IMG_SEPARATOR);
+  if (idx === -1) return { emoji: raw, imageData: null };
+  return {
+    emoji: raw.slice(0, idx),
+    imageData: raw.slice(idx + IMG_SEPARATOR.length) || null,
+  };
+}
+
+// ─── CampaignCard ─────────────────────────────────────────────────────────────
+function CampaignCard({
+  campaignId, contractAddr, isSelected, onSelect,
+}: {
+  campaignId: number;
+  contractAddr: `0x${string}`;
+  isSelected: boolean;
+  onSelect: (id: number, data: any) => void;
 }) {
-  const { data: campaign } = useReadContract({ address: contractAddr, abi: DONATIONS_ABI, functionName: 'getCampaign', args: [BigInt(campaignId)] }) as { data: any };
-  const { data: progress } = useReadContract({ address: contractAddr, abi: DONATIONS_ABI, functionName: 'getProgress', args: [BigInt(campaignId)] }) as { data: bigint | undefined };
-  const { data: donationCount } = useReadContract({ address: contractAddr, abi: DONATIONS_ABI, functionName: 'getDonationCount', args: [BigInt(campaignId)] }) as { data: bigint | undefined };
-
-  // localStorage'dan resmi oku
-  const [localImage, setLocalImage] = useState<string | null>(null);
-  useEffect(() => {
-    try {
-      const img = localStorage.getItem(`avadix_campaign_img_${campaignId}`);
-      if (img) setLocalImage(img);
-    } catch {}
-  }, [campaignId]);
+  const { data: campaign } = useReadContract({
+    address: contractAddr, abi: DONATIONS_ABI, functionName: 'getCampaign', args: [BigInt(campaignId)],
+  }) as { data: any };
+  const { data: progress } = useReadContract({
+    address: contractAddr, abi: DONATIONS_ABI, functionName: 'getProgress', args: [BigInt(campaignId)],
+  }) as { data: bigint | undefined };
+  const { data: donationCount } = useReadContract({
+    address: contractAddr, abi: DONATIONS_ABI, functionName: 'getDonationCount', args: [BigInt(campaignId)],
+  }) as { data: bigint | undefined };
 
   if (!campaign?.exists) return null;
 
-  const pct    = Number(progress ?? 0n);
-  const raised = parseFloat(formatEther(campaign.raised)).toFixed(3);
-  const goal   = parseFloat(formatEther(campaign.goal)).toFixed(3);
-  const donors = Number(donationCount ?? 0n);
+  const pct      = Number(progress ?? 0n);
+  const raised   = parseFloat(formatEther(campaign.raised));
+  const goal     = parseFloat(formatEther(campaign.goal));
+  const donors   = Number(donationCount ?? 0n);
   const deadline = new Date(Number(campaign.deadline) * 1000);
   const daysLeft = Math.max(0, Math.ceil((deadline.getTime() - Date.now()) / 86400000));
-  const shortAddr = (a: string) => `${a.slice(0,6)}...${a.slice(-4)}`;
+  const shortAddr = (a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`;
   const isComplete = pct >= 100 || !campaign.active;
-  const displayImage = campaign.imageUrl || localImage;
+
+  // Fotoğrafı emoji field'ından çek (blockchain'de saklı)
+  const { emoji, imageData } = parseEmojiField(campaign.emoji ?? '💎');
 
   return (
-    <div onClick={() => onSelect(campaignId, { ...campaign, id: campaignId, progress: pct })} style={{
-      background: isSelected ? 'rgba(232,65,66,0.06)' : '#12121A',
-      border: `1px solid ${isSelected ? 'rgba(232,65,66,0.35)' : '#1E1E2E'}`,
-      borderRadius: 14, padding: 16, cursor: 'pointer', transition: 'all 0.2s',
-    }}>
-      {/* Campaign image */}
-      {displayImage && (
-        <div style={{ borderRadius: 10, overflow: 'hidden', height: 100, marginBottom: 12 }}>
-          <img src={displayImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    <div
+      onClick={() => onSelect(campaignId, { ...campaign, id: campaignId, progress: pct, _emoji: emoji, _imageData: imageData })}
+      style={{
+        background: isSelected ? 'rgba(232,65,66,0.06)' : '#12121A',
+        border: `1px solid ${isSelected ? 'rgba(232,65,66,0.35)' : '#1E1E2E'}`,
+        borderRadius: 14, padding: 16, cursor: 'pointer', transition: 'all 0.2s',
+      }}
+    >
+      {/* Fotoğraf — blockchain'den */}
+      {imageData && (
+        <div style={{ borderRadius: 10, overflow: 'hidden', height: 110, marginBottom: 12 }}>
+          <img src={imageData} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
       )}
 
       {/* Tamamlandı banner */}
       {isComplete && (
-        <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 10, textAlign: 'center' }}>
+        <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '7px 12px', marginBottom: 10, textAlign: 'center' }}>
           <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, color: '#22c55e' }}>
             🎯 Donation goal reached — No more donations accepted
           </span>
@@ -63,41 +106,44 @@ function CampaignCard({ campaignId, contractAddr, isSelected, onSelect }: {
       )}
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
-        <span style={{ fontSize: 28 }}>{campaign.emoji}</span>
+        <span style={{ fontSize: 28 }}>{emoji}</span>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#E2E2F0' }}>{campaign.name}</div>
           <div style={{ fontSize: 12, color: '#8888AA', marginTop: 2, lineHeight: 1.4 }}>{campaign.description}</div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginTop: 4 }}>by {shortAddr(campaign.creator)}</div>
         </div>
       </div>
+
       <div style={{ background: '#1E1E2E', borderRadius: 4, height: 6, overflow: 'hidden', marginBottom: 8 }}>
-        <div style={{ width: `${Math.min(100, pct)}%`, height: '100%', background: isComplete ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #E84142, #ff6b6b)', borderRadius: 4, transition: 'width 0.8s ease' }} />
+        <div style={{
+          width: `${Math.min(100, pct)}%`, height: '100%',
+          background: isComplete ? 'linear-gradient(90deg,#22c55e,#16a34a)' : 'linear-gradient(90deg,#E84142,#ff6b6b)',
+          borderRadius: 4, transition: 'width 0.8s ease',
+        }} />
       </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: 10 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: isComplete ? '#22c55e' : '#E84142', fontWeight: 600 }}>{pct}%</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{donors} donors</span>
           {!isComplete && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{daysLeft}d left</span>}
         </div>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>{raised}/{goal} AVAX</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>{raised.toFixed(3)}/{goal.toFixed(3)} AVAX</span>
       </div>
     </div>
   );
 }
 
-// ─── Donation history for a campaign ─────────────────────────────────────────
+// ─── Donation history ─────────────────────────────────────────────────────────
 function DonationHistory({ campaignId, contractAddr }: { campaignId: number; contractAddr: `0x${string}` }) {
   const { data: donations } = useReadContract({
-    address: contractAddr, abi: DONATIONS_ABI,
-    functionName: 'getDonations', args: [BigInt(campaignId)],
+    address: contractAddr, abi: DONATIONS_ABI, functionName: 'getDonations', args: [BigInt(campaignId)],
   }) as { data: any[] | undefined };
 
-  if (!donations || donations.length === 0) return (
-    <div style={{ textAlign: 'center', padding: '20px 0', color: '#555570', fontFamily: 'var(--font-mono)', fontSize: 12 }}>No donations yet</div>
-  );
+  if (!donations || donations.length === 0)
+    return <div style={{ textAlign: 'center', padding: '20px 0', color: '#555570', fontFamily: 'var(--font-mono)', fontSize: 12 }}>No donations yet</div>;
 
-  const shortAddr = (a: string) => `${a.slice(0,6)}...${a.slice(-4)}`;
-
+  const shortAddr = (a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`;
   return (
     <div style={{ marginTop: 16 }}>
       <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Donation History ({donations.length})</p>
@@ -122,16 +168,18 @@ export default function DonationSection() {
   const contracts = getAddresses(chainId);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [quoteIdx, setQuoteIdx]   = useState(0);
+  const [quoteIdx, setQuoteIdx] = useState(0);
   const [selectedId, setSelectedId] = useState<number>(1);
   const [selectedData, setSelectedData] = useState<any>(null);
-  const [amount, setAmount]   = useState('0.001');
+  const [amount, setAmount] = useState('0.001');
   const [showHistory, setShowHistory] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', goal: '', emoji: '💎', durationDays: '30' });
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [createError, setCreateError]   = useState('');
+  const [createError, setCreateError] = useState('');
   const [createSuccess, setCreateSuccess] = useState(false);
+  const [donateError, setDonateError] = useState('');
 
   useEffect(() => {
     const t = setInterval(() => setQuoteIdx(i => (i + 1) % DONATION_QUOTES.length), 5000);
@@ -147,74 +195,130 @@ export default function DonationSection() {
   const count = Number(campaignCount ?? 0n);
   const campaignIds = Array.from({ length: count }, (_, i) => i + 1);
 
-  // Donate
+  // ─── Seçili kampanyanın live verisi ───────────────────────────────────────
+  const { data: selectedCampaignLive, refetch: refetchSelected } = useReadContract({
+    address: contracts.AvadixDonations, abi: DONATIONS_ABI,
+    functionName: 'getCampaign', args: [BigInt(selectedId)],
+    query: { enabled: selectedId > 0 },
+  }) as { data: any; refetch: () => void };
+
+  const { data: selectedProgressLive } = useReadContract({
+    address: contracts.AvadixDonations, abi: DONATIONS_ABI,
+    functionName: 'getProgress', args: [BigInt(selectedId)],
+    query: { enabled: selectedId > 0 },
+  }) as { data: bigint | undefined };
+
+  // Live hesaplamalar
+  const liveGoal   = selectedCampaignLive ? parseFloat(formatEther(selectedCampaignLive.goal)) : 0;
+  const liveRaised = selectedCampaignLive ? parseFloat(formatEther(selectedCampaignLive.raised)) : 0;
+  const liveRemaining = Math.max(0, liveGoal - liveRaised);
+  const livePct    = Number(selectedProgressLive ?? 0n);
+  const liveActive = selectedCampaignLive?.active ?? true;
+  const isComplete = livePct >= 100 || !liveActive;
+
+  // ─── Amount clamp: max = kalan miktar ────────────────────────────────────
+  const maxDonation = liveRemaining > 0 ? Math.floor(liveRemaining * 1000) / 1000 : 0;
+
+  const SUGGESTED = (() => {
+    const base = [0.001, 0.01, 0.1, 1];
+    if (maxDonation <= 0) return base.map(String);
+    return base.filter(v => v <= maxDonation + 0.0001).map(String);
+  })();
+
+  // ─── Donate ──────────────────────────────────────────────────────────────
   const { writeContract: writeDonate, data: donateTxHash, isPending: isDonating } = useWriteContract();
   const { isLoading: isDonateConfirming, isSuccess: donateSuccess } = useWaitForTransactionReceipt({ hash: donateTxHash });
 
-  useEffect(() => { if (donateSuccess) { setAmount('0.001'); } }, [donateSuccess]);
+  useEffect(() => {
+    if (donateSuccess) {
+      setAmount('0.001');
+      setDonateError('');
+      refetchSelected();
+    }
+  }, [donateSuccess]);
 
   const handleAmountChange = (val: string) => {
+    setDonateError('');
+    if (val === '') { setAmount(''); return; }
     const num = parseFloat(val);
-    if (isNaN(num)) { setAmount(''); return; }
-    const rounded = Math.round(num * 1000) / 1000;
-    setAmount(rounded.toString());
+    if (isNaN(num)) { setAmount(val); return; }
+    // Kalan miktarı aşarsa uyar ama girişi engelleme
+    setAmount(val);
   };
 
   const handleAmountBlur = () => {
     const num = parseFloat(amount);
-    if (isNaN(num) || num < MIN_AMOUNT) setAmount(MIN_AMOUNT.toFixed(3));
+    if (isNaN(num) || num < MIN_AMOUNT) { setAmount(MIN_AMOUNT.toFixed(3)); return; }
+    // Kalan miktarı aşıyorsa otomatik kap
+    if (maxDonation > 0 && num > maxDonation) {
+      setAmount(maxDonation.toFixed(3));
+    }
   };
 
   const handleDonate = () => {
-    if (!isConnected) { alert('Connect your wallet first!'); return; }
+    setDonateError('');
+    if (!isConnected) { setDonateError('Connect your wallet first!'); return; }
+
     const num = parseFloat(amount);
-    if (isNaN(num) || num < MIN_AMOUNT) { alert(`Minimum donation is ${MIN_AMOUNT} AVAX`); return; }
+    if (isNaN(num) || num < MIN_AMOUNT) { setDonateError(`Minimum donation is ${MIN_AMOUNT} AVAX`); return; }
+
     const bal = parseFloat(balance?.formatted || '0');
-    if (num > bal) { alert(`Insufficient balance. You have ${bal.toFixed(3)} AVAX`); return; }
+    if (num > bal) { setDonateError(`Insufficient balance. You have ${bal.toFixed(3)} AVAX`); return; }
 
-    // Goal reached kontrolü
-    const progress = selectedData?.progress ?? 0;
-    if (progress >= 100) { alert('This campaign has already reached its goal. No more donations are accepted.'); return; }
+    // Kampanya tamamlandı mı?
+    if (isComplete) { setDonateError('This campaign is complete. No more donations accepted.'); return; }
 
-    // Süre dolmuş kontrolü
-    const deadline = selectedData?.deadline ? Number(selectedData.deadline) * 1000 : null;
-    if (deadline && Date.now() > deadline) { alert('This campaign has ended. Donations are no longer accepted.'); return; }
+    // Kalan miktardan fazla mı?
+    if (maxDonation > 0 && num > maxDonation + 0.0001) {
+      setDonateError(`Maximum donation is ${maxDonation.toFixed(3)} AVAX (remaining to goal)`);
+      setAmount(maxDonation.toFixed(3));
+      return;
+    }
 
-    writeDonate({ address: contracts.AvadixDonations, abi: DONATIONS_ABI, functionName: 'donate', args: [BigInt(selectedId)], value: parseEther(amount) });
+    // Deadline geçmiş mi?
+    if (selectedCampaignLive?.deadline) {
+      const deadline = Number(selectedCampaignLive.deadline) * 1000;
+      if (Date.now() > deadline) { setDonateError('This campaign has ended.'); return; }
+    }
+
+    writeDonate({
+      address: contracts.AvadixDonations, abi: DONATIONS_ABI,
+      functionName: 'donate', args: [BigInt(selectedId)],
+      value: parseEther(amount),
+    });
   };
 
-  // Create campaign
+  // ─── Create campaign ──────────────────────────────────────────────────────
   const { writeContract: writeCreate, data: createTxHash, isPending: isCreating } = useWriteContract();
   const { isSuccess: createDone } = useWaitForTransactionReceipt({ hash: createTxHash });
-
-  // Pending image - create işlemi tamamlandığında yeni campaign ID'ye kaydet
-  const [pendingImage, setPendingImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (createDone) {
       refetchCount();
-      // Yeni campaign ID = mevcut count + 1
-      if (pendingImage) {
-        const newId = Number(campaignCount ?? 0n) + 1;
-        try { localStorage.setItem(`avadix_campaign_img_${newId}`, pendingImage); } catch {}
-      }
       setCreateSuccess(true);
       setForm({ name: '', description: '', goal: '', emoji: '💎', durationDays: '30' });
       setImagePreview(null);
-      setPendingImage(null);
-      setTimeout(() => { setCreateSuccess(false); setShowCreate(false); }, 2000);
+      setImageFile(null);
+      setTimeout(() => { setCreateSuccess(false); setShowCreate(false); }, 2500);
     }
   }, [createDone]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setImagePreview(ev.target?.result as string);
-    reader.readAsDataURL(file);
+    setImageFile(file);
+    try {
+      const thumb = await resizeImageToBase64(file, 160);
+      setImagePreview(thumb);
+    } catch {
+      // Fallback: full base64
+      const reader = new FileReader();
+      reader.onload = ev => setImagePreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     setCreateError('');
     if (!isConnected) { setCreateError('Connect wallet to create a campaign.'); return; }
     if (!form.name.trim()) { setCreateError('Campaign name required.'); return; }
@@ -224,12 +328,21 @@ export default function DonationSection() {
     const days = parseInt(form.durationDays);
     if (!days || days < 1) { setCreateError('Duration must be at least 1 day.'); return; }
 
-    setPendingImage(imagePreview);
-    writeCreate({ address: contracts.AvadixDonations, abi: DONATIONS_ABI, functionName: 'createCampaign', args: [form.name, form.description, form.emoji, parseEther(form.goal), BigInt(days * 86400)] });
+    // emoji field'ına resmi göm: "💎|||data:image/jpeg;base64,..."
+    let emojiField = form.emoji;
+    if (imagePreview) {
+      emojiField = `${form.emoji}${IMG_SEPARATOR}${imagePreview}`;
+    }
+
+    writeCreate({
+      address: contracts.AvadixDonations, abi: DONATIONS_ABI,
+      functionName: 'createCampaign',
+      args: [form.name, form.description, emojiField, parseEther(form.goal), BigInt(days * 86400)],
+    });
   };
 
   const txPending = isDonating || isDonateConfirming;
-  const selectedName = selectedData?.name ?? `Campaign #${selectedId}`;
+  const selectedName = selectedData?.name ?? (selectedCampaignLive?.name ?? `Campaign #${selectedId}`);
 
   return (
     <section style={{ padding: '40px 24px 80px', maxWidth: 1280, margin: '0 auto' }}>
@@ -245,8 +358,8 @@ export default function DonationSection() {
       </div>
 
       {/* Quote carousel */}
-      <div style={{ background: 'linear-gradient(135deg, rgba(232,65,66,0.08), rgba(18,18,26,0.8))', border: '1px solid rgba(232,65,66,0.18)', borderRadius: 20, padding: '28px 36px', marginBottom: 40, position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: -20, left: -10, fontSize: 100, color: 'rgba(232,65,66,0.06)', fontFamily: 'Georgia, serif', lineHeight: 1, userSelect: 'none' }}>"</div>
+      <div style={{ background: 'linear-gradient(135deg,rgba(232,65,66,0.08),rgba(18,18,26,0.8))', border: '1px solid rgba(232,65,66,0.18)', borderRadius: 20, padding: '28px 36px', marginBottom: 40, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: -20, left: -10, fontSize: 100, color: 'rgba(232,65,66,0.06)', fontFamily: 'Georgia,serif', lineHeight: 1, userSelect: 'none' }}>"</div>
         <p style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(16px,2vw,20px)', fontWeight: 500, color: '#E2E2F0', lineHeight: 1.5, fontStyle: 'italic', marginBottom: 10, position: 'relative', zIndex: 1 }}>"{quote.text}"</p>
         <p style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#E84142', position: 'relative', zIndex: 1 }}>— {quote.author}</p>
         <div style={{ display: 'flex', gap: 8, marginTop: 14, alignItems: 'center' }}>
@@ -263,7 +376,11 @@ export default function DonationSection() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {count === 0 && <div style={{ textAlign: 'center', padding: '40px 0', color: '#8888AA', fontSize: 14 }}>No campaigns yet. Create the first one!</div>}
             {campaignIds.map(id => (
-              <CampaignCard key={id} campaignId={id} contractAddr={contracts.AvadixDonations} isSelected={selectedId === id} onSelect={(id, data) => { setSelectedId(id); setSelectedData(data); setShowHistory(false); }} />
+              <CampaignCard
+                key={id} campaignId={id} contractAddr={contracts.AvadixDonations}
+                isSelected={selectedId === id}
+                onSelect={(id, data) => { setSelectedId(id); setSelectedData(data); setShowHistory(false); setDonateError(''); }}
+              />
             ))}
           </div>
         </div>
@@ -276,83 +393,118 @@ export default function DonationSection() {
               <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, color: '#E2E2F0' }}>Donate to {selectedName}</h3>
             </div>
 
-            {/* Quick amounts */}
-            <div>
-              <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Amount (AVAX) — min {MIN_AMOUNT}</label>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                {SUGGESTED.map(a => (
-                  <button key={a} onClick={() => setAmount(a)} style={{ flex: 1, padding: '7px 0', background: amount === a ? 'rgba(232,65,66,0.15)' : '#0A0A0F', border: `1px solid ${amount === a ? 'rgba(232,65,66,0.4)' : '#1E1E2E'}`, borderRadius: 8, color: amount === a ? '#E84142' : '#8888AA', fontFamily: 'var(--font-mono)', fontSize: 12, cursor: 'pointer' }}>{a}</button>
-                ))}
+            {/* Kalan miktar göstergesi */}
+            {selectedId > 0 && liveGoal > 0 && (
+              <div style={{ background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, padding: '10px 14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>Campaign Progress</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: isComplete ? '#22c55e' : '#E84142', fontWeight: 600 }}>{livePct}%</span>
+                </div>
+                <div style={{ background: '#1E1E2E', borderRadius: 4, height: 6, overflow: 'hidden', marginBottom: 6 }}>
+                  <div style={{ width: `${Math.min(100, livePct)}%`, height: '100%', background: isComplete ? 'linear-gradient(90deg,#22c55e,#16a34a)' : 'linear-gradient(90deg,#E84142,#ff6b6b)', borderRadius: 4, transition: 'width 0.8s' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Raised: {liveRaised.toFixed(3)} AVAX</span>
+                  {!isComplete && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#E84142', fontWeight: 600 }}>Remaining: {liveRemaining.toFixed(3)} AVAX</span>}
+                </div>
               </div>
-              <div style={{ background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
+            )}
+
+            {/* Amount */}
+            <div>
+              <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                Amount (AVAX){maxDonation > 0 && !isComplete ? ` — max ${maxDonation.toFixed(3)}` : ` — min ${MIN_AMOUNT}`}
+              </label>
+
+              {/* Quick amount buttons — sadece kalan miktara kadar göster */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+                {SUGGESTED.map(a => (
+                  <button key={a} onClick={() => { setAmount(a); setDonateError(''); }} style={{
+                    flex: 1, minWidth: 52, padding: '7px 0',
+                    background: amount === a ? 'rgba(232,65,66,0.15)' : '#0A0A0F',
+                    border: `1px solid ${amount === a ? 'rgba(232,65,66,0.4)' : '#1E1E2E'}`,
+                    borderRadius: 8, color: amount === a ? '#E84142' : '#8888AA',
+                    fontFamily: 'var(--font-mono)', fontSize: 12, cursor: 'pointer',
+                  }}>{a}</button>
+                ))}
+                {/* MAX butonu */}
+                {maxDonation > 0 && !isComplete && (
+                  <button onClick={() => { setAmount(maxDonation.toFixed(3)); setDonateError(''); }} style={{
+                    padding: '7px 12px', background: 'rgba(232,65,66,0.08)', border: '1px solid rgba(232,65,66,0.2)',
+                    borderRadius: 8, color: '#E84142', fontFamily: 'var(--font-mono)', fontSize: 12, cursor: 'pointer', fontWeight: 600,
+                  }}>MAX</button>
+                )}
+              </div>
+
+              <div style={{ background: '#0A0A0F', border: `1px solid ${donateError ? 'rgba(232,65,66,0.5)' : '#1E1E2E'}`, borderRadius: 10, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', marginRight: 6 }}>AVAX</span>
-                <input type="number" step="0.001" min={MIN_AMOUNT} placeholder="0.001" value={amount} onChange={e => handleAmountChange(e.target.value)} onBlur={handleAmountBlur} style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#E2E2F0', fontFamily: 'var(--font-mono)', fontSize: 14, padding: '10px 0' }} />
-                {balance && <button onClick={() => { const bal = Math.floor(parseFloat(balance.formatted) * 1000) / 1000; setAmount(bal.toFixed(3)); }} style={{ background: 'none', border: 'none', color: '#E84142', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer' }}>MAX</button>}
+                <input
+                  type="number" step="0.001" min={MIN_AMOUNT}
+                  max={maxDonation > 0 ? maxDonation : undefined}
+                  placeholder="0.001" value={amount}
+                  onChange={e => handleAmountChange(e.target.value)}
+                  onBlur={handleAmountBlur}
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#E2E2F0', fontFamily: 'var(--font-mono)', fontSize: 14, padding: '10px 0' }}
+                />
               </div>
               {balance && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', textAlign: 'right', marginTop: 4 }}>Balance: {parseFloat(balance.formatted).toFixed(3)} AVAX</div>}
             </div>
 
-            {txPending && <div style={{ padding: '10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, color: '#F59E0B', fontSize: 12, fontFamily: 'var(--font-mono)', textAlign: 'center' }}>⏳ {isDonating ? 'Awaiting wallet...' : 'Confirming on-chain...'}</div>}
-
-            {/* Tamamlandı / süre dolmuş uyarısı */}
-            {(selectedData?.progress >= 100 || (selectedData && !selectedData.active)) && (
-              <div style={{ padding: '14px 16px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 10, textAlign: 'center' }}>
-                <div style={{ color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
-                  🎯 Donation goal reached!
-                </div>
-                <div style={{ color: '#8888AA', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-                  This campaign is complete — no more donations accepted.
-                </div>
+            {/* Hata mesajı */}
+            {donateError && (
+              <div style={{ padding: '10px 14px', background: 'rgba(232,65,66,0.1)', border: '1px solid rgba(232,65,66,0.3)', borderRadius: 8, color: '#E84142', fontSize: 13, fontFamily: 'var(--font-mono)' }}>
+                ⚠ {donateError}
               </div>
             )}
-            {(selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000 && (selectedData?.progress ?? 0) < 100 && selectedData?.active) && (
-              <div style={{ padding: '14px 16px', background: 'rgba(232,65,66,0.08)', border: '1px solid rgba(232,65,66,0.2)', borderRadius: 10, textAlign: 'center' }}>
-                <div style={{ color: '#E84142', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
-                  ⏰ Campaign ended
-                </div>
-                <div style={{ color: '#8888AA', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-                  The deadline has passed — no more donations accepted.
-                </div>
+
+            {txPending && (
+              <div style={{ padding: '10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, color: '#F59E0B', fontSize: 12, fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
+                ⏳ {isDonating ? 'Awaiting wallet...' : 'Confirming on-chain...'}
+              </div>
+            )}
+
+            {/* Tamamlandı banner */}
+            {isComplete && (
+              <div style={{ padding: '14px 16px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 10, textAlign: 'center' }}>
+                <div style={{ color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 4 }}>🎯 Donation goal reached!</div>
+                <div style={{ color: '#8888AA', fontFamily: 'var(--font-mono)', fontSize: 12 }}>This campaign is complete — no more donations accepted.</div>
               </div>
             )}
 
             {donateSuccess ? (
-              <div style={{ padding: 14, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 10, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600 }}>💚 Donation confirmed on-chain!</div>
+              <div style={{ padding: 14, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 10, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+                💚 Donation confirmed on-chain!
+              </div>
             ) : (
               <button
                 onClick={handleDonate}
-                disabled={
-                  txPending ||
-                  (selectedData?.progress >= 100) ||
-                  (selectedData && !selectedData.active) ||
-                  (selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000)
-                }
+                disabled={txPending || isComplete}
                 style={{
                   width: '100%', padding: '14px',
-                  background: (selectedData?.progress >= 100) || (selectedData && !selectedData.active) || (selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000)
-                    ? '#2A2A3E'
-                    : isConnected ? '#E84142' : '#2A2A3E',
+                  background: isComplete ? '#2A2A3E' : (isConnected ? '#E84142' : '#2A2A3E'),
                   border: 'none', borderRadius: 10, color: 'white',
                   fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15,
-                  cursor: (txPending || selectedData?.progress >= 100 || (selectedData && !selectedData.active)) ? 'not-allowed' : 'pointer',
-                  opacity: (txPending || selectedData?.progress >= 100 || (selectedData && !selectedData.active) || (selectedData?.deadline && Date.now() > Number(selectedData.deadline) * 1000)) ? 0.5 : 1,
+                  cursor: (txPending || isComplete) ? 'not-allowed' : 'pointer',
+                  opacity: (txPending || isComplete) ? 0.5 : 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  boxShadow: isConnected && (selectedData?.progress ?? 0) < 100 ? '0 0 20px rgba(232,65,66,0.2)' : 'none'
-                }}>
+                  boxShadow: isConnected && !isComplete ? '0 0 20px rgba(232,65,66,0.2)' : 'none',
+                }}
+              >
                 <Heart size={16} fill="white" />
-                {isDonating ? 'Awaiting wallet...' : isDonateConfirming ? 'Confirming...' : !isConnected ? 'Connect Wallet to Donate' : (selectedData?.progress >= 100 || (selectedData && !selectedData.active)) ? 'Campaign Complete' : `Donate ${amount} AVAX`}
-                {isConnected && !txPending && (selectedData?.progress ?? 0) < 100 && selectedData?.active && <Sparkles size={14} />}
+                {isDonating ? 'Awaiting wallet...'
+                  : isDonateConfirming ? 'Confirming...'
+                  : !isConnected ? 'Connect Wallet to Donate'
+                  : isComplete ? 'Campaign Complete'
+                  : `Donate ${amount} AVAX`}
+                {isConnected && !txPending && !isComplete && <Sparkles size={14} />}
               </button>
             )}
 
-            {/* Donation history toggle */}
-            <button onClick={() => setShowHistory(h => !h)} style={{ background: 'none', border: '1px solid #1E1E2E', borderRadius: 8, padding: '8px 0', color: '#8888AA', fontFamily: 'var(--font-mono)', fontSize: 12, cursor: 'pointer', width: '100%', transition: 'all 0.2s' }}>
+            <button onClick={() => setShowHistory(h => !h)} style={{ background: 'none', border: '1px solid #1E1E2E', borderRadius: 8, padding: '8px 0', color: '#8888AA', fontFamily: 'var(--font-mono)', fontSize: 12, cursor: 'pointer', width: '100%' }}>
               {showHistory ? '▲ Hide' : '▼ Show'} donation history
             </button>
 
-            {showHistory && selectedId && (
-              <DonationHistory campaignId={selectedId} contractAddr={contracts.AvadixDonations} />
-            )}
+            {showHistory && selectedId && <DonationHistory campaignId={selectedId} contractAddr={contracts.AvadixDonations} />}
 
             <p style={{ textAlign: 'center', fontSize: 11, color: '#555570', fontFamily: 'var(--font-body)' }}>On-chain donations · Avalanche network · Min {MIN_AMOUNT} AVAX</p>
           </div>
@@ -365,7 +517,7 @@ export default function DonationSection() {
           <div style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 20, padding: 32, width: '100%', maxWidth: 500, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
             <button onClick={() => setShowCreate(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(232,65,66,0.1)', border: '1px solid rgba(232,65,66,0.2)', borderRadius: 8, padding: '6px 10px', color: '#E84142', cursor: 'pointer' }}><X size={16} /></button>
             <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#E2E2F0', marginBottom: 6 }}>Create Campaign</h3>
-            <p style={{ color: '#8888AA', fontSize: 14, marginBottom: 24 }}>Launch a fundraising campaign on Avadix. Cüzdan onayı gereklidir.</p>
+            <p style={{ color: '#8888AA', fontSize: 14, marginBottom: 24 }}>Launch a fundraising campaign on Avadix.</p>
 
             {createSuccess ? (
               <div style={{ padding: 20, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 12, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600 }}>✓ Campaign created on-chain!</div>
@@ -373,17 +525,24 @@ export default function DonationSection() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {/* Image upload */}
                 <div>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Campaign Image (optional)</label>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                    Campaign Image (optional)
+                    <span style={{ color: '#555570', fontWeight: 400, marginLeft: 6 }}>— stored on-chain, visible to everyone</span>
+                  </label>
                   <div onClick={() => fileRef.current?.click()} style={{ border: '2px dashed #1E1E2E', borderRadius: 12, padding: 16, textAlign: 'center', cursor: 'pointer', background: '#0A0A0F' }}
                     onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(232,65,66,0.4)')}
                     onMouseLeave={e => (e.currentTarget.style.borderColor = '#1E1E2E')}>
                     {imagePreview ? (
                       <div style={{ position: 'relative' }}>
                         <img src={imagePreview} alt="" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8 }} />
-                        <button onClick={e => { e.stopPropagation(); setImagePreview(null); }} style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: 6, padding: '4px 6px', color: 'white', cursor: 'pointer' }}><X size={12} /></button>
+                        <button onClick={e => { e.stopPropagation(); setImagePreview(null); setImageFile(null); }} style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: 6, padding: '4px 6px', color: 'white', cursor: 'pointer' }}><X size={12} /></button>
+                        <div style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570' }}>Compressed to 160px thumbnail for on-chain storage</div>
                       </div>
                     ) : (
-                      <div><Upload size={20} color="#555570" style={{ margin: '0 auto 6px' }} /><p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Click to upload</p></div>
+                      <div>
+                        <Upload size={20} color="#555570" style={{ margin: '0 auto 6px' }} />
+                        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Click to upload</p>
+                      </div>
                     )}
                   </div>
                   <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
@@ -393,7 +552,9 @@ export default function DonationSection() {
                 <div>
                   <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Emoji</label>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {EMOJIS.map(e => <button key={e} onClick={() => setForm(f => ({ ...f, emoji: e }))} style={{ width: 36, height: 36, fontSize: 18, background: form.emoji === e ? 'rgba(232,65,66,0.2)' : '#0A0A0F', border: `1px solid ${form.emoji === e ? 'rgba(232,65,66,0.4)' : '#1E1E2E'}`, borderRadius: 8, cursor: 'pointer' }}>{e}</button>)}
+                    {EMOJIS.map(e => (
+                      <button key={e} onClick={() => setForm(f => ({ ...f, emoji: e }))} style={{ width: 36, height: 36, fontSize: 18, background: form.emoji === e ? 'rgba(232,65,66,0.2)' : '#0A0A0F', border: `1px solid ${form.emoji === e ? 'rgba(232,65,66,0.4)' : '#1E1E2E'}`, borderRadius: 8, cursor: 'pointer' }}>{e}</button>
+                    ))}
                   </div>
                 </div>
 
@@ -414,7 +575,7 @@ export default function DonationSection() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Goal (AVAX)</label>
-                    <input type="number" step="0.001" min={MIN_AMOUNT} placeholder="e.g. 10" value={form.goal} onChange={e => setForm(f => ({ ...f, goal: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, color: '#E2E2F0', fontFamily: 'var(--font-mono)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                    <input type="number" step="0.001" min={MIN_AMOUNT} placeholder="e.g. 1" value={form.goal} onChange={e => setForm(f => ({ ...f, goal: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, color: '#E2E2F0', fontFamily: 'var(--font-mono)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                   <div>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Duration (days)</label>
@@ -424,7 +585,7 @@ export default function DonationSection() {
 
                 {createError && <div style={{ padding: '10px', background: 'rgba(232,65,66,0.1)', border: '1px solid rgba(232,65,66,0.2)', borderRadius: 8, color: '#E84142', fontSize: 13, fontFamily: 'var(--font-mono)' }}>⚠ {createError}</div>}
                 <button onClick={handleCreate} disabled={isCreating} style={{ width: '100%', padding: '13px', background: '#E84142', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1, boxShadow: '0 0 20px rgba(232,65,66,0.3)' }}>
-                  {isCreating ? '⏳ Cüzdan onayı bekleniyor...' : !isConnected ? '⚠ Connect Wallet First' : 'Launch Campaign On-Chain'}
+                  {isCreating ? '⏳ Awaiting wallet...' : !isConnected ? '⚠ Connect Wallet First' : 'Launch Campaign On-Chain'}
                 </button>
               </div>
             )}
