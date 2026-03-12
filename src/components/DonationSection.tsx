@@ -49,12 +49,13 @@ function parseEmojiField(raw: string): { emoji: string; imageData: string | null
 
 // ─── CampaignCard ─────────────────────────────────────────────────────────────
 function CampaignCard({
-  campaignId, contractAddr, isSelected, onSelect,
+  campaignId, contractAddr, isSelected, onSelect, filterTab,
 }: {
   campaignId: number;
   contractAddr: `0x${string}`;
   isSelected: boolean;
   onSelect: (id: number, data: any) => void;
+  filterTab: 'all' | 'active' | 'completed';
 }) {
   const { data: campaign } = useReadContract({
     address: contractAddr, abi: DONATIONS_ABI, functionName: 'getCampaign', args: [BigInt(campaignId)],
@@ -76,6 +77,10 @@ function CampaignCard({
   const daysLeft = Math.max(0, Math.ceil((deadline.getTime() - Date.now()) / 86400000));
   const shortAddr = (a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`;
   const isComplete = pct >= 100 || !campaign.active;
+
+  // Filter tab kontrolü
+  if (filterTab === 'active' && isComplete) return null;
+  if (filterTab === 'completed' && !isComplete) return null;
 
   // Fotoğrafı emoji field'ından çek (blockchain'de saklı)
   const { emoji, imageData } = parseEmojiField(campaign.emoji ?? '💎');
@@ -168,6 +173,7 @@ export default function DonationSection() {
   const contracts = getAddresses(chainId);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [quoteIdx, setQuoteIdx] = useState(0);
   const [selectedId, setSelectedId] = useState<number>(1);
   const [selectedData, setSelectedData] = useState<any>(null);
@@ -372,13 +378,26 @@ export default function DonationSection() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,420px)', gap: 28, alignItems: 'start' }}>
         {/* Campaign list */}
         <div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#E2E2F0', marginBottom: 14 }}>Campaigns ({count})</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#E2E2F0', margin: 0 }}>Campaigns ({count})</h3>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {(['all', 'active', 'completed'] as const).map(f => (
+                <button key={f} onClick={() => setCampaignFilter(f)} style={{
+                  padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 12, textTransform: 'capitalize',
+                  background: campaignFilter === f ? '#E84142' : '#12121A',
+                  color: campaignFilter === f ? 'white' : '#8888AA', transition: 'all 0.2s',
+                }}>{f === 'completed' ? '✅ Completed' : f === 'active' ? '🟢 Active' : 'All'}</button>
+              ))}
+            </div>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {count === 0 && <div style={{ textAlign: 'center', padding: '40px 0', color: '#8888AA', fontSize: 14 }}>No campaigns yet. Create the first one!</div>}
             {campaignIds.map(id => (
               <CampaignCard
                 key={id} campaignId={id} contractAddr={contracts.AvadixDonations}
                 isSelected={selectedId === id}
+                filterTab={campaignFilter}
                 onSelect={(id, data) => { setSelectedId(id); setSelectedData(data); setShowHistory(false); setDonateError(''); }}
               />
             ))}
