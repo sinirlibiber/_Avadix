@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, TrendingUp, Clock, Users, BarChart3, Activity, AlertCircle, CheckCircle, Info, ChevronUp, ChevronDown, Zap, Target } from 'lucide-react';
 import Link from 'next/link';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance, useChainId, usePublicClient } from 'wagmi';
-import { parseEther, formatEther, parseAbiItem } from 'viem';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance, useChainId } from 'wagmi';
+import { parseEther, formatEther } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { getAddresses } from '@/lib/contracts/addresses';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
@@ -42,12 +42,10 @@ function useCoinGeckoPrice(coingeckoId: string, enabled: boolean) {
 
 const MIN_AMOUNT = 0.001;
 
-// ─── Real on-chain data via viem publicClient.getLogs ─────────────────────────
-const CONTRACT_ADDR = '0xc6dcF18054b8cAC46F242e87b0758325DCC8B853' as `0x${string}`;
-
-const TRADE_PLACED_ABI = parseAbiItem(
-  'event TradePlaced(uint256 indexed marketId, address indexed trader, bool indexed isYes, uint256 amount, uint256 shares)'
-);
+// ─── Real on-chain data via Snowtrace API ────────────────────────────────────
+const CONTRACT_ADDR = '0xc6dcF18054b8cAC46F242e87b0758325DCC8B853';
+// keccak256("TradePlaced(uint256,address,bool,uint256,uint256)")
+const TRADE_TOPIC0 = '0x482ba39b8e8f0be2dcea6fdf1f91e8c3e3af9ee5a5f55f5d1cdab8e9a88c46fe';
 
 interface TradeEvent {
   hash: string;
@@ -63,60 +61,65 @@ interface TradeEvent {
 function useMarketTrades(marketId: number) {
   const [trades, setTrades] = useState<TradeEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const publicClient = usePublicClient();
 
   useEffect(() => {
-    if (!publicClient) { setLoading(false); return; }
-    const client = publicClient;
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       try {
-        const logs = await client.getLogs({
-          address: CONTRACT_ADDR,
-          event: TRADE_PLACED_ABI,
-          args: { marketId: BigInt(marketId) },
-          fromBlock: BigInt(0),
-          toBlock: 'latest',
-        });
+        // topic1 = marketId padded to 32 bytes
+        const topic1 = '0x' + marketId.toString(16).padStart(64, '0');
+
+        const url = `https://api.routescan.io/v2/network/testnet/evm/43113/etherscan/api` +
+          `?module=logs&action=getLogs` +
+          `&address=${CONTRACT_ADDR}` +
+          `&topic0=${TRADE_TOPIC0}` +
+          `&topic0_1_opr=and&topic1=${topic1}` +
+          `&fromBlock=0&toBlock=99999999` +
+          `&apikey=free`;
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('fetch failed');
+        const json = await res.json();
 
         if (cancelled) return;
 
-        // Fetch block timestamps in parallel (batch, max 20)
-        const blockNums = [...new Set(logs.map(l => l.blockNumber))].slice(0, 20);
-        const blockMap = new Map<bigint, number>();
-        await Promise.allSettled(
-          blockNums.map(async bn => {
-            try {
-              const blk = await client.getBlock({ blockNumber: bn });
-              blockMap.set(bn, Number(blk.timestamp));
-            } catch { /* ignore */ }
-          })
-        );
+        const result = json.result;
+        if (!Array.isArray(result)) { setTrades([]); setLoading(false); return; }
 
-        const parsed: TradeEvent[] = logs.map(log => {
-          const { marketId: _mid, trader, isYes, amount, shares } = log.args as any;
-          const amountF = Number(amount) / 1e18;
-          const sharesF = Number(shares) / 1e18;
-          const rawProb = sharesF > 0
-            ? Math.min(99, Math.max(1, Math.round((amountF / sharesF) * 100)))
-            : 50;
-          return {
-            hash: log.transactionHash ?? '',
-            trader: trader ?? '',
-            isYes: !!isYes,
-            amount: amountF,
-            shares: sharesF,
-            blockNumber: Number(log.blockNumber),
-            timestamp: blockMap.get(log.blockNumber) ?? 0,
-            yesProb: isYes ? rawProb : 100 - rawProb,
-          };
-        }).reverse(); // newest first
+        const parsed: TradeEvent[] = [];
+        for (const log of result) {
+          try {
+            // topics[1]=marketId, topics[2]=trader, topics[3]=isYes
+            const trader = '0x' + log.topics[2].slice(26);
+            const isYes  = log.topics[3].endsWith('1');
+            const data   = log.data.replace('0x', '');
+            const amountWei = BigInt('0x' + data.slice(0, 64));
+            const sharesWei = BigInt('0x' + data.slice(64, 128));
+            const amountF   = Number(amountWei) / 1e18;
+            const sharesF   = Number(sharesWei) / 1e18;
+            const rawProb   = sharesF > 0
+              ? Math.min(99, Math.max(1, Math.round((amountF / sharesF) * 100)))
+              : 50;
+            parsed.push({
+              hash:        log.transactionHash,
+              trader,
+              isYes,
+              amount:      amountF,
+              shares:      sharesF,
+              blockNumber: parseInt(log.blockNumber, 16),
+              timestamp:   parseInt(log.timeStamp, 16),
+              yesProb:     isYes ? rawProb : 100 - rawProb,
+            });
+          } catch { /* skip malformed */ }
+        }
 
+        // newest first
+        parsed.sort((a, b) => b.blockNumber - a.blockNumber);
         if (!cancelled) setTrades(parsed);
       } catch (e) {
-        console.error('getLogs error:', e);
+        console.warn('Snowtrace fetch failed:', e);
         if (!cancelled) setTrades([]);
       } finally {
         if (!cancelled) setLoading(false);
@@ -125,7 +128,7 @@ function useMarketTrades(marketId: number) {
 
     load();
     return () => { cancelled = true; };
-  }, [marketId, publicClient]);
+  }, [marketId]);
 
   return { trades, loading };
 }
@@ -640,8 +643,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
               ))}
             </div>
 
-            {tab === 'chart' && (
-              <div style={{ padding: '20px 20px 16px' }}>
+            <div style={{ display: tab === 'chart' ? 'block' : 'none', padding: '20px 20px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', textTransform: 'uppercase' }}>YES probability over time</span>
                   <div style={{ display: 'flex', gap: 6 }}>
@@ -679,28 +681,23 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+            </div>
 
-            {tab === 'depth' && (
-              <div>
+            <div style={{ display: tab === 'depth' ? 'block' : 'none' }}>
                 <div style={{ padding: '14px 14px 4px', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Info size={12} color="#555570" />
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>AMM pool depth — estimated from liquidity</span>
                 </div>
                 <MarketDepth yesPool={yesPool} noPool={noPool} />
-              </div>
-            )}
+            </div>
 
-            {tab === 'activity' && (
-              <div>
+            <div style={{ display: tab === 'activity' ? 'block' : 'none' }}>
                 <div style={{ padding: '14px 14px 4px', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Activity size={12} color="#555570" />
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Recent trades in this market</span>
                 </div>
                 <ActivityFeed trades={trades} loading={tradesLoading} />
-              </div>
-            )}
+            </div>
           </div>
 
           {/* ── Resolve button — oracle markets, after endTime, not yet resolved ── */}
