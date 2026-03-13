@@ -59,6 +59,7 @@ function CampaignCard({
   onSelect: (id: number, data: any) => void;
   filterTab: 'all' | 'active' | 'completed';
 }) {
+  const { address } = useAccount();
   const { data: campaign } = useReadContract({
     address: contractAddr, abi: DONATIONS_ABI, functionName: 'getCampaign', args: [BigInt(campaignId)],
   }) as { data: any };
@@ -68,6 +69,9 @@ function CampaignCard({
   const { data: donationCount } = useReadContract({
     address: contractAddr, abi: DONATIONS_ABI, functionName: 'getDonationCount', args: [BigInt(campaignId)],
   }) as { data: bigint | undefined };
+
+  const { writeContract: writeWd, data: wdTxHash, isPending: isWdPending } = useWriteContract();
+  const { isLoading: isWdConfirming, isSuccess: wdSuccess } = useWaitForTransactionReceipt({ hash: wdTxHash });
 
   if (!campaign?.exists) return null;
 
@@ -80,6 +84,9 @@ function CampaignCard({
   const shortAddr = (a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`;
   const deadlineMs = Number(campaign.deadline) * 1000;
   const isComplete = pct >= 100 || !campaign.active || (deadlineMs > 0 && Date.now() > deadlineMs);
+  const isCardCreator = !!(address && campaign.creator &&
+    address.toLowerCase() === campaign.creator.toLowerCase());
+  const cardCanWithdraw = isCardCreator && isComplete && raised > 0;
 
   // Filter tab kontrolü
   if (filterTab === 'active' && isComplete) return null;
@@ -137,6 +144,31 @@ function CampaignCard({
         </div>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>{raised.toFixed(3)}/{goal.toFixed(3)} AVAX</span>
       </div>
+
+      {/* Withdraw butonu — sadece kampanya sahibine, kampanya bitince */}
+      {cardCanWithdraw && (
+        <div onClick={e => e.stopPropagation()} style={{ marginTop: 12 }}>
+          {wdSuccess ? (
+            <div style={{ padding: '8px 12px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+              Withdrawn to your wallet!
+            </div>
+          ) : (
+            <button
+              onClick={() => writeWd({ address: contractAddr, abi: DONATIONS_ABI, functionName: 'withdrawFunds', args: [BigInt(campaignId)] })}
+              disabled={isWdPending || isWdConfirming}
+              style={{
+                width: '100%', padding: '9px', background: (isWdPending || isWdConfirming) ? '#1C1C1C' : '#22c55e',
+                border: 'none', borderRadius: 8, color: 'white',
+                fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
+                cursor: (isWdPending || isWdConfirming) ? 'wait' : 'pointer',
+                opacity: (isWdPending || isWdConfirming) ? 0.7 : 1,
+              }}
+            >
+              {isWdPending ? 'Awaiting wallet...' : isWdConfirming ? 'Confirming...' : `Withdraw ${raised.toFixed(3)} AVAX`}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -350,6 +382,27 @@ export default function DonationSection() {
     });
   };
 
+  // ─── Withdraw Funds (sadece kampanya sahibi) ──────────────────────────────
+  const { writeContract: writeWithdraw, data: withdrawTxHash, isPending: isWithdrawing } = useWriteContract();
+  const { isLoading: isWithdrawConfirming, isSuccess: withdrawSuccess } = useWaitForTransactionReceipt({ hash: withdrawTxHash });
+
+  useEffect(() => {
+    if (withdrawSuccess) refetchSelected();
+  }, [withdrawSuccess]);
+
+  const isCreator = !!(address && selectedCampaignLive?.creator &&
+    address.toLowerCase() === selectedCampaignLive.creator.toLowerCase());
+  const canWithdraw = isCreator && isComplete && liveRaised > 0;
+  const withdrawPending = isWithdrawing || isWithdrawConfirming;
+
+  const handleWithdraw = () => {
+    writeWithdraw({
+      address: contracts.AvadixDonations, abi: DONATIONS_ABI,
+      functionName: 'withdrawFunds',
+      args: [BigInt(selectedId)],
+    });
+  };
+
   const txPending = isDonating || isDonateConfirming;
   const selectedName = selectedData?.name ?? (selectedCampaignLive?.name ?? `Campaign #${selectedId}`);
 
@@ -492,6 +545,30 @@ export default function DonationSection() {
                 <div style={{ color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Donation goal reached!</div>
                 <div style={{ color: '#8888AA', fontFamily: 'var(--font-mono)', fontSize: 12 }}>This campaign is complete — no more donations accepted.</div>
               </div>
+            )}
+
+            {/* Withdraw butonu — sadece kampanya sahibine görünür */}
+            {canWithdraw && (
+              withdrawSuccess ? (
+                <div style={{ padding: '12px 16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 10, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+                  Funds withdrawn to your wallet!
+                </div>
+              ) : (
+                <button
+                  onClick={handleWithdraw}
+                  disabled={withdrawPending}
+                  style={{
+                    width: '100%', padding: '14px', border: 'none', borderRadius: 10,
+                    background: withdrawPending ? '#1C1C1C' : '#22c55e',
+                    color: 'white', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
+                    cursor: withdrawPending ? 'wait' : 'pointer',
+                    opacity: withdrawPending ? 0.7 : 1,
+                    boxShadow: withdrawPending ? 'none' : '0 0 20px rgba(34,197,94,0.25)',
+                  }}
+                >
+                  {isWithdrawing ? 'Awaiting wallet...' : isWithdrawConfirming ? 'Confirming...' : `Withdraw ${liveRaised.toFixed(3)} AVAX to your wallet`}
+                </button>
+              )
             )}
 
             {donateSuccess ? (
