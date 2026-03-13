@@ -1,4 +1,5 @@
 import Navbar from '@/components/Navbar';
+import PageBackground from '@/components/PageBackground';
 import DAOSection from '@/components/DAOSection';
 import Footer from '@/components/Footer';
 
@@ -6,9 +7,12 @@ export const metadata = { title: 'DAO — Avadix' };
 
 export default function DAOPage() {
   return (
-    <main style={{ paddingTop: 64 }}>
+    <main style={{ paddingTop: 64, position: 'relative', minHeight: '100vh' }}>
+      <PageBackground opacity={0.4} />
       <Navbar />
-      <DAOSection />
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <DAOSection />
+      </div>
       <Footer />
     </main>
   );

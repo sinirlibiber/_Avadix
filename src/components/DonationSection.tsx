@@ -362,7 +362,7 @@ export default function DonationSection() {
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>// Community</p>
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(32px,5vw,52px)', color: '#FAFAFA', letterSpacing: '-0.03em', lineHeight: 1 }}>Give Back</h2>
         </div>
-        <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px', background: '#FAFAFA', border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, boxShadow: 'none' }}>
+        <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px', background: '#FAFAFA', border: 'none', borderRadius: 10, color: '#0A0A0A', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, boxShadow: 'none' }}>
           <Plus size={16} /> Create Campaign
         </button>
       </div>
@@ -506,7 +506,7 @@ export default function DonationSection() {
                 style={{
                   width: '100%', padding: '14px',
                   background: isComplete ? '#1C1C1C' : (isConnected ? '#FAFAFA' : '#1C1C1C'),
-                  border: 'none', borderRadius: 10, color: 'white',
+                  border: 'none', borderRadius: 10, color: '#0A0A0A',
                   fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15,
                   cursor: (txPending || isComplete) ? 'not-allowed' : 'pointer',
                   opacity: (txPending || isComplete) ? 0.5 : 1,
@@ -608,7 +608,7 @@ export default function DonationSection() {
                 </div>
 
                 {createError && <div style={{ padding: '10px', background: '#1C1C1C', border: '1px solid #222222', borderRadius: 8, color: '#FAFAFA', fontSize: 13, fontFamily: 'var(--font-mono)' }}>⚠ {createError}</div>}
-                <button onClick={handleCreate} disabled={isCreating} style={{ width: '100%', padding: '13px', background: '#FAFAFA', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1, boxShadow: 'none' }}>
+                <button onClick={handleCreate} disabled={isCreating} style={{ width: '100%', padding: '13px', background: '#FAFAFA', border: 'none', borderRadius: 10, color: '#0A0A0A', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1, boxShadow: 'none' }}>
                   {isCreating ? '⏳ Awaiting wallet...' : !isConnected ? '⚠ Connect Wallet First' : 'Launch Campaign On-Chain'}
                 </button>
               </div>

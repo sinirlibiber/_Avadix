@@ -182,7 +182,7 @@ export default function MarketsSection() {
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             background: '#FFFFFF',
-            color: 'white', border: 'none', borderRadius: 14,
+            color: '#0A0A0A', border: 'none', borderRadius: 14,
             padding: '12px 24px', fontFamily: 'var(--font-display)',
             fontWeight: 700, fontSize: 15, cursor: 'pointer',
             boxShadow: '0 4px 20px rgba(255,255,255,0.10)',
@@ -365,7 +365,7 @@ export default function MarketsSection() {
                     <select
                       value={form.category}
                       onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, category: e.target.value }))}
-                      style={{ width: '100%', background: '#0F0F20', border: '1px solid #222222', borderRadius: 10, padding: '10px 12px', color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}
+                      style={{ width: '100%', background: '#161616', border: '1px solid #333', borderRadius: 10, padding: '10px 12px', color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}
                     >
                       {catList.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -396,7 +396,7 @@ export default function MarketsSection() {
                   disabled={isCreating}
                   style={{
                     width: '100%', background: isCreating ? 'rgba(255,255,255,0.3)' : '#FFFFFF',
-                    color: 'white', border: 'none', borderRadius: 14,
+                    color: '#0A0A0A', border: 'none', borderRadius: 14,
                     padding: '14px', fontFamily: 'var(--font-display)',
                     fontWeight: 700, fontSize: 16, cursor: isCreating ? 'not-allowed' : 'pointer',
                     transition: 'all 0.25s',

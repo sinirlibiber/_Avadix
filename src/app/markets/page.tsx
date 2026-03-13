@@ -1,4 +1,5 @@
 import Navbar from '@/components/Navbar';
+import PageBackground from '@/components/PageBackground';
 import MarketsSection from '@/components/MarketsSection';
 import Footer from '@/components/Footer';
 
@@ -6,9 +7,12 @@ export const metadata = { title: 'Markets — Avadix' };
 
 export default function MarketsPage() {
   return (
-    <main style={{ paddingTop: 64 }}>
+    <main style={{ paddingTop: 64, position: 'relative', minHeight: '100vh' }}>
+      <PageBackground opacity={0.4} />
       <Navbar />
-      <MarketsSection />
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <MarketsSection />
+      </div>
       <Footer />
     </main>
   );

@@ -110,7 +110,7 @@ export default function Hero() {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(q.x, q.y);
-            ctx.strokeStyle = `rgba(124,58,237,${0.12 * (1 - dist / 100)})`;
+            ctx.strokeStyle = `rgba(255,255,255,${0.06 * (1 - dist / 100)})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
@@ -155,7 +155,6 @@ export default function Hero() {
       {/* Color orbs */}
       <Orb color="#FAFAFA" size={500} top="5%" left="5%" delay={0} duration={10} />
       <Orb color="#888888" size={400} top="50%" left="70%" delay={2} duration={13} />
-      <Orb color="#06B6D4" size={350} top="75%" left="15%" delay={4} duration={11} />
       <Orb color="#FAFAFA" size={300} top="20%" left="55%" delay={1} duration={15} />
 
       {/* Grid */}
@@ -166,7 +165,7 @@ export default function Hero() {
         position: 'absolute', top: '50%', left: '50%',
         transform: 'translate(-50%, -50%)',
         width: 600, height: 600, opacity: 0.025,
-        backgroundImage: 'url(/logo.png)', backgroundSize: 'contain',
+        backgroundImage: 'url(/logo-new.png)', backgroundSize: 'contain',
         backgroundRepeat: 'no-repeat', backgroundPosition: 'center',
         pointerEvents: 'none', filter: 'blur(2px)',
         animation: 'spin-slow 60s linear infinite',
