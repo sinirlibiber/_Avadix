@@ -66,13 +66,14 @@ function useMarketTrades(marketId: number) {
   const publicClient = usePublicClient();
 
   useEffect(() => {
-    if (!publicClient) return;
+    if (!publicClient) { setLoading(false); return; }
+    const client = publicClient;
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       try {
-        const logs = await publicClient.getLogs({
+        const logs = await client.getLogs({
           address: CONTRACT_ADDR,
           event: TRADE_PLACED_ABI,
           args: { marketId: BigInt(marketId) },
