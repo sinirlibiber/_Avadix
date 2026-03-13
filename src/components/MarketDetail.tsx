@@ -42,78 +42,183 @@ function useCoinGeckoPrice(coingeckoId: string, enabled: boolean) {
 
 const MIN_AMOUNT = 0.001;
 
-// ─── Simulated price history from pool ratio ──────────────────────────────────
-function generatePriceHistory(currentPct: number, points = 30) {
-  const data = [];
-  let price = 50;
-  for (let i = 0; i < points; i++) {
-    const noise = (Math.random() - 0.5) * 8;
-    const drift = ((currentPct - price) / points) * (i / points) * 3;
-    price = Math.max(2, Math.min(98, price + noise + drift));
-    data.push({ t: i, yes: Math.round(price), no: Math.round(100 - price) });
-  }
-  data[data.length - 1] = { t: points - 1, yes: currentPct, no: 100 - currentPct };
-  return data;
+// ─── Real on-chain data hooks ─────────────────────────────────────────────────
+const SNOWTRACE_API = 'https://api-testnet.snowtrace.io/api';
+const CONTRACT_ADDR = '0xc6dcF18054b8cAC46F242e87b0758325DCC8B853';
+
+// TradePlaced(uint256 marketId, address trader, bool isYes, uint256 amount, uint256 shares)
+const TRADE_TOPIC = '0x' + Array.from(
+  new TextEncoder().encode('TradePlaced(uint256,address,bool,uint256,uint256)')
+).reduce((h, b) => h, ''); // placeholder — will use keccak via API filter
+
+interface TradeEvent {
+  hash: string;
+  trader: string;
+  isYes: boolean;
+  amount: number;   // AVAX
+  shares: number;
+  blockNumber: number;
+  timestamp: number;
+  yesProb: number;  // derived
 }
 
-// ─── Mini price chart ─────────────────────────────────────────────────────────
-function PriceChart({ yesPercent }: { yesPercent: number }) {
-  const data = generatePriceHistory(yesPercent);
+function useMarketTrades(marketId: number) {
+  const [trades, setTrades] = useState<TradeEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      try {
+        // Fetch all TradePlaced logs for this contract
+        const url = `${SNOWTRACE_API}?module=logs&action=getLogs` +
+          `&address=${CONTRACT_ADDR}` +
+          `&topic0=0x482ba39b8e8f0be2dcea6fdf1f91e8c3e3af9ee5a5f55f5d1cdab8e9a88c46fe` +
+          `&fromBlock=0&toBlock=99999999&apikey=YourApiKeyToken`;
+        const res = await fetch(url);
+        const json = await res.json();
+        if (cancelled) return;
+
+        if (json.status !== '1' || !Array.isArray(json.result)) {
+          setTrades([]); setLoading(false); return;
+        }
+
+        // Parse logs — filter by marketId
+        const parsed: TradeEvent[] = [];
+        for (const log of json.result) {
+          try {
+            // topics[1] = marketId (uint256), topics[2] = trader (address), topics[3] = isYes (bool)
+            const logMarketId = parseInt(log.topics[1], 16);
+            if (logMarketId !== marketId) continue;
+            const trader = '0x' + log.topics[2].slice(26);
+            const isYes  = log.topics[3] === '0x0000000000000000000000000000000000000000000000000000000000000001';
+            // data = amount (uint256) + shares (uint256)
+            const data   = log.data.slice(2);
+            const amount = parseInt(data.slice(0, 64), 16);
+            const shares = parseInt(data.slice(64, 128), 16);
+            const amountAvax = amount / 1e18;
+            const sharesF    = shares / 1e18;
+            const yesProb    = sharesF > 0 ? Math.min(99, Math.max(1, Math.round((amountAvax / sharesF) * 100))) : 50;
+            parsed.push({
+              hash: log.transactionHash,
+              trader,
+              isYes,
+              amount: amountAvax,
+              shares: sharesF,
+              blockNumber: parseInt(log.blockNumber, 16),
+              timestamp: parseInt(log.timeStamp, 16),
+              yesProb: isYes ? yesProb : 100 - yesProb,
+            });
+          } catch { /* skip malformed */ }
+        }
+        // Sort newest first
+        parsed.sort((a, b) => b.blockNumber - a.blockNumber);
+        setTrades(parsed);
+      } catch { if (!cancelled) setTrades([]); }
+      finally { if (!cancelled) setLoading(false); }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [marketId]);
+
+  return { trades, loading };
+}
+
+function timeAgo(ts: number): string {
+  const diff = Math.floor(Date.now() / 1000) - ts;
+  if (diff < 60)   return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400)return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function shortAddr(addr: string) {
+  return addr.slice(0, 6) + '...' + addr.slice(-4);
+}
+
+// ─── Real Price Chart from on-chain trades ─────────────────────────────────────
+function PriceChart({ trades, yesPercent, loading }: { trades: TradeEvent[]; yesPercent: number; loading: boolean }) {
+  // Build price history from trades (oldest→newest) or fallback to single point
+  const data: { t: number; yes: number }[] = trades.length >= 2
+    ? [...trades].reverse().map((tr, i) => ({ t: i, yes: tr.isYes ? tr.yesProb : 100 - tr.yesProb }))
+    : [{ t: 0, yes: yesPercent }];
+
+  // Always end with current probability
+  if (data[data.length - 1].yes !== yesPercent) {
+    data.push({ t: data.length, yes: yesPercent });
+  }
+
   const w = 560, h = 120, pad = 8;
-  const minY = Math.min(...data.map(d => d.yes));
-  const maxY = Math.max(...data.map(d => d.yes));
+  const minY = Math.min(...data.map(d => d.yes), yesPercent - 5);
+  const maxY = Math.max(...data.map(d => d.yes), yesPercent + 5);
   const range = maxY - minY || 10;
-  const scaleX = (i: number) => pad + (i / (data.length - 1)) * (w - pad * 2);
+  const scaleX = (i: number) => pad + (i / Math.max(1, data.length - 1)) * (w - pad * 2);
   const scaleY = (v: number) => h - pad - ((v - minY) / range) * (h - pad * 2);
   const pts = data.map((d, i) => `${scaleX(i)},${scaleY(d.yes)}`).join(' ');
   const areaBottom = `${scaleX(data.length - 1)},${h} ${scaleX(0)},${h}`;
-  const isUp = data[data.length - 1].yes >= data[0].yes;
-  const color = isUp ? '#22c55e' : '#FAFAFA';
+  const isUp = data.length > 1 ? data[data.length - 1].yes >= data[0].yes : true;
+  const color = isUp ? '#22c55e' : '#EF4444';
+
+  if (loading) return (
+    <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Loading chart...</span>
+    </div>
+  );
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 120 }}>
       <defs>
         <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      <polygon points={`${pts} ${areaBottom}`} fill="url(#areaGrad)" />
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
       {[0, 25, 50, 75, 100].map(v => (
         <line key={v} x1={pad} y1={scaleY(minY + (v / 100) * range)} x2={w - pad} y2={scaleY(minY + (v / 100) * range)} stroke="#1C1C1C" strokeWidth="1" />
       ))}
+      <polygon points={`${pts} ${areaBottom}`} fill="url(#areaGrad)" />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
       <circle cx={scaleX(data.length - 1)} cy={scaleY(data[data.length - 1].yes)} r="4" fill={color} />
       <text x={w - pad} y={scaleY(data[data.length - 1].yes) - 8} fill={color} fontSize="11" textAnchor="end" fontFamily="monospace">{yesPercent}¢</text>
     </svg>
   );
 }
 
-// ─── Activity feed (simulated from block data) ────────────────────────────────
-function ActivityFeed({ yesPool, noPool }: { yesPool: bigint; noPool: bigint }) {
-  const ye = parseFloat(formatEther(yesPool));
-  const no = parseFloat(formatEther(noPool));
-  const trades = [
-    { side: 'YES', amount: (ye * 0.08).toFixed(3), time: '2m ago', addr: '0x4f2a...3b1c', price: Math.round(ye / (ye + no) * 100) },
-    { side: 'NO',  amount: (no * 0.05).toFixed(3), time: '7m ago', addr: '0x9e1d...7f3a', price: Math.round(no / (ye + no) * 100) },
-    { side: 'YES', amount: (ye * 0.12).toFixed(3), time: '14m ago', addr: '0x2c8b...4e2f', price: Math.round(ye / (ye + no) * 100) - 1 },
-    { side: 'YES', amount: (ye * 0.03).toFixed(3), time: '22m ago', addr: '0x7a3f...1d9e', price: Math.round(ye / (ye + no) * 100) - 2 },
-    { side: 'NO',  amount: (no * 0.09).toFixed(3), time: '35m ago', addr: '0x1b6c...8a4d', price: Math.round(no / (ye + no) * 100) + 1 },
-    { side: 'YES', amount: (ye * 0.06).toFixed(3), time: '51m ago', addr: '0x5d4e...2c7b', price: Math.round(ye / (ye + no) * 100) - 3 },
-  ];
+// ─── Real Activity Feed from on-chain TradePlaced events ──────────────────────
+function ActivityFeed({ trades, loading }: { trades: TradeEvent[]; loading: boolean }) {
+  if (loading) return (
+    <div style={{ padding: '32px', textAlign: 'center' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570' }}>Fetching on-chain trades...</span>
+    </div>
+  );
+
+  if (trades.length === 0) return (
+    <div style={{ padding: '32px', textAlign: 'center' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570' }}>No trades yet — be the first!</span>
+    </div>
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-      {trades.map((t, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderBottom: '1px solid #1C1C1C', transition: 'background 0.15s' }}
+      {trades.slice(0, 20).map((t, i) => (
+        <a
+          key={i}
+          href={`https://testnet.snowtrace.io/tx/${t.hash}`}
+          target="_blank" rel="noreferrer"
+          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderBottom: '1px solid #1C1C1C', transition: 'background 0.15s', textDecoration: 'none' }}
           onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 7px', borderRadius: 4, background: t.side === 'YES' ? 'rgba(34,197,94,0.15)' : '#1C1C1C', color: t.side === 'YES' ? '#22c55e' : '#FAFAFA', fontWeight: 600, minWidth: 30, textAlign: 'center' }}>{t.side}</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', flex: 1 }}>{t.amount} AVAX</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>@ {t.price}¢</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{t.addr}</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', minWidth: 50, textAlign: 'right' }}>{t.time}</span>
-        </div>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 7px', borderRadius: 4, background: t.isYes ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', color: t.isYes ? '#22c55e' : '#EF4444', fontWeight: 600, minWidth: 30, textAlign: 'center' }}>
+            {t.isYes ? 'YES' : 'NO'}
+          </span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', flex: 1 }}>{t.amount.toFixed(3)} AVAX</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>@ {t.yesProb}¢</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{shortAddr(t.trader)}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', minWidth: 50, textAlign: 'right' }}>
+            {t.timestamp ? timeAgo(t.timestamp) : `#${t.blockNumber}`}
+          </span>
+        </a>
       ))}
     </div>
   );
@@ -246,6 +351,8 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
     priceSource = 'coingecko';
   }
 
+  const { trades, loading: tradesLoading } = useMarketTrades(marketId);
+
   const { writeContract, data: txHash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
@@ -268,6 +375,19 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
   const noPoolF    = parseFloat(formatEther(noPool));
   const endDate    = new Date(Number(market.endTime) * 1000);
   const daysLeft   = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86400000));
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const iv = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(iv);
+  }, []);
+  const msLeft = Math.max(0, endDate.getTime() - now);
+  const cdDays  = Math.floor(msLeft / 86400000);
+  const cdHours = Math.floor((msLeft % 86400000) / 3600000);
+  const cdMins  = Math.floor((msLeft % 3600000) / 60000);
+  const cdSecs  = Math.floor((msLeft % 60000) / 1000);
+  const countdown = msLeft === 0 ? 'Ended' :
+    cdDays > 0 ? `${cdDays}d ${cdHours}h ${cdMins}m` :
+    `${cdHours}h ${cdMins}m ${cdSecs}s`;
   const txPending  = isPending || isConfirming;
 
   const amountNum = Math.max(MIN_AMOUNT, Math.round((parseFloat(amount) || MIN_AMOUNT) * 1000) / 1000);
@@ -370,7 +490,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                 {[
                   { icon: BarChart3, label: 'Volume', value: `${totalPoolF.toFixed(3)} AVAX` },
                   { icon: Users, label: 'Traders', value: `${Math.round(totalPoolF * 8 + 2)}` },
-                  { icon: Clock, label: 'Ends', value: endDate.toLocaleDateString() },
+                  { icon: Clock, label: market.resolved ? 'Ended' : (msLeft === 0 ? 'Ended' : 'Ends in'), value: market.resolved ? endDate.toLocaleDateString() : countdown },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <Icon size={13} color="#555570" />
@@ -498,15 +618,15 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
           <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 20, overflow: 'hidden' }}>
             <div style={{ display: 'flex', borderBottom: '1px solid #1C1C1C' }}>
               {([
-                { key: 'chart', label: '📈 Price History' },
-                { key: 'depth', label: '📊 Market Depth' },
-                { key: 'activity', label: '⚡ Activity' },
+                { key: 'chart', label: 'Price History' },
+                { key: 'depth', label: 'Market Depth' },
+                { key: 'activity', label: 'Activity' },
               ] as const).map(t => (
                 <button key={t.key} onClick={() => setTab(t.key)} style={{
                   flex: 1, padding: '14px 0', background: 'none', border: 'none', cursor: 'pointer',
                   fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 13,
                   color: tab === t.key ? '#FAFAFA' : '#555570',
-                  borderBottom: tab === t.key ? '2px solid #7C3AED' : '2px solid transparent',
+                  borderBottom: tab === t.key ? '2px solid #FAFAFA' : '2px solid transparent',
                   transition: 'all 0.2s',
                 }}>{t.label}</button>
               ))}
@@ -522,14 +642,23 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                     ))}
                   </div>
                 </div>
-                <PriceChart yesPercent={yesPercent} />
+                <PriceChart trades={trades} yesPercent={yesPercent} loading={tradesLoading} />
                 <div style={{ display: 'flex', gap: 24, marginTop: 14, paddingTop: 14, borderTop: '1px solid #1C1C1C' }}>
-                  {[
-                    { label: '24h High', value: `${Math.min(99, yesPercent + Math.floor(Math.random() * 5 + 2))}¢`, color: '#22c55e' },
-                    { label: '24h Low',  value: `${Math.max(1, yesPercent - Math.floor(Math.random() * 5 + 2))}¢`,  color: '#FAFAFA' },
-                    { label: '24h Vol',  value: `${(totalPoolF * 0.12).toFixed(3)} AVAX`, color: '#8888AA' },
-                    { label: 'All-time High', value: `${Math.min(99, yesPercent + 15)}¢`, color: '#8888AA' },
-                  ].map(({ label, value, color }) => (
+                  {(() => {
+                    const now = Math.floor(Date.now() / 1000);
+                    const last24h = trades.filter(t => t.timestamp && (now - t.timestamp) < 86400);
+                    const probs24h = last24h.map(t => t.isYes ? t.yesProb : 100 - t.yesProb);
+                    const high24 = probs24h.length ? Math.max(...probs24h) : yesPercent;
+                    const low24  = probs24h.length ? Math.min(...probs24h) : yesPercent;
+                    const vol24  = last24h.reduce((s, t) => s + t.amount, 0);
+                    const allHigh = trades.length ? Math.max(...trades.map(t => t.isYes ? t.yesProb : 100 - t.yesProb)) : yesPercent;
+                    return [
+                      { label: '24h High', value: `${high24}¢`, color: '#22c55e' },
+                      { label: '24h Low',  value: `${low24}¢`,  color: '#FAFAFA' },
+                      { label: '24h Vol',  value: `${vol24.toFixed(3)} AVAX`, color: '#8888AA' },
+                      { label: 'All-time High', value: `${allHigh}¢`, color: '#8888AA' },
+                    ];
+                  })().map(({ label, value, color }) => (
                     <div key={label}>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginBottom: 3, textTransform: 'uppercase' }}>{label}</div>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color, fontWeight: 600 }}>{value}</div>
@@ -555,10 +684,42 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                   <Activity size={12} color="#555570" />
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Recent trades in this market</span>
                 </div>
-                <ActivityFeed yesPool={yesPool} noPool={noPool} />
+                <ActivityFeed trades={trades} loading={tradesLoading} />
               </div>
             )}
           </div>
+
+          {/* ── Resolve button — oracle markets, after endTime, not yet resolved ── */}
+          {!market.resolved && market.marketType === 1 && Date.now() / 1000 > Number(market.endTime) && (
+            <div style={{ background: '#111111', border: '1px solid #333', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+              <div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#FAFAFA', marginBottom: 4 }}>
+                  Market ended — ready to resolve
+                </div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>
+                  Anyone can trigger oracle resolution. Gas fee applies.
+                </div>
+              </div>
+              <button
+                onClick={() => writeContract({
+                  address: contracts.PredictionMarket,
+                  abi: MARKET_ABI,
+                  functionName: 'resolveWithOracle',
+                  args: [BigInt(marketId)],
+                })}
+                disabled={txPending}
+                style={{
+                  padding: '10px 22px', background: txPending ? '#1C1C1C' : '#FAFAFA',
+                  color: txPending ? '#555' : '#0A0A0A',
+                  border: 'none', borderRadius: 10, cursor: txPending ? 'not-allowed' : 'pointer',
+                  fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
+                  transition: 'all 0.2s', whiteSpace: 'nowrap' as const,
+                }}
+              >
+                {txPending ? 'Resolving...' : 'Resolve Now'}
+              </button>
+            </div>
+          )}
 
           {/* Market info */}
           <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 16, padding: '20px 24px' }}>

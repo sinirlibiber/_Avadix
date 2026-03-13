@@ -230,7 +230,7 @@ export default function MarketsSection() {
 
       {/* ── Category tabs ── */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 28 }}>
-        {(['all', ...catList] as string[]).map(cat => (
+        {(catList as string[]).map(cat => (
           <button key={cat} onClick={() => setCategory(cat as Category)} style={{
             padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
             fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: 11,
