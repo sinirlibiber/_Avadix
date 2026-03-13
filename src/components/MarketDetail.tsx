@@ -363,7 +363,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
               <div style={{ width: 1, background: '#1C1C1C', alignSelf: 'stretch' }} />
               <div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginBottom: 4, textTransform: 'uppercase' }}>NO</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 48, color: '#FAFAFA', lineHeight: 1 }}>{noPercent}¢</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 48, color: '#EF4444', lineHeight: 1 }}>{noPercent}¢</div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', marginTop: 2 }}>probability</div>
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 10 }}>
@@ -385,7 +385,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#22c55e' }}>YES pool: {yesPoolF.toFixed(3)} AVAX</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#FAFAFA' }}>NO pool: {noPoolF.toFixed(3)} AVAX</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#EF4444' }}>NO pool: {noPoolF.toFixed(3)} AVAX</span>
               </div>
               <div style={{ background: '#1C1C1C', borderRadius: 6, height: 10, overflow: 'hidden', display: 'flex' }}>
                 <div style={{ width: `${yesPercent}%`, background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: '6px 0 0 6px', transition: 'width 0.6s ease' }} />
@@ -704,9 +704,9 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                     <button onClick={() => setSide('no')} style={{
                       padding: '12px 0', borderRadius: 10, cursor: 'pointer',
                       fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16,
-                      background: side === 'no' ? '#1C1C1C' : '#0A0A0A',
-                      border: `2px solid ${side === 'no' ? 'rgba(255,255,255,0.15)' : '#1C1C1C'}`,
-                      color: '#FAFAFA', transition: 'all 0.2s',
+                      background: side === 'no' ? 'rgba(239,68,68,0.15)' : '#0A0A0A',
+                      border: `2px solid ${side === 'no' ? 'rgba(239,68,68,0.5)' : '#1C1C1C'}`,
+                      color: '#EF4444', transition: 'all 0.2s',
                     }}>
                       NO <span style={{ fontSize: 13, fontWeight: 500 }}>{noPercent}¢</span>
                     </button>

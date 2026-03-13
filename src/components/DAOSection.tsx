@@ -143,7 +143,7 @@ function ProposalRow({
           alreadyVoted ? (
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>✓ Voted {myVote ? 'YES' : 'NO'}</div>
           ) : isPending ? (
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#F59E0B' }}>⏳ Confirming...</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#F59E0B' }}>Confirming...</div>
           ) : (
             <div style={{ display: 'flex', gap: 8 }}>
               {!isConnected && <ConnectButton accountStatus="avatar" showBalance={false} />}
@@ -303,7 +303,7 @@ export default function DAOSection() {
                   <div style={{ padding: '10px 14px', background: '#1C1C1C', border: '1px solid #222222', borderRadius: 8, color: '#FAFAFA', fontSize: 13, fontFamily: 'var(--font-mono)' }}>⚠ {createError}</div>
                 )}
                 <button onClick={handleCreate} disabled={isCreating} style={{ width: '100%', padding: '13px 0', background: '#FAFAFA', border: 'none', borderRadius: 10, color: '#0A0A0A', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1, boxShadow: 'none' }}>
-                  {isCreating ? '⏳ Submitting...' : !isConnected ? '⚠ Connect Wallet First' : 'Submit Proposal On-Chain'}
+                  {isCreating ? 'Submitting...' : !isConnected ? '⚠ Connect Wallet First' : 'Submit Proposal On-Chain'}
                 </button>
               </div>
             )}

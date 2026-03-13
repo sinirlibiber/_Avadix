@@ -108,13 +108,12 @@ function CampaignCard({
       {isComplete && (
         <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '7px 12px', marginBottom: 10, textAlign: 'center' }}>
           <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, color: '#22c55e' }}>
-            🎯 Donation goal reached — No more donations accepted
+            Donation goal reached — No more donations accepted
           </span>
         </div>
       )}
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
-        <span style={{ fontSize: 28 }}>{emoji}</span>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#FAFAFA' }}>{campaign.name}</div>
           <div style={{ fontSize: 12, color: '#8888AA', marginTop: 2, lineHeight: 1.4 }}>{campaign.description}</div>
@@ -490,14 +489,14 @@ export default function DonationSection() {
             {/* Tamamlandı banner */}
             {isComplete && (
               <div style={{ padding: '14px 16px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 10, textAlign: 'center' }}>
-                <div style={{ color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 4 }}>🎯 Donation goal reached!</div>
+                <div style={{ color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Donation goal reached!</div>
                 <div style={{ color: '#8888AA', fontFamily: 'var(--font-mono)', fontSize: 12 }}>This campaign is complete — no more donations accepted.</div>
               </div>
             )}
 
             {donateSuccess ? (
               <div style={{ padding: 14, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 10, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-                💚 Donation confirmed on-chain!
+                Donation confirmed on-chain!
               </div>
             ) : (
               <button
@@ -572,15 +571,7 @@ export default function DonationSection() {
                   <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
                 </div>
 
-                {/* Emoji */}
-                <div>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Emoji</label>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {EMOJIS.map(e => (
-                      <button key={e} onClick={() => setForm((f: any) => ({ ...f, emoji: e }))} style={{ width: 36, height: 36, fontSize: 18, background: form.emoji === e ? '#222222' : '#0A0A0A', border: `1px solid ${form.emoji === e ? 'rgba(255,255,255,0.12)' : '#1C1C1C'}`, borderRadius: 8, cursor: 'pointer' }}>{e}</button>
-                    ))}
-                  </div>
-                </div>
+
 
                 {[
                   { label: 'Campaign Name', key: 'name', placeholder: 'What are you raising for?', type: 'text' },
@@ -609,7 +600,7 @@ export default function DonationSection() {
 
                 {createError && <div style={{ padding: '10px', background: '#1C1C1C', border: '1px solid #222222', borderRadius: 8, color: '#FAFAFA', fontSize: 13, fontFamily: 'var(--font-mono)' }}>⚠ {createError}</div>}
                 <button onClick={handleCreate} disabled={isCreating} style={{ width: '100%', padding: '13px', background: '#FAFAFA', border: 'none', borderRadius: 10, color: '#0A0A0A', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1, boxShadow: 'none' }}>
-                  {isCreating ? '⏳ Awaiting wallet...' : !isConnected ? '⚠ Connect Wallet First' : 'Launch Campaign On-Chain'}
+                  {isCreating ? 'Awaiting wallet...' : !isConnected ? 'Connect Wallet First' : 'Launch Campaign On-Chain'}
                 </button>
               </div>
             )}

@@ -137,7 +137,7 @@ function PositionDetailModal({ marketId, contracts, onClose }: { marketId: numbe
         {/* Claim button */}
         {canClaim && (
           <button onClick={() => writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'claimReward', args: [BigInt(marketId)] })} disabled={isPending} style={{ width: '100%', padding: '13px', background: '#22c55e', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isPending ? 'wait' : 'pointer', boxShadow: '0 0 20px rgba(34,197,94,0.3)' }}>
-            {isPending ? '⏳ Claiming...' : isSuccess ? '✅ Claimed!' : '🎉 Claim Reward'}
+            {isPending ? 'Claiming...' : isSuccess ? 'Claimed!' : 'Claim Reward'}
           </button>
         )}
 
@@ -302,7 +302,7 @@ function DonationDetailModal({ campaignId, contracts, onClose }: { campaignId: n
 
         {isComplete && (
           <div style={{ padding: '14px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 12, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, marginBottom: 16 }}>
-            🎯 Donation goal reached — Campaign complete!
+            Donation goal reached — Campaign complete!
           </div>
         )}
 
@@ -383,7 +383,7 @@ function PositionRow({ marketId, contracts, onClick }: { marketId: number; contr
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, color: '#FAFAFA', fontWeight: 600 }}>{estimatedValue.toFixed(3)} AVAX</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {canClaim && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}>🎉 Claim</span>}
+        {canClaim && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}>Claim</span>}
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: market.resolved ? '#22c55e' : '#F59E0B' }}>{market.resolved ? 'Resolved' : 'Active'}</span>
         <ArrowUpRight size={14} color="#555570" />
       </div>
@@ -499,11 +499,11 @@ function TransactionHistory({ address, chainId }: { address: string; chainId: nu
 
   const getTxType = (tx: any): { label: string; color: string; bg: string } => {
     const cat = getLabel(tx);
-    if (cat === 'Prediction Market') return { label: '📈 Market', color: '#FAFAFA', bg: 'rgba(255,255,255,0.05)' };
-    if (cat === 'DAO')               return { label: '🏛 DAO', color: '#888888', bg: 'rgba(59,130,246,0.12)' };
-    if (cat === 'Donations')         return { label: '💚 Donate', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' };
+    if (cat === 'Prediction Market') return { label: 'Market', color: '#FAFAFA', bg: 'rgba(255,255,255,0.05)' };
+    if (cat === 'DAO')               return { label: 'DAO', color: '#888888', bg: 'rgba(59,130,246,0.12)' };
+    if (cat === 'Donations')         return { label: 'Donate', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' };
     if (cat === 'Transfer')          return { label: '↗ Transfer', color: '#F59E0B', bg: 'rgba(245,158,11,0.12)' };
-    return { label: '⚡ Call', color: '#8888AA', bg: 'rgba(136,136,170,0.1)' };
+    return { label: 'Call', color: '#8888AA', bg: 'rgba(136,136,170,0.1)' };
   };
 
   const isIncoming = (tx: any) => (tx.to ?? '').toLowerCase() === address.toLowerCase() && (tx.from ?? '').toLowerCase() !== address.toLowerCase();
@@ -755,11 +755,11 @@ export default function PortfolioSection() {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 28, background: '#111111', border: '1px solid #1C1C1C', borderRadius: 12, padding: 4, width: 'fit-content', flexWrap: 'wrap' }}>
         {([
-          { key: 'markets', label: '📈 Market Positions' },
-          { key: 'dao', label: '🏛 DAO Votes' },
-          { key: 'donations', label: '💚 Donations' },
-          { key: 'history', label: '⚡ Activity' },
-          { key: 'stats', label: '📊 Stats' },
+          { key: 'markets', label: 'Market Positions' },
+          { key: 'dao', label: 'DAO Votes' },
+          { key: 'donations', label: 'Donations' },
+          { key: 'history', label: 'Activity' },
+          { key: 'stats', label: 'Stats' },
         ] as const).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer',

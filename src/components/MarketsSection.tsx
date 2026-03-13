@@ -287,7 +287,7 @@ export default function MarketsSection() {
 
             {createSuccess ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
+                
                 <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#FAFAFA' }}>
                   Market submitted successfully!
                 </p>
@@ -403,7 +403,7 @@ export default function MarketsSection() {
                     boxShadow: isCreating ? 'none' : '0 4px 20px rgba(255,255,255,0.12)',
                   }}
                 >
-                  {isCreating ? '⏳ Submitting...' : '🚀 Create Market'}
+                  {isCreating ? 'Submitting...' : 'Create Market'}
                 </button>
                 {creationFee !== undefined && (
                   <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555555', textAlign: 'center' }}>
