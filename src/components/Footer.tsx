@@ -47,7 +47,7 @@ export default function Footer() {
             }}>Live on Fuji Testnet</span>
           </span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333' }}>
-            version 0.8.0
+            Avadix 2026
           </span>
         </div>
 
