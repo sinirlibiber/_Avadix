@@ -224,27 +224,26 @@ function ActivityFeed({ trades, loading }: { trades: TradeEvent[]; loading: bool
   );
 }
 
-// ─── Market depth bars ────────────────────────────────────────────────────────
+// ─── Market depth — real AMM pool visualization ───────────────────────────────
 function MarketDepth({ yesPool, noPool }: { yesPool: bigint; noPool: bigint }) {
   const ye = parseFloat(formatEther(yesPool));
   const no = parseFloat(formatEther(noPool));
   const total = ye + no || 1;
+  const yesPct = Math.round(ye / total * 100);
+  const noPct  = 100 - yesPct;
 
-  const yesBids = [
-    { price: Math.round(ye / total * 100), size: (ye * 0.35).toFixed(3) },
-    { price: Math.round(ye / total * 100) - 2, size: (ye * 0.25).toFixed(3) },
-    { price: Math.round(ye / total * 100) - 4, size: (ye * 0.20).toFixed(3) },
-    { price: Math.round(ye / total * 100) - 7, size: (ye * 0.15).toFixed(3) },
-    { price: Math.round(ye / total * 100) - 10, size: (ye * 0.10).toFixed(3) },
-  ];
-  const noAsks = [
-    { price: Math.round(no / total * 100), size: (no * 0.30).toFixed(3) },
-    { price: Math.round(no / total * 100) - 2, size: (no * 0.22).toFixed(3) },
-    { price: Math.round(no / total * 100) - 5, size: (no * 0.18).toFixed(3) },
-    { price: Math.round(no / total * 100) - 8, size: (no * 0.16).toFixed(3) },
-    { price: Math.round(no / total * 100) - 12, size: (no * 0.10).toFixed(3) },
-  ];
+  // AMM depth: simulate buy pressure at different sizes using x*y=k
+  const genDepth = (pool: number, counterPool: number, isYes: boolean) => {
+    const sizes = [0.001, 0.01, 0.05, 0.1, 0.5];
+    return sizes.map(size => {
+      const sharesOut = counterPool - (pool * counterPool) / (pool + size);
+      const effPrice  = sharesOut > 0 ? Math.min(99, Math.max(1, Math.round((size / sharesOut) * 100))) : 50;
+      return { price: isYes ? effPrice : 100 - effPrice, size: size.toFixed(3) };
+    });
+  };
 
+  const yesBids = genDepth(ye, no, true);
+  const noAsks  = genDepth(no, ye, false);
   const maxSize = Math.max(...[...yesBids, ...noAsks].map(d => parseFloat(d.size)));
 
   return (
@@ -272,8 +271,8 @@ function MarketDepth({ yesPool, noPool }: { yesPool: bigint; noPool: bigint }) {
         </div>
         {noAsks.map((a, i) => (
           <div key={i} style={{ position: 'relative', padding: '6px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, background: 'rgba(255,255,255,0.07)', width: `${(parseFloat(a.size) / maxSize) * 100}%` }} />
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', position: 'relative', zIndex: 1 }}>{a.price}¢</span>
+            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, background: 'rgba(239,68,68,0.07)', width: `${(parseFloat(a.size) / maxSize) * 100}%` }} />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#EF4444', position: 'relative', zIndex: 1 }}>{a.price}¢</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textAlign: 'right', position: 'relative', zIndex: 1 }}>{a.size}</span>
           </div>
         ))}
@@ -353,6 +352,14 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
 
   const { trades, loading: tradesLoading } = useMarketTrades(marketId);
 
+  // ── countdown — hook'lar conditional return'den ÖNCE olmali ──
+  const [now, setNow] = useState(Date.now());
+  const [chartRange, setChartRange] = useState<'1H'|'1D'|'1W'|'ALL'>('ALL');
+  useEffect(() => {
+    const iv = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(iv);
+  }, []);
+
   const { writeContract, data: txHash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
@@ -367,6 +374,16 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
 
   const yesPercent = Number(probability ?? BigInt(50));
   const noPercent  = 100 - yesPercent;
+
+  const endDate2   = new Date(Number(market.endTime) * 1000);
+  const msLeft     = Math.max(0, endDate2.getTime() - now);
+  const cdDays     = Math.floor(msLeft / 86400000);
+  const cdHours    = Math.floor((msLeft % 86400000) / 3600000);
+  const cdMins     = Math.floor((msLeft % 3600000) / 60000);
+  const cdSecs     = Math.floor((msLeft % 60000) / 1000);
+  const countdown  = msLeft === 0 ? 'Ended'
+    : cdDays > 0 ? `${cdDays}d ${cdHours}h ${cdMins}m`
+    : `${cdHours}h ${cdMins}m ${cdSecs}s`;
   const yesPool    = market.yesPool ?? BigInt(0);
   const noPool     = market.noPool ?? BigInt(0);
   const totalPool  = yesPool + noPool;
@@ -374,20 +391,6 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
   const yesPoolF   = parseFloat(formatEther(yesPool));
   const noPoolF    = parseFloat(formatEther(noPool));
   const endDate    = new Date(Number(market.endTime) * 1000);
-  const daysLeft   = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86400000));
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const iv = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(iv);
-  }, []);
-  const msLeft = Math.max(0, endDate.getTime() - now);
-  const cdDays  = Math.floor(msLeft / 86400000);
-  const cdHours = Math.floor((msLeft % 86400000) / 3600000);
-  const cdMins  = Math.floor((msLeft % 3600000) / 60000);
-  const cdSecs  = Math.floor((msLeft % 60000) / 1000);
-  const countdown = msLeft === 0 ? 'Ended' :
-    cdDays > 0 ? `${cdDays}d ${cdHours}h ${cdMins}m` :
-    `${cdHours}h ${cdMins}m ${cdSecs}s`;
   const txPending  = isPending || isConfirming;
 
   const amountNum = Math.max(MIN_AMOUNT, Math.round((parseFloat(amount) || MIN_AMOUNT) * 1000) / 1000);
@@ -636,13 +639,19 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
               <div style={{ padding: '20px 20px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', textTransform: 'uppercase' }}>YES probability over time</span>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    {['1H', '1D', '1W', 'ALL'].map(p => (
-                      <button key={p} style={{ background: p === '1W' ? '#1C1C1C' : 'none', border: 'none', color: p === '1W' ? '#FAFAFA' : '#555570', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer', padding: '3px 8px', borderRadius: 4 }}>{p}</button>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {(['1H', '1D', '1W', 'ALL'] as const).map(p => (
+                      <button key={p} onClick={() => setChartRange(p)} style={{ background: chartRange === p ? '#1C1C1C' : 'none', border: chartRange === p ? '1px solid #333' : '1px solid transparent', color: chartRange === p ? '#FAFAFA' : '#555570', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer', padding: '3px 8px', borderRadius: 4, transition: 'all 0.2s' }}>{p}</button>
                     ))}
                   </div>
                 </div>
-                <PriceChart trades={trades} yesPercent={yesPercent} loading={tradesLoading} />
+                {(() => {
+                    const now2 = Date.now() / 1000;
+                    const rangeMap: Record<string, number> = { '1H': 3600, '1D': 86400, '1W': 604800, 'ALL': Infinity };
+                    const cutoff = rangeMap[chartRange];
+                    const filtered = chartRange === 'ALL' ? trades : trades.filter(t => t.timestamp && (now2 - t.timestamp) <= cutoff);
+                    return <PriceChart trades={filtered} yesPercent={yesPercent} loading={tradesLoading} />;
+                  })()}
                 <div style={{ display: 'flex', gap: 24, marginTop: 14, paddingTop: 14, borderTop: '1px solid #1C1C1C' }}>
                   {(() => {
                     const now = Math.floor(Date.now() / 1000);
@@ -721,25 +730,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
             </div>
           )}
 
-          {/* Market info */}
-          <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 16, padding: '20px 24px' }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 16, color: '#FAFAFA', marginBottom: 14 }}>Market Info</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {[
-                { label: 'Creator', value: `${market.creator.slice(0,8)}...${market.creator.slice(-6)}` },
-                { label: 'Created on', value: 'Avalanche Fuji' },
-                { label: 'Resolution', value: market.resolved ? 'Resolved' : 'Pending oracle' },
-                { label: 'Outcome', value: market.resolved ? (market.outcome === 1 ? '✓ YES' : '✓ NO') : 'TBD' },
-                { label: 'End date', value: endDate.toLocaleDateString() },
-                { label: 'Fee', value: '0% (protocol)' },
-              ].map(({ label, value }) => (
-                <div key={label} style={{ background: '#0A0A0A', borderRadius: 8, padding: '10px 12px' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA' }}>{value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+
         </div>
 
         {/* RIGHT COLUMN — Trade Panel */}
