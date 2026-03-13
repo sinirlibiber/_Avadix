@@ -244,10 +244,31 @@ function FAQItem({ q, a, isLast }: { q: string; a: string; isLast: boolean }) {
 }
 
 const FAQS = [
-  { q: 'What is Avadix?', a: 'Avadix is a decentralized prediction market protocol built on Avalanche Fuji. Trade binary outcomes with 0% fees.' },
-  { q: 'How are markets resolved?', a: 'Markets resolve automatically via Chainlink oracles or community-driven DAO governance.' },
-  { q: 'What is the DAO?', a: 'The Avadix DAO lets community members create and vote on proposals to shape the protocol.' },
-  { q: 'What is the Donate section?', a: 'A peer-to-peer donation system where users can support community causes directly on-chain.' }
+  {
+    q: 'What is Avadix?',
+    a: 'Avadix is a decentralized prediction market protocol built on Avalanche Fuji. You can trade binary YES/NO outcomes on real-world events — crypto prices, politics, sports and more — and earn AVAX if your prediction is correct.',
+  },
+  {
+    q: 'How do I make a prediction?',
+    a: 'Connect your wallet, browse the Markets page, pick a market you have an opinion on, and buy YES or NO shares with AVAX. The lower the current probability, the cheaper the shares — and the higher your potential payout.',
+  },
+  {
+    q: 'How are markets resolved?',
+    a: 'Markets resolve either manually by the admin or automatically via Chainlink price oracles (for crypto price markets). Once resolved, winning share-holders can claim their AVAX reward from the Portfolio page.',
+  },
+  {
+    q: 'What is the DAO?',
+    a: 'The Avadix DAO lets any community member create and vote on proposals — from protocol parameter changes to new market categories. Voting is on-chain and transparent. Every wallet can participate.',
+  },
+  {
+    q: 'What is the Donate section?',
+    a: 'Community members can launch fundraising campaigns for causes they care about. Other users can donate AVAX directly on-chain. All funds go straight to the campaign creator\'s wallet — no intermediaries.',
+  },
+  {
+    q: 'How do I create a market?',
+    a: 'Only the contract owner can create markets directly via the Create Market button. Any user can suggest a market and the community can request it via the DAO. Oracle-based markets (e.g. BTC price targets) resolve automatically.',
+  },
 ];
+
 
 export default Hero;
