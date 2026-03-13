@@ -469,7 +469,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                 </span>
               ) : (
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(245,158,11,0.12)', color: '#F59E0B' }}>
-                  ● Active · {daysLeft}d left
+                  ● Active · {cdDays > 0 ? `${cdDays}d` : `${cdHours}h`} left
                 </span>
               )}
             </div>
