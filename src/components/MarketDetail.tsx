@@ -700,35 +700,37 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
             </div>
           </div>
 
-          {/* ── Resolve button — oracle markets, after endTime, not yet resolved ── */}
-          {!market.resolved && market.marketType === 1 && Date.now() / 1000 > Number(market.endTime) && (
-            <div style={{ background: '#111111', border: '1px solid #333', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-              <div>
+          {/* ── Resolve buttons — admin only, after endTime ── */}
+          {!market.resolved && Date.now() / 1000 > Number(market.endTime) && (
+            <div style={{ background: '#111111', border: '1px solid #333', borderRadius: 14, padding: '16px 20px' }}>
+              <div style={{ marginBottom: 12 }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#FAFAFA', marginBottom: 4 }}>
-                  Market ended — ready to resolve
+                  Market ended — resolve required
                 </div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>
-                  Anyone can trigger oracle resolution. Gas fee applies.
+                  {market.marketType === 1 ? 'Oracle market — use Chainlink price feed to resolve.' : 'Manual market — set outcome via Snowtrace admin panel or admin wallet.'}
                 </div>
               </div>
-              <button
-                onClick={() => writeContract({
-                  address: contracts.PredictionMarket,
-                  abi: MARKET_ABI,
-                  functionName: 'resolveWithOracle',
-                  args: [BigInt(marketId)],
-                })}
-                disabled={txPending}
-                style={{
-                  padding: '10px 22px', background: txPending ? '#1C1C1C' : '#FAFAFA',
-                  color: txPending ? '#555' : '#0A0A0A',
-                  border: 'none', borderRadius: 10, cursor: txPending ? 'not-allowed' : 'pointer',
-                  fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
-                  transition: 'all 0.2s', whiteSpace: 'nowrap' as const,
-                }}
-              >
-                {txPending ? 'Resolving...' : 'Resolve Now'}
-              </button>
+              {market.marketType === 1 && (
+                <button
+                  onClick={() => writeContract({
+                    address: contracts.PredictionMarket,
+                    abi: MARKET_ABI,
+                    functionName: 'resolveWithOracle',
+                    args: [BigInt(marketId)],
+                  })}
+                  disabled={txPending}
+                  style={{
+                    padding: '10px 22px', background: txPending ? '#1C1C1C' : '#FAFAFA',
+                    color: txPending ? '#555' : '#0A0A0A',
+                    border: 'none', borderRadius: 10, cursor: txPending ? 'not-allowed' : 'pointer',
+                    fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
+                    transition: 'all 0.2s', whiteSpace: 'nowrap' as const,
+                  }}
+                >
+                  {txPending ? 'Resolving...' : 'Resolve with Oracle'}
+                </button>
+              )}
             </div>
           )}
 

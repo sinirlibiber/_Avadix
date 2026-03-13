@@ -137,6 +137,7 @@ export default function MarketsSection() {
     const durationSecs = BigInt(days * 86400);
     const imageURI     = imagePreview ?? '';
 
+    const isOracle = form.marketType === '1';
     writeContract({
       address: contracts.PredictionMarket,
       abi: MARKET_ABI,
@@ -146,12 +147,12 @@ export default function MarketsSection() {
         category:    form.category,
         imageURI:    imageURI,
         duration:    durationSecs,
-        marketType:  0,
-        tokenPair:   0,
-        targetPrice: BigInt(0),
-        targetAbove: false,
+        marketType:  isOracle ? 1 : 0,
+        tokenPair:   isOracle ? parseInt(form.tokenPair) : 0,
+        targetPrice: isOracle && form.targetPrice ? BigInt(Math.round(parseFloat(form.targetPrice) * 1e8)) : BigInt(0),
+        targetAbove: form.targetAbove === 'true',
       }],
-      value: creationFee ?? BigInt(0),
+      value: creationFee ?? BigInt('10000000000000000'),
     });
   };
 
@@ -277,7 +278,7 @@ export default function MarketsSection() {
                   Create Market
                 </h3>
                 <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555555', marginTop: 2 }}>
-                  Your prediction will be submitted on-chain
+                  0.01 AVAX fee · Anyone can create · On-chain
                 </p>
               </div>
               <button onClick={() => setShowCreate(false)} style={{ background: '#1C1C1C', border: 'none', borderRadius: 10, padding: '8px 10px', color: '#888888', cursor: 'pointer' }}>
@@ -383,6 +384,59 @@ export default function MarketsSection() {
 
 
 
+                {/* Market Type */}
+                <div>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Market Type</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[{ v: '0', label: 'Manual', desc: 'Admin resolves' }, { v: '1', label: 'Oracle', desc: 'Chainlink auto-resolves' }].map(opt => (
+                      <button key={opt.v} type="button" onClick={() => setForm((f: any) => ({ ...f, marketType: opt.v }))}
+                        style={{ flex: 1, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                          background: form.marketType === opt.v ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                          border: `1px solid ${form.marketType === opt.v ? 'rgba(255,255,255,0.2)' : '#222'}`,
+                          transition: 'all 0.2s' }}>
+                        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: '#FAFAFA' }}>{opt.label}</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#666', marginTop: 2 }}>{opt.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Oracle options */}
+                {form.marketType === '1' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid #222', borderRadius: 12, padding: 14 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Oracle Settings — Chainlink</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div>
+                        <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Token Pair</label>
+                        <select value={form.tokenPair} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, tokenPair: e.target.value }))}
+                          style={{ width: '100%', background: '#161616', border: '1px solid #333', borderRadius: 10, padding: '10px 12px', color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}>
+                          {['AVAX/USD', 'BTC/USD', 'ETH/USD', 'LINK/USD'].map((p, i) => <option key={i} value={String(i)}>{p}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Target Price ($)</label>
+                        <input type="number" placeholder="e.g. 100000" value={form.targetPrice}
+                          onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, targetPrice: e.target.value }))}
+                          style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid #222', borderRadius: 10, padding: '10px 12px', color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }} />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Condition</label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {[{ v: 'true', label: 'Price ≥ target → YES' }, { v: 'false', label: 'Price ≤ target → YES' }].map(opt => (
+                          <button key={opt.v} type="button" onClick={() => setForm((f: any) => ({ ...f, targetAbove: opt.v }))}
+                            style={{ flex: 1, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 11,
+                              background: form.targetAbove === opt.v ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                              border: `1px solid ${form.targetAbove === opt.v ? 'rgba(255,255,255,0.2)' : '#222'}`,
+                              color: form.targetAbove === opt.v ? '#FAFAFA' : '#666', transition: 'all 0.2s' }}>
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Error */}
                 {createError && (
                   <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: '10px 14px', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FCA5A5' }}>
@@ -405,11 +459,12 @@ export default function MarketsSection() {
                 >
                   {isCreating ? 'Submitting...' : 'Create Market'}
                 </button>
-                {creationFee !== undefined && (
-                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555555', textAlign: 'center' }}>
-                    Market creation fee: {(Number(creationFee) / 1e18).toFixed(4)} AVAX
-                  </p>
-                )}
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #222', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888' }}>Creation fee</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#FAFAFA', fontWeight: 600 }}>
+                    {creationFee !== undefined ? (Number(creationFee) / 1e18).toFixed(2) : '0.01'} AVAX
+                  </span>
+                </div>
 
                 <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333333', textAlign: 'center' }}>
                   
