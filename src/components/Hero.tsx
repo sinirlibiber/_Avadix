@@ -134,9 +134,9 @@ export default function Hero() {
 
   const stats = [
     { label: 'Total Volume', value: count === 0 ? '—' : `${formatVolume(totalVolume)} AVAX`, icon: BarChart3, color: '#FAFAFA' },
-    { label: 'Markets',      value: count > 0 ? `${count}` : '—', icon: TrendingUp, color: '#60A5FA' },
-    { label: 'Traders',      value: traderCount > 0 ? `${traderCount}+` : '—', icon: Shield, color: '#888888' },
-    { label: 'Network',      value: 'Fuji', icon: Zap, color: '#C4F135' },
+    { label: 'Markets',      value: count > 0 ? `${count}` : '—', icon: null, color: '#60A5FA' },
+    { label: 'Traders',      value: traderCount > 0 ? `${traderCount}+` : '—', icon: null, color: '#888888' },
+    { label: 'Network',      value: 'Fuji', icon: null, color: '#C4F135' },
   ];
 
   return (
