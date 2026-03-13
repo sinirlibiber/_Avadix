@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, BarChart3, Wallet, Activity, Award, Target, Users, Clock, CheckCircle, Heart, X, ExternalLink, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useAccount, useBalance, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -9,6 +9,18 @@ import { getAddresses } from '@/lib/contracts/addresses';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
 import DAO_ABI from '@/lib/contracts/AvadixDAO.json';
 import DONATIONS_ABI from '@/lib/contracts/AvadixDonations.json';
+
+// ─── Emoji field parse (format: "💎|||base64data" veya sadece "💎") ───────────
+const IMG_SEP = '|||';
+function parseEmojiField(raw: string): { emoji: string; imageData: string | null } {
+  if (!raw) return { emoji: '💎', imageData: null };
+  const idx = raw.indexOf(IMG_SEP);
+  if (idx === -1) return { emoji: raw, imageData: null };
+  return { emoji: raw.slice(0, idx), imageData: raw.slice(idx + IMG_SEP.length) || null };
+}
+
+// ─── Fuji Snowtrace explorer link ─────────────────────────────────────────────
+const EXPLORER = 'https://testnet.snowtrace.io';
 
 // ─── Market Position Detail Modal ────────────────────────────────────────────
 function PositionDetailModal({ marketId, contracts, onClose }: { marketId: number; contracts: any; onClose: () => void }) {
@@ -244,7 +256,13 @@ function DonationDetailModal({ campaignId, contracts, onClose }: { campaignId: n
         <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 8, padding: '6px 10px', color: '#7C3AED', cursor: 'pointer' }}><X size={16} /></button>
 
         <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'flex-start' }}>
-          <span style={{ fontSize: 40 }}>{campaign.emoji}</span>
+          {/* Campaign büyük image veya emoji */}
+          {(() => {
+            const { emoji, imageData } = parseEmojiField(campaign.emoji ?? '💎');
+            return imageData
+              ? <img src={imageData} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover' }} />
+              : <span style={{ fontSize: 40 }}>{emoji}</span>;
+          })()}
           <div>
             <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#E2E2F0', marginBottom: 4 }}>{campaign.name}</h3>
             <p style={{ fontSize: 13, color: '#8888AA', lineHeight: 1.5 }}>{campaign.description}</p>
@@ -340,8 +358,8 @@ function PositionRow({ marketId, contracts, onClick }: { marketId: number; contr
 
   return (
     <div onClick={onClick} style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', transition: 'all 0.2s', cursor: 'pointer' }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'; e.currentTarget.style.background = '#14141E'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.background = '#12121A'; }}>
+      onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'; e.currentTarget.style.background = '#14141E'; }}
+      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.background = '#12121A'; }}>
       <div style={{ flex: 1, minWidth: 200 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#E2E2F0', marginBottom: 6 }}>{market.question}</div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -380,8 +398,8 @@ function VoteRow({ proposalId, contracts, onClick }: { proposalId: number; contr
 
   return (
     <div onClick={onClick} style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 14, padding: '14px 20px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', cursor: 'pointer', transition: 'all 0.2s' }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'; e.currentTarget.style.background = '#14141E'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.background = '#12121A'; }}>
+      onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'; e.currentTarget.style.background = '#14141E'; }}
+      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.background = '#12121A'; }}>
       <div style={{ flex: 1 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#E2E2F0', marginBottom: 4 }}>{proposal.title}</div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>{proposal.category}</div>
@@ -413,9 +431,15 @@ function DonationRow({ campaignId, contracts, onClick }: { campaignId: number; c
 
   return (
     <div onClick={onClick} style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 14, padding: '14px 20px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', cursor: 'pointer', transition: 'all 0.2s' }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'; e.currentTarget.style.background = '#14141E'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.background = '#12121A'; }}>
-      <span style={{ fontSize: 24 }}>{campaign.emoji}</span>
+      onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'; e.currentTarget.style.background = '#14141E'; }}
+      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.background = '#12121A'; }}>
+      {/* Campaign image veya emoji */}
+      {(() => {
+        const { emoji, imageData } = parseEmojiField(campaign.emoji ?? '💎');
+        return imageData
+          ? <img src={imageData} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+          : <span style={{ fontSize: 24, flexShrink: 0 }}>{emoji}</span>;
+      })()}
       <div style={{ flex: 1 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#E2E2F0', marginBottom: 4 }}>{campaign.name}</div>
         <div style={{ background: '#1E1E2E', borderRadius: 4, height: 4, overflow: 'hidden', maxWidth: 200 }}>
@@ -437,6 +461,208 @@ function DonationRow({ campaignId, contracts, onClick }: { campaignId: number; c
   );
 }
 
+
+// ─── Transaction History ─────────────────────────────────────────────────────
+function TransactionHistory({ address, chainId }: { address: string; chainId: number }) {
+  const [txs, setTxs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 15;
+
+  const EXPLORER_BASE = 'https://testnet.snowtrace.io';
+  const API_BASE = 'https://api-testnet.snowtrace.io/api';
+
+  // Categorize tx based on input data / to address
+  const KNOWN: Record<string, string> = {
+    '0x9be459308edcd5ba01941f781d20c1e5f12aacf2': 'Prediction Market',
+    '0xa70770942ecba3abceb0096a824e94b2fb01fa27': 'DAO',
+    '0xc7f1d448570f052aa879326ec3ba60c20005fcd2': 'Donations',
+  };
+
+  const getLabel = (tx: any) => {
+    const to = (tx.to ?? '').toLowerCase();
+    if (KNOWN[to]) return KNOWN[to];
+    if (tx.value && tx.value !== '0' && (!tx.input || tx.input === '0x')) return 'Transfer';
+    return 'Contract Call';
+  };
+
+  const getTxType = (tx: any): { label: string; color: string; bg: string } => {
+    const cat = getLabel(tx);
+    if (cat === 'Prediction Market') return { label: '📈 Market', color: '#7C3AED', bg: 'rgba(124,58,237,0.12)' };
+    if (cat === 'DAO')               return { label: '🏛 DAO', color: '#3B82F6', bg: 'rgba(59,130,246,0.12)' };
+    if (cat === 'Donations')         return { label: '💚 Donate', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' };
+    if (cat === 'Transfer')          return { label: '↗ Transfer', color: '#F59E0B', bg: 'rgba(245,158,11,0.12)' };
+    return { label: '⚡ Call', color: '#8888AA', bg: 'rgba(136,136,170,0.1)' };
+  };
+
+  const isIncoming = (tx: any) => (tx.to ?? '').toLowerCase() === address.toLowerCase() && (tx.from ?? '').toLowerCase() !== address.toLowerCase();
+
+  // Import useState, useEffect already in scope from parent file
+  const [hasFetched, setHasFetched] = useState(false);
+
+  useEffect(() => {
+    if (!address || hasFetched) return;
+    setHasFetched(true);
+    setLoading(true);
+
+    const url = `${API_BASE}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&sort=desc&apikey=YourApiKeyToken`;
+
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === '1' && Array.isArray(data.result)) {
+          setTxs(data.result);
+        } else {
+          // Fallback: internal txs yoksa boş göster
+          setTxs([]);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Could not load transactions. Check your connection.');
+        setLoading(false);
+      });
+  }, [address]);
+
+  const paginated = txs.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const totalPages = Math.ceil(txs.length / PER_PAGE);
+
+  const shortAddr = (a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`;
+  const formatDate = (ts: string) => {
+    const d = new Date(Number(ts) * 1000);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+  const formatAVAX = (wei: string) => {
+    const n = parseFloat(wei) / 1e18;
+    return n > 0 ? `${n.toFixed(4)} AVAX` : '';
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {[...Array(6)].map((_, i) => (
+          <div key={i} style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 12, padding: '16px 20px', display: 'flex', gap: 16, alignItems: 'center', opacity: 0.5 }}>
+            <div style={{ width: 80, height: 22, background: '#1E1E2E', borderRadius: 6 }} />
+            <div style={{ flex: 1, height: 14, background: '#1E1E2E', borderRadius: 4 }} />
+            <div style={{ width: 100, height: 14, background: '#1E1E2E', borderRadius: 4 }} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div style={{ padding: '40px 0', textAlign: 'center', color: '#E84142', fontFamily: 'var(--font-mono)', fontSize: 13 }}>⚠ {error}</div>;
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570', marginBottom: 2 }}>
+            {txs.length} transactions found
+          </p>
+        </div>
+        <a href={`${EXPLORER_BASE}/address/${address}`} target="_blank" rel="noreferrer"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED', textDecoration: 'none' }}>
+          View on Snowtrace <ExternalLink size={12} />
+        </a>
+      </div>
+
+      {txs.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No transactions found for this wallet.</div>
+      ) : (
+        <>
+          {/* Header row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 120px 130px 80px', gap: 12, padding: '8px 20px', marginBottom: 4 }}>
+            {['Tx Hash', 'Type / Interaction', 'Block', 'Date', 'Value'].map(h => (
+              <span key={h} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</span>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {paginated.map((tx: any, i: number) => {
+              const { label, color, bg } = getTxType(tx);
+              const incoming = isIncoming(tx);
+              const avaxVal = formatAVAX(tx.value);
+              const isSuccess = tx.isError === '0';
+
+              return (
+                <a
+                  key={tx.hash}
+                  href={`${EXPLORER_BASE}/tx/${tx.hash}`}
+                  target="_blank" rel="noreferrer"
+                  style={{
+                    display: 'grid', gridTemplateColumns: '130px 1fr 120px 130px 80px',
+                    gap: 12, padding: '14px 20px',
+                    background: '#12121A',
+                    border: `1px solid ${isSuccess ? '#1E1E2E' : 'rgba(239,68,68,0.2)'}`,
+                    borderRadius: 12, textDecoration: 'none', alignItems: 'center',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,58,237,0.4)'; (e.currentTarget as HTMLElement).style.background = '#14141E'; }}
+                  onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { (e.currentTarget as HTMLElement).style.borderColor = isSuccess ? '#1E1E2E' : 'rgba(239,68,68,0.2)'; (e.currentTarget as HTMLElement).style.background = '#12121A'; }}
+                >
+                  {/* Hash */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {!isSuccess && <span style={{ fontSize: 10, color: '#EF4444' }}>✗</span>}
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED' }}>
+                      {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
+                    </span>
+                  </div>
+
+                  {/* Type + from/to */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <span style={{ padding: '3px 10px', borderRadius: 20, fontFamily: 'var(--font-mono)', fontSize: 11, color, background: bg, whiteSpace: 'nowrap' }}>
+                      {label}
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {incoming ? `From ${shortAddr(tx.from)}` : `To ${shortAddr(tx.to || '')}`}
+                    </span>
+                  </div>
+
+                  {/* Block */}
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA' }}>
+                    #{parseInt(tx.blockNumber).toLocaleString()}
+                  </span>
+
+                  {/* Date */}
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>
+                    {formatDate(tx.timeStamp)}
+                  </span>
+
+                  {/* Value */}
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: incoming ? '#22c55e' : '#E2E2F0', fontWeight: avaxVal ? 600 : 400 }}>
+                    {avaxVal || '—'}
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20, alignItems: 'center' }}>
+              <button onClick={() => setPage((p: number) => Math.max(1, p - 1))} disabled={page === 1}
+                style={{ padding: '8px 14px', background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 8, color: page === 1 ? '#555570' : '#E2E2F0', cursor: page === 1 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                ← Prev
+              </button>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA' }}>
+                Page {page} / {totalPages}
+              </span>
+              <button onClick={() => setPage((p: number) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                style={{ padding: '8px 14px', background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 8, color: page === totalPages ? '#555570' : '#E2E2F0', cursor: page === totalPages ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                Next →
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Portfolio ───────────────────────────────────────────────────────────
 export default function PortfolioSection() {
   const { address, isConnected } = useAccount();
@@ -444,7 +670,7 @@ export default function PortfolioSection() {
   const chainId = useChainId();
   const contracts = getAddresses(chainId);
 
-  const [tab, setTab] = useState<'markets' | 'dao' | 'donations' | 'stats'>('markets');
+  const [tab, setTab] = useState<'markets' | 'dao' | 'donations' | 'history' | 'stats'>('markets');
   const [selectedMarket, setSelectedMarket] = useState<number | null>(null);
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<number | null>(null);
@@ -522,6 +748,7 @@ export default function PortfolioSection() {
           { key: 'markets', label: '📈 Market Positions' },
           { key: 'dao', label: '🏛 DAO Votes' },
           { key: 'donations', label: '💚 Donations' },
+          { key: 'history', label: '🔍 Tx History' },
           { key: 'stats', label: '📊 Stats' },
         ] as const).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
@@ -536,7 +763,7 @@ export default function PortfolioSection() {
       {tab === 'markets' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570', marginBottom: 8 }}>Click a position to see full details:</p>
-          {marketIds.map(id => <PositionRow key={id} marketId={id} contracts={contracts} onClick={() => setSelectedMarket(id)} />)}
+          {marketIds.map(id => /* @ts-ignore */ <PositionRow key={id} marketId={id} contracts={contracts} onClick={() => { setSelectedMarket(id); }} />)}
           {mCount === 0 && <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No market positions yet. <a href="/markets" style={{ color: '#7C3AED' }}>Explore Markets →</a></div>}
         </div>
       )}
@@ -544,7 +771,7 @@ export default function PortfolioSection() {
       {tab === 'dao' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570', marginBottom: 8 }}>Click a proposal to see full details:</p>
-          {proposalIds.map(id => <VoteRow key={id} proposalId={id} contracts={contracts} onClick={() => setSelectedProposal(id)} />)}
+          {proposalIds.map(id => /* @ts-ignore */ <VoteRow key={id} proposalId={id} contracts={contracts} onClick={() => { setSelectedProposal(id); }} />)}
           {pCount === 0 && <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No votes yet. <a href="/dao" style={{ color: '#7C3AED' }}>Go to DAO →</a></div>}
         </div>
       )}
@@ -552,9 +779,13 @@ export default function PortfolioSection() {
       {tab === 'donations' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570', marginBottom: 8 }}>Click a campaign to see full details:</p>
-          {campaignIds.map(id => <DonationRow key={id} campaignId={id} contracts={contracts} onClick={() => setSelectedCampaign(id)} />)}
+          {campaignIds.map(id => /* @ts-ignore */ <DonationRow key={id} campaignId={id} contracts={contracts} onClick={() => { setSelectedCampaign(id); }} />)}
           {cCount === 0 && <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No donations yet. <a href="/donate" style={{ color: '#7C3AED' }}>Donate →</a></div>}
         </div>
+      )}
+
+      {tab === 'history' && (
+        <TransactionHistory address={address!} chainId={chainId} />
       )}
 
       {tab === 'stats' && (

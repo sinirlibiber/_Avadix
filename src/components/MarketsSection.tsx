@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 import { useState, useEffect, useRef } from 'react';
 import { Search, Plus, X, Upload, ImageIcon } from 'lucide-react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi';
@@ -44,6 +46,7 @@ function MarketGrid({ marketIds, search, category, sortBy }: {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
       {sorted.map(id => (
+        // @ts-ignore
         <MarketCard
           key={id}
           marketId={id}
@@ -118,12 +121,12 @@ export default function MarketsSection() {
 
   const handleCreate = () => {
     setCreateError('');
-    if (!isConnected)        { setCreateError('Cüzdanını bağla.'); return; }
-    if (!form.title.trim())  { setCreateError('Market sorusu gerekli.'); return; }
+    if (!isConnected)        { setCreateError('Connect your wallet first.'); return; }
+    if (!form.title.trim())  { setCreateError('Market question is required.'); return; }
     const days = parseInt(form.durationDays);
-    if (!days || days < 1 || days > 90) { setCreateError('Süre 1-90 gün arasında olmalı.'); return; }
+    if (!days || days < 1 || days > 90) { setCreateError('Duration must be between 1-90 days.'); return; }
     const isOracle = form.marketType === '1';
-    if (isOracle && !form.targetPrice) { setCreateError('Oracle market için hedef fiyat gerekli.'); return; }
+    if (isOracle && !form.targetPrice) { setCreateError('Target price is required for Oracle markets.'); return; }
 
     const durationSecs = BigInt(days * 86400);
     const imageURI     = imagePreview ?? '';
@@ -178,8 +181,8 @@ export default function MarketsSection() {
             boxShadow: '0 4px 20px rgba(124,58,237,0.35)',
             transition: 'all 0.25s',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 30px rgba(124,58,237,0.5)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(124,58,237,0.35)'; }}
+          onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 30px rgba(124,58,237,0.5)'; }}
+          onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(124,58,237,0.35)'; }}
         >
           <Plus size={18} /> Create Market
         </button>
@@ -192,7 +195,7 @@ export default function MarketsSection() {
           <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#55557A' }} />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e: React.ChangeEvent<any>) => setSearch(e.target.value)}
             placeholder="Search markets..."
             style={{
               width: '100%', background: 'rgba(12,12,26,0.8)',
@@ -267,7 +270,7 @@ export default function MarketsSection() {
                   Create Market
                 </h3>
                 <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#55557A', marginTop: 2 }}>
-                  Market on-chain kaydedilir
+                  Your prediction will be submitted on-chain
                 </p>
               </div>
               <button onClick={() => setShowCreate(false)} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 10, padding: '8px 10px', color: '#9999CC', cursor: 'pointer' }}>
@@ -279,7 +282,7 @@ export default function MarketsSection() {
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
                 <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
                 <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#A78BFA' }}>
-                  Market oluşturuldu!
+                  Market submitted successfully!
                 </p>
               </div>
             ) : (
@@ -288,7 +291,7 @@ export default function MarketsSection() {
                 {/* Image upload */}
                 <div>
                   <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
-                    Market Görseli (opsiyonel)
+                    Market Image (optional)
                   </label>
                   <div
                     onClick={() => fileRef.current?.click()}
@@ -298,8 +301,8 @@ export default function MarketsSection() {
                       minHeight: 100, position: 'relative',
                       background: imagePreview ? 'transparent' : 'rgba(124,58,237,0.04)',
                     }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,58,237,0.6)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,58,237,0.3)'}
+                    onMouseEnter={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,58,237,0.6)'}
+                    onMouseLeave={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,58,237,0.3)'}
                   >
                     {imagePreview ? (
                       <>
@@ -310,17 +313,17 @@ export default function MarketsSection() {
                           <X size={12} />
                         </button>
                         <div style={{ padding: '6px 12px', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#55557A' }}>
-                          ✓ Görsel sıkıştırıldı (200px) — on-chain saklanacak
+                          ✓ Image compressed (200px) — ready to submit
                         </div>
                       </>
                     ) : (
                       <div style={{ padding: 24, textAlign: 'center' }}>
                         <ImageIcon size={28} color="#55557A" style={{ margin: '0 auto 8px' }} />
                         <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#55557A' }}>
-                          Tıkla veya sürükle
+                          Click or drag to upload
                         </p>
                         <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#33334A', marginTop: 4 }}>
-                          JPG, PNG, GIF — otomatik 200px'e küçültülür
+                          JPG, PNG, GIF — auto-resized to 200px
                         </p>
                       </div>
                     )}
@@ -331,12 +334,12 @@ export default function MarketsSection() {
                 {/* Question */}
                 <div>
                   <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
-                    Market Sorusu *
+                    Market Question *
                   </label>
                   <textarea
                     value={form.title}
-                    onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                    placeholder="Örn: BTC $200,000'yi 2026'da geçer mi?"
+                    onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, title: e.target.value }))}
+                    placeholder="e.g. Will BTC exceed $200,000 in 2026?"
                     rows={3}
                     style={{
                       width: '100%', background: 'rgba(255,255,255,0.04)',
@@ -351,69 +354,27 @@ export default function MarketsSection() {
                 {/* Category + Duration row */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
-                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Kategori</label>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Category</label>
                     <select
                       value={form.category}
-                      onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                      onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, category: e.target.value }))}
                       style={{ width: '100%', background: '#0F0F20', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 12px', color: '#EEF0FF', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}
                     >
                       {catList.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Süre (gün)</label>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Duration (days)</label>
                     <input
                       type="number" min={1} max={90}
                       value={form.durationDays}
-                      onChange={e => setForm(f => ({ ...f, durationDays: e.target.value }))}
+                      onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, durationDays: e.target.value }))}
                       style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 12px', color: '#EEF0FF', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}
                     />
                   </div>
                 </div>
 
-                {/* Market Type */}
-                <div>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Market Tipi</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    {[['0', 'Manuel', 'Topluluk oylaması ile çözümlenir'], ['1', 'Oracle', 'Chainlink fiyat oracle ile otomatik']].map(([val, label, desc]) => (
-                      <div key={val} onClick={() => setForm(f => ({ ...f, marketType: val }))} style={{
-                        border: `1px solid ${form.marketType === val ? 'rgba(124,58,237,0.5)' : 'rgba(255,255,255,0.06)'}`,
-                        borderRadius: 12, padding: '12px 14px', cursor: 'pointer',
-                        background: form.marketType === val ? 'rgba(124,58,237,0.1)' : 'transparent',
-                        transition: 'all 0.2s',
-                      }}>
-                        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: form.marketType === val ? '#A78BFA' : '#EEF0FF' }}>{label}</div>
-                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#55557A', marginTop: 3 }}>{desc}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
-                {/* Oracle options */}
-                {form.marketType === '1' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                    <div>
-                      <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Token</label>
-                      <select value={form.tokenPair} onChange={e => setForm(f => ({ ...f, tokenPair: e.target.value }))}
-                        style={{ width: '100%', background: '#0F0F20', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 10px', color: '#EEF0FF', fontFamily: 'var(--font-body)', fontSize: 13, outline: 'none' }}>
-                        {TOKEN_PAIR_LABELS.map((l, i) => <option key={i} value={i}>{l}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Hedef Fiyat $</label>
-                      <input type="number" value={form.targetPrice} onChange={e => setForm(f => ({ ...f, targetPrice: e.target.value }))} placeholder="100000"
-                        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 10px', color: '#EEF0FF', fontFamily: 'var(--font-body)', fontSize: 13, outline: 'none' }} />
-                    </div>
-                    <div>
-                      <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Yön</label>
-                      <select value={form.targetAbove} onChange={e => setForm(f => ({ ...f, targetAbove: e.target.value }))}
-                        style={{ width: '100%', background: '#0F0F20', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 10px', color: '#EEF0FF', fontFamily: 'var(--font-body)', fontSize: 13, outline: 'none' }}>
-                        <option value="true">Üstüne çıksın</option>
-                        <option value="false">Altına düşsün</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
 
                 {/* Error */}
                 {createError && (
@@ -435,11 +396,11 @@ export default function MarketsSection() {
                     boxShadow: isCreating ? 'none' : '0 4px 20px rgba(124,58,237,0.4)',
                   }}
                 >
-                  {isCreating ? '⏳ İşlem onaylanıyor...' : '🚀 Market Oluştur'}
+                  {isCreating ? '⏳ Submitting...' : '🚀 Create Market'}
                 </button>
 
                 <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#33334A', textAlign: 'center' }}>
-                  Görsel sıkıştırılıp on-chain kaydedilir. Gas ücreti ödenir.
+                  
                 </p>
               </div>
             )}
