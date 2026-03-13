@@ -89,7 +89,7 @@ function useMarketTrades(marketId: number) {
         await Promise.allSettled(
           blockNums.map(async bn => {
             try {
-              const blk = await publicClient.getBlock({ blockNumber: bn });
+              const blk = await client.getBlock({ blockNumber: bn });
               blockMap.set(bn, Number(blk.timestamp));
             } catch { /* ignore */ }
           })
