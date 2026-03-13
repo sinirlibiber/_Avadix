@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, TrendingUp, Clock, Users, BarChart3, Activity, AlertCircle, CheckCircle, Info, ChevronUp, ChevronDown, Zap, Target } from 'lucide-react';
 import Link from 'next/link';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance, useChainId } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance, useChainId, usePublicClient } from 'wagmi';
+import { parseEther, formatEther, parseAbiItem } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { getAddresses } from '@/lib/contracts/addresses';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
@@ -42,85 +42,89 @@ function useCoinGeckoPrice(coingeckoId: string, enabled: boolean) {
 
 const MIN_AMOUNT = 0.001;
 
-// ─── Real on-chain data hooks ─────────────────────────────────────────────────
-const SNOWTRACE_API = 'https://api-testnet.snowtrace.io/api';
-const CONTRACT_ADDR = '0xc6dcF18054b8cAC46F242e87b0758325DCC8B853';
+// ─── Real on-chain data via viem publicClient.getLogs ─────────────────────────
+const CONTRACT_ADDR = '0xc6dcF18054b8cAC46F242e87b0758325DCC8B853' as `0x${string}`;
 
-// TradePlaced(uint256 marketId, address trader, bool isYes, uint256 amount, uint256 shares)
-const TRADE_TOPIC = '0x' + Array.from(
-  new TextEncoder().encode('TradePlaced(uint256,address,bool,uint256,uint256)')
-).reduce((h, b) => h, ''); // placeholder — will use keccak via API filter
+const TRADE_PLACED_ABI = parseAbiItem(
+  'event TradePlaced(uint256 indexed marketId, address indexed trader, bool indexed isYes, uint256 amount, uint256 shares)'
+);
 
 interface TradeEvent {
   hash: string;
   trader: string;
   isYes: boolean;
-  amount: number;   // AVAX
+  amount: number;
   shares: number;
   blockNumber: number;
   timestamp: number;
-  yesProb: number;  // derived
+  yesProb: number;
 }
 
 function useMarketTrades(marketId: number) {
   const [trades, setTrades] = useState<TradeEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const publicClient = usePublicClient();
 
   useEffect(() => {
+    if (!publicClient) return;
     let cancelled = false;
+
     async function load() {
       setLoading(true);
       try {
-        // Fetch all TradePlaced logs for this contract
-        const url = `${SNOWTRACE_API}?module=logs&action=getLogs` +
-          `&address=${CONTRACT_ADDR}` +
-          `&topic0=0x482ba39b8e8f0be2dcea6fdf1f91e8c3e3af9ee5a5f55f5d1cdab8e9a88c46fe` +
-          `&fromBlock=0&toBlock=99999999&apikey=YourApiKeyToken`;
-        const res = await fetch(url);
-        const json = await res.json();
+        const logs = await publicClient.getLogs({
+          address: CONTRACT_ADDR,
+          event: TRADE_PLACED_ABI,
+          args: { marketId: BigInt(marketId) },
+          fromBlock: BigInt(0),
+          toBlock: 'latest',
+        });
+
         if (cancelled) return;
 
-        if (json.status !== '1' || !Array.isArray(json.result)) {
-          setTrades([]); setLoading(false); return;
-        }
+        // Fetch block timestamps in parallel (batch, max 20)
+        const blockNums = [...new Set(logs.map(l => l.blockNumber))].slice(0, 20);
+        const blockMap = new Map<bigint, number>();
+        await Promise.allSettled(
+          blockNums.map(async bn => {
+            try {
+              const blk = await publicClient.getBlock({ blockNumber: bn });
+              blockMap.set(bn, Number(blk.timestamp));
+            } catch { /* ignore */ }
+          })
+        );
 
-        // Parse logs — filter by marketId
-        const parsed: TradeEvent[] = [];
-        for (const log of json.result) {
-          try {
-            // topics[1] = marketId (uint256), topics[2] = trader (address), topics[3] = isYes (bool)
-            const logMarketId = parseInt(log.topics[1], 16);
-            if (logMarketId !== marketId) continue;
-            const trader = '0x' + log.topics[2].slice(26);
-            const isYes  = log.topics[3] === '0x0000000000000000000000000000000000000000000000000000000000000001';
-            // data = amount (uint256) + shares (uint256)
-            const data   = log.data.slice(2);
-            const amount = parseInt(data.slice(0, 64), 16);
-            const shares = parseInt(data.slice(64, 128), 16);
-            const amountAvax = amount / 1e18;
-            const sharesF    = shares / 1e18;
-            const yesProb    = sharesF > 0 ? Math.min(99, Math.max(1, Math.round((amountAvax / sharesF) * 100))) : 50;
-            parsed.push({
-              hash: log.transactionHash,
-              trader,
-              isYes,
-              amount: amountAvax,
-              shares: sharesF,
-              blockNumber: parseInt(log.blockNumber, 16),
-              timestamp: parseInt(log.timeStamp, 16),
-              yesProb: isYes ? yesProb : 100 - yesProb,
-            });
-          } catch { /* skip malformed */ }
-        }
-        // Sort newest first
-        parsed.sort((a, b) => b.blockNumber - a.blockNumber);
-        setTrades(parsed);
-      } catch { if (!cancelled) setTrades([]); }
-      finally { if (!cancelled) setLoading(false); }
+        const parsed: TradeEvent[] = logs.map(log => {
+          const { marketId: _mid, trader, isYes, amount, shares } = log.args as any;
+          const amountF = Number(amount) / 1e18;
+          const sharesF = Number(shares) / 1e18;
+          const rawProb = sharesF > 0
+            ? Math.min(99, Math.max(1, Math.round((amountF / sharesF) * 100)))
+            : 50;
+          return {
+            hash: log.transactionHash ?? '',
+            trader: trader ?? '',
+            isYes: !!isYes,
+            amount: amountF,
+            shares: sharesF,
+            blockNumber: Number(log.blockNumber),
+            timestamp: blockMap.get(log.blockNumber) ?? 0,
+            yesProb: isYes ? rawProb : 100 - rawProb,
+          };
+        }).reverse(); // newest first
+
+        if (!cancelled) setTrades(parsed);
+      } catch (e) {
+        console.error('getLogs error:', e);
+        if (!cancelled) setTrades([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
+
     load();
     return () => { cancelled = true; };
-  }, [marketId]);
+  }, [marketId, publicClient]);
 
   return { trades, loading };
 }
@@ -950,10 +954,10 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                   ) : (
                     <button onClick={handleBuy} disabled={txPending} style={{
                       width: '100%', padding: '14px', border: 'none', borderRadius: 10,
-                      background: side === 'yes' ? '#22c55e' : '#FAFAFA',
+                      background: side === 'yes' ? '#22c55e' : '#EF4444',
                       color: 'white', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
                       cursor: txPending ? 'wait' : 'pointer', opacity: txPending ? 0.7 : 1,
-                      boxShadow: `0 0 20px ${side === 'yes' ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.25)'}`,
+                      boxShadow: `0 0 20px ${side === 'yes' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
                     }}>
                       {isPending ? 'Awaiting wallet...' : isConfirming ? 'Confirming...' : `Buy ${side.toUpperCase()} — ${amount} AVAX`}
                     </button>
