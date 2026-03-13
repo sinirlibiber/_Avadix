@@ -56,9 +56,9 @@ export default function Footer() {
           {/* Text links */}
           <div style={{ display: 'flex', gap: 18 }}>
             {[
-              { label: 'Docs', href: '#' },
-              { label: 'Terms', href: '#' },
-              { label: 'Privacy Policy', href: '#' },
+              { label: 'Docs', href: 'https://avadix.mintlify.app/' },
+              { label: 'Terms', href: 'https://avadix.mintlify.app/' },
+              { label: 'Privacy Policy', href: 'https://avadix.mintlify.app/' },
             ].map(item => (
               <a key={item.label} href={item.href} style={{
                 fontFamily: 'var(--font-mono)', fontSize: 10,
