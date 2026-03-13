@@ -120,12 +120,25 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
   const contracts = getAddresses(chainId);
   const [imgError, setImgError] = useState(false);
 
-  const { data: market } = useReadContract({
+  const { data: core } = useReadContract({
     address: contracts.PredictionMarket,
     abi: MARKET_ABI,
-    functionName: 'getMarket',
+    functionName: 'getMarketCore',
     args: [BigInt(marketId)],
   }) as { data: any };
+
+  const { data: meta } = useReadContract({
+    address: contracts.PredictionMarket,
+    abi: MARKET_ABI,
+    functionName: 'getMarketMeta',
+    args: [BigInt(marketId)],
+  }) as { data: any };
+
+  // core + meta'yı tek objeye birleştir
+  const market = (core && meta) ? {
+    ...core, ...meta,
+    exists: meta.exists,
+  } : undefined;
 
   const { data: probability } = useReadContract({
     address: contracts.PredictionMarket,

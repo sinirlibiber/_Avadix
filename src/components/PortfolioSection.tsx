@@ -26,10 +26,15 @@ const EXPLORER = 'https://testnet.snowtrace.io';
 function PositionDetailModal({ marketId, contracts, onClose }: { marketId: number; contracts: any; onClose: () => void }) {
   const { address } = useAccount();
 
-  const { data: market } = useReadContract({
+  const { data: core } = useReadContract({
     address: contracts.PredictionMarket, abi: MARKET_ABI,
-    functionName: 'getMarket', args: [BigInt(marketId)],
+    functionName: 'getMarketCore', args: [BigInt(marketId)],
   }) as { data: any };
+  const { data: meta } = useReadContract({
+    address: contracts.PredictionMarket, abi: MARKET_ABI,
+    functionName: 'getMarketMeta', args: [BigInt(marketId)],
+  }) as { data: any };
+  const market = (core && meta) ? { ...core, ...meta, exists: meta.exists } : undefined;
 
   const { data: position } = useReadContract({
     address: contracts.PredictionMarket, abi: MARKET_ABI,
@@ -327,10 +332,15 @@ function DonationDetailModal({ campaignId, contracts, onClose }: { campaignId: n
 function PositionRow({ marketId, contracts, onClick }: { marketId: number; contracts: any; onClick: () => void }) {
   const { address } = useAccount();
 
-  const { data: market } = useReadContract({
+  const { data: core } = useReadContract({
     address: contracts.PredictionMarket, abi: MARKET_ABI,
-    functionName: 'getMarket', args: [BigInt(marketId)],
+    functionName: 'getMarketCore', args: [BigInt(marketId)],
   }) as { data: any };
+  const { data: meta } = useReadContract({
+    address: contracts.PredictionMarket, abi: MARKET_ABI,
+    functionName: 'getMarketMeta', args: [BigInt(marketId)],
+  }) as { data: any };
+  const market = (core && meta) ? { ...core, ...meta, exists: meta.exists } : undefined;
 
   const { data: position } = useReadContract({
     address: contracts.PredictionMarket, abi: MARKET_ABI,

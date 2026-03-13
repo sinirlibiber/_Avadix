@@ -191,10 +191,18 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
   const [amount, setAmount] = useState('0.001');
   const [limitPrice, setLimitPrice] = useState('');
 
-  const { data: market, refetch } = useReadContract({
+  const { data: core, refetch: refetchCore } = useReadContract({
     address: contracts.PredictionMarket, abi: MARKET_ABI,
-    functionName: 'getMarket', args: [BigInt(marketId)],
+    functionName: 'getMarketCore', args: [BigInt(marketId)],
   }) as { data: any; refetch: () => void };
+
+  const { data: meta, refetch: refetchMeta } = useReadContract({
+    address: contracts.PredictionMarket, abi: MARKET_ABI,
+    functionName: 'getMarketMeta', args: [BigInt(marketId)],
+  }) as { data: any; refetch: () => void };
+
+  const market = (core && meta) ? { ...core, ...meta, exists: meta.exists } : undefined;
+  const refetch = () => { refetchCore(); refetchMeta(); };
 
   const { data: probability } = useReadContract({
     address: contracts.PredictionMarket, abi: MARKET_ABI,
@@ -645,7 +653,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                       <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: '#F59E0B' }}>AMM Pool Model</span>
                     </div>
                     <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: '#8888AA', lineHeight: 1.6, margin: 0 }}>
-                      Avadix uses an <strong style={{ color: '#E2E2F0' }}>AMM (Automated Market Maker)</strong> model. Unlike Polymarket's orderbook, your shares are locked in the liquidity pool until the market resolves.
+                      Avadix uses an <strong style={{ color: '#E2E2F0' }}>AMM (Automated Market Maker)</strong> model. Your shares are locked in the liquidity pool until the market resolves.
                     </p>
                     <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: '#8888AA', lineHeight: 1.6, margin: '8px 0 0' }}>
                       When the outcome is decided, winning shares are redeemed 1:1 against the pool. You earn a portion of the total pool proportional to your shares.

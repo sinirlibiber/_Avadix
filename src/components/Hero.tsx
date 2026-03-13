@@ -19,10 +19,15 @@ function MarketStatFetcher({ marketId, contractAddress, onData }: {
   marketId: number; contractAddress: `0x${string}`;
   onData: (id: number, yesPool: bigint, noPool: bigint, creator: string) => void;
 }) {
-  const { data: market } = useReadContract({
-    address: contractAddress, abi: MARKET_ABI, functionName: 'getMarket',
+  const { data: core } = useReadContract({
+    address: contractAddress, abi: MARKET_ABI, functionName: 'getMarketCore',
     args: [BigInt(marketId)],
   }) as { data: any };
+  const { data: meta } = useReadContract({
+    address: contractAddress, abi: MARKET_ABI, functionName: 'getMarketMeta',
+    args: [BigInt(marketId)],
+  }) as { data: any };
+  const market = (core && meta) ? { ...core, ...meta, exists: meta.exists } : undefined;
   useEffect(() => {
     if (market?.exists) onData(marketId, market.yesPool ?? 0n, market.noPool ?? 0n, market.creator ?? '');
   // eslint-disable-next-line react-hooks/exhaustive-deps
