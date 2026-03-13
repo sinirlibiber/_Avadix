@@ -7,10 +7,10 @@ export const metadata = { title: 'Donate — Avadix' };
 
 export default function DonatePage() {
   return (
-    <main style={{ paddingTop: 64, position: 'relative', minHeight: '100vh' }}>
+    <main style={{ paddingTop: 64, position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PageBackground opacity={0.4} />
       <Navbar />
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{ position: 'relative', zIndex: 1, flex: 1 }}>
         <DonationSection />
       </div>
       <Footer />
