@@ -121,11 +121,12 @@ export function Hero() {
   const totalVolume = Object.values(volumeMap).reduce((a, b) => a + b, 0);
   const traderCount = new Set(Object.values(creatorMap).filter(Boolean)).size;
 
+  // Tüm ikonlar temizlendi, veriler sadeleştirildi
   const stats = [
-    { label: 'Total Volume', value: count === 0 ? '—' : `${formatVolume(totalVolume)} AVAX`, icon: BarChart3, color: '#FAFAFA' },
-    { label: 'Active Markets', value: count > 0 ? `${count}` : '—', icon: null, color: '#60A5FA' },
-    { label: 'Traders',      value: traderCount > 0 ? `${traderCount}+` : '—', icon: null, color: '#888888' },
-    { label: 'Network',      value: 'Fuji', icon: null, color: '#C4F135' },
+    { label: 'Total Volume', value: count === 0 ? '—' : `${formatVolume(totalVolume)} AVAX` },
+    { label: 'Active Markets', value: count > 0 ? `${count}` : '—' },
+    { label: 'Traders',      value: traderCount > 0 ? `${traderCount}+` : '—' },
+    { label: 'Network',      value: 'Fuji' },
   ];
 
   return (
@@ -153,14 +154,13 @@ export function Hero() {
         Live on Avalanche Fuji • 0% Fees
       </div>
 
-      {/* BAŞLIK KISMI BURADA GÜNCELLENDİ */}
       <h1 style={{
         fontFamily: 'var(--font-display)', fontWeight: 800,
         fontSize: 'clamp(54px, 9vw, 96px)', lineHeight: 1.1,
         letterSpacing: '-0.05em', marginBottom: 30, maxWidth: 1000,
         position: 'relative', zIndex: 10
       }}>
-        <span style={{ color: '#FAFAFA', display: 'block' }}>Predict, Govern Donate</span>
+        <span style={{ color: '#FAFAFA', display: 'block' }}>Predict Govern Donate</span>
         <span style={{ color: '#444', display: 'block', fontSize: 'clamp(28px, 4vw, 42px)', marginTop: '8px' }}>All with 0% Fees.</span>
       </h1>
 
@@ -183,13 +183,21 @@ export function Hero() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, width: '100%', maxWidth: 760, position: 'relative', zIndex: 10 }}>
-        {stats.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="glass card" style={{ padding: '28px 18px', textAlign: 'center', background: 'rgba(255,255,255,0.01)', border: '1px solid #141414' }}>
-            {Icon && <Icon size={18} color={color} style={{ marginBottom: 10, margin: '0 auto 10px' }} />}
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, color: '#FAFAFA', lineHeight: 1, marginBottom: 7 }}>
+        {stats.map(({ label, value }) => (
+          <div key={label} className="glass card" style={{ 
+            padding: '32px 18px', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            background: 'rgba(255,255,255,0.01)', 
+            border: '1px solid #141414',
+            minHeight: '120px'
+          }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, color: '#FAFAFA', lineHeight: 1, marginBottom: 10 }}>
               {value}
             </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
               {label}
             </div>
           </div>
