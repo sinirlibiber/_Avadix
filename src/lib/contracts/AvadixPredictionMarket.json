@@ -1,31 +1,48 @@
 [
-  {"type":"constructor","inputs":[{"name":"_feeBps","type":"uint256"}],"stateMutability":"nonpayable"},
-  {"type":"event","name":"MarketCreated","inputs":[{"name":"marketId","type":"uint256","indexed":true},{"name":"creator","type":"address","indexed":true},{"name":"question","type":"string","indexed":false},{"name":"category","type":"string","indexed":false},{"name":"imageURI","type":"string","indexed":false},{"name":"endTime","type":"uint256","indexed":false},{"name":"marketType","type":"uint8","indexed":false}],"anonymous":false},
-  {"type":"event","name":"TradePlaced","inputs":[{"name":"marketId","type":"uint256","indexed":true},{"name":"trader","type":"address","indexed":true},{"name":"isYes","type":"bool","indexed":false},{"name":"amount","type":"uint256","indexed":false},{"name":"shares","type":"uint256","indexed":false}],"anonymous":false},
-  {"type":"event","name":"MarketResolved","inputs":[{"name":"marketId","type":"uint256","indexed":true},{"name":"outcome","type":"uint8","indexed":false},{"name":"byOracle","type":"bool","indexed":false}],"anonymous":false},
-  {"type":"event","name":"RewardClaimed","inputs":[{"name":"marketId","type":"uint256","indexed":true},{"name":"user","type":"address","indexed":true},{"name":"amount","type":"uint256","indexed":false}],"anonymous":false},
-  {"type":"event","name":"FeesWithdrawn","inputs":[{"name":"owner","type":"address","indexed":true},{"name":"amount","type":"uint256","indexed":false}],"anonymous":false},
-  {"type":"event","name":"OwnershipTransferred","inputs":[{"name":"prev","type":"address","indexed":true},{"name":"next","type":"address","indexed":true}],"anonymous":false},
-  {"type":"function","name":"owner","inputs":[],"outputs":[{"name":"","type":"address"}],"stateMutability":"view"},
-  {"type":"function","name":"marketCount","inputs":[],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
-  {"type":"function","name":"protocolFeeBps","inputs":[],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
-  {"type":"function","name":"accumulatedFees","inputs":[],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
-  {"type":"function","name":"markets","inputs":[{"name":"","type":"uint256"}],"outputs":[{"name":"id","type":"uint256"},{"name":"creator","type":"address"},{"name":"question","type":"string"},{"name":"category","type":"string"},{"name":"imageURI","type":"string"},{"name":"endTime","type":"uint256"},{"name":"yesPool","type":"uint256"},{"name":"noPool","type":"uint256"},{"name":"outcome","type":"uint8"},{"name":"marketType","type":"uint8"},{"name":"resolved","type":"bool"},{"name":"exists","type":"bool"},{"name":"tokenPair","type":"uint8"},{"name":"targetPrice","type":"int256"},{"name":"targetAbove","type":"bool"}],"stateMutability":"view"},
-  {"type":"function","name":"positions","inputs":[{"name":"","type":"uint256"},{"name":"","type":"address"}],"outputs":[{"name":"yesShares","type":"uint256"},{"name":"noShares","type":"uint256"},{"name":"claimed","type":"bool"}],"stateMutability":"view"},
-  {"type":"function","name":"priceFeeds","inputs":[{"name":"","type":"uint8"}],"outputs":[{"name":"","type":"address"}],"stateMutability":"view"},
-  {"type":"function","name":"getMarket","inputs":[{"name":"marketId","type":"uint256"}],"outputs":[{"name":"","type":"tuple","components":[{"name":"id","type":"uint256"},{"name":"creator","type":"address"},{"name":"question","type":"string"},{"name":"category","type":"string"},{"name":"imageURI","type":"string"},{"name":"endTime","type":"uint256"},{"name":"yesPool","type":"uint256"},{"name":"noPool","type":"uint256"},{"name":"outcome","type":"uint8"},{"name":"marketType","type":"uint8"},{"name":"resolved","type":"bool"},{"name":"exists","type":"bool"},{"name":"tokenPair","type":"uint8"},{"name":"targetPrice","type":"int256"},{"name":"targetAbove","type":"bool"}]}],"stateMutability":"view"},
-  {"type":"function","name":"getPosition","inputs":[{"name":"marketId","type":"uint256"},{"name":"user","type":"address"}],"outputs":[{"name":"","type":"tuple","components":[{"name":"yesShares","type":"uint256"},{"name":"noShares","type":"uint256"},{"name":"claimed","type":"bool"}]}],"stateMutability":"view"},
-  {"type":"function","name":"getYesProbability","inputs":[{"name":"marketId","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
-  {"type":"function","name":"getCurrentPrice","inputs":[{"name":"pair","type":"uint8"}],"outputs":[{"name":"price","type":"int256"},{"name":"decimals_","type":"uint8"}],"stateMutability":"view"},
-  {"type":"function","name":"previewOracleResolution","inputs":[{"name":"marketId","type":"uint256"}],"outputs":[{"name":"currentPrice","type":"int256"},{"name":"targetPrice_","type":"int256"},{"name":"predictedOutcome","type":"uint8"}],"stateMutability":"view"},
-  {"type":"function","name":"createMarket","inputs":[{"name":"question","type":"string"},{"name":"category","type":"string"},{"name":"imageURI","type":"string"},{"name":"duration","type":"uint256"},{"name":"marketType","type":"uint8"},{"name":"tokenPair","type":"uint8"},{"name":"targetPrice","type":"int256"},{"name":"targetAbove","type":"bool"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},
-  {"type":"function","name":"buyYes","inputs":[{"name":"marketId","type":"uint256"}],"outputs":[],"stateMutability":"payable"},
-  {"type":"function","name":"buyNo","inputs":[{"name":"marketId","type":"uint256"}],"outputs":[],"stateMutability":"payable"},
-  {"type":"function","name":"resolveMarket","inputs":[{"name":"marketId","type":"uint256"},{"name":"outcome","type":"uint8"}],"outputs":[],"stateMutability":"nonpayable"},
-  {"type":"function","name":"resolveWithOracle","inputs":[{"name":"marketId","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
-  {"type":"function","name":"claimReward","inputs":[{"name":"marketId","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
-  {"type":"function","name":"setProtocolFee","inputs":[{"name":"newFeeBps","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
-  {"type":"function","name":"setPriceFeed","inputs":[{"name":"pair","type":"uint8"},{"name":"feed","type":"address"}],"outputs":[],"stateMutability":"nonpayable"},
-  {"type":"function","name":"withdrawFees","inputs":[],"outputs":[],"stateMutability":"nonpayable"},
-  {"type":"function","name":"transferOwnership","inputs":[{"name":"newOwner","type":"address"}],"outputs":[],"stateMutability":"nonpayable"}
+	{
+		"inputs": [],
+		"name": "decimals",
+		"outputs": [
+			{
+				"internalType": "uint8",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "latestRoundData",
+		"outputs": [
+			{
+				"internalType": "uint80",
+				"name": "",
+				"type": "uint80"
+			},
+			{
+				"internalType": "int256",
+				"name": "",
+				"type": "int256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint80",
+				"name": "",
+				"type": "uint80"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
 ]
