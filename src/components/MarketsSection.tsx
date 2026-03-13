@@ -131,13 +131,12 @@ export default function MarketsSection() {
     if (!form.title.trim())  { setCreateError('Market question is required.'); return; }
     const days = parseInt(form.durationDays);
     if (!days || days < 1 || days > 90) { setCreateError('Duration must be between 1-90 days.'); return; }
-    const isOracle = form.marketType === '1';
-    if (isOracle && !form.targetPrice) { setCreateError('Target price is required for Oracle markets.'); return; }
+    const oracleMode = form.marketType === '1';
+    if (oracleMode && !form.targetPrice) { setCreateError('Target price is required for Oracle markets.'); return; }
 
     const durationSecs = BigInt(days * 86400);
     const imageURI     = imagePreview ?? '';
 
-    const isOracle = form.marketType === '1';
     writeContract({
       address: contracts.PredictionMarket,
       abi: MARKET_ABI,
@@ -147,9 +146,9 @@ export default function MarketsSection() {
         category:    form.category,
         imageURI:    imageURI,
         duration:    durationSecs,
-        marketType:  isOracle ? 1 : 0,
-        tokenPair:   isOracle ? parseInt(form.tokenPair) : 0,
-        targetPrice: isOracle && form.targetPrice ? BigInt(Math.round(parseFloat(form.targetPrice) * 1e8)) : BigInt(0),
+        marketType:  oracleMode ? 1 : 0,
+        tokenPair:   oracleMode ? parseInt(form.tokenPair) : 0,
+        targetPrice: oracleMode && form.targetPrice ? BigInt(Math.round(parseFloat(form.targetPrice) * 1e8)) : BigInt(0),
         targetAbove: form.targetAbove === 'true',
       }],
       value: creationFee ?? BigInt('10000000000000000'),
