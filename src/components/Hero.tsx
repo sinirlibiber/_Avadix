@@ -47,7 +47,6 @@ function Orb({ color, size, top, left, delay, duration }: any) {
   );
 }
 
-// Named export yapıyoruz ki page.tsx { Hero } olarak alabilsin
 export function Hero() {
   const chainId = useChainId();
   const contracts = getAddresses(chainId);
@@ -122,7 +121,6 @@ export function Hero() {
   const totalVolume = Object.values(volumeMap).reduce((a, b) => a + b, 0);
   const traderCount = new Set(Object.values(creatorMap).filter(Boolean)).size;
 
-  // İkonlar senin isteğin üzerine Markets, Traders ve Network için null yapıldı
   const stats = [
     { label: 'Total Volume', value: count === 0 ? '—' : `${formatVolume(totalVolume)} AVAX`, icon: BarChart3, color: '#FAFAFA' },
     { label: 'Active Markets', value: count > 0 ? `${count}` : '—', icon: null, color: '#60A5FA' },
@@ -142,7 +140,6 @@ export function Hero() {
       <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0.6 }} />
       <div className="bg-grid" style={{ position: 'absolute', inset: 0, opacity: 0.45, pointerEvents: 'none' }} />
 
-      {/* Live badge - 0% Fee vurgusu eklendi */}
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
         background: 'rgba(255,255,255,0.03)',
@@ -156,14 +153,15 @@ export function Hero() {
         Live on Avalanche Fuji • 0% Fees
       </div>
 
+      {/* BAŞLIK KISMI BURADA GÜNCELLENDİ */}
       <h1 style={{
         fontFamily: 'var(--font-display)', fontWeight: 800,
-        fontSize: 'clamp(54px, 9vw, 96px)', lineHeight: 1,
+        fontSize: 'clamp(54px, 9vw, 96px)', lineHeight: 1.1,
         letterSpacing: '-0.05em', marginBottom: 30, maxWidth: 1000,
         position: 'relative', zIndex: 10
       }}>
-        <span style={{ color: '#FAFAFA', display: 'block' }}>Predict. Govern. Donate.</span>
-        <span style={{ color: '#444', display: 'block' }}>All with 0% Fees.</span>
+        <span style={{ color: '#FAFAFA', display: 'block' }}>Predict, Govern Donate</span>
+        <span style={{ color: '#444', display: 'block', fontSize: 'clamp(28px, 4vw, 42px)', marginTop: '8px' }}>All with 0% Fees.</span>
       </h1>
 
       <p style={{
@@ -201,7 +199,6 @@ export function Hero() {
   );
 }
 
-// Named export yapıyoruz ki page.tsx import { FAQ } diyebilsin
 export function FAQ() {
   return (
     <section style={{ maxWidth: 760, margin: '0 auto', padding: '100px 24px 120px', position: 'relative', zIndex: 1 }}>
@@ -223,7 +220,6 @@ export function FAQ() {
   );
 }
 
-// Alt bileşenler aynı kalabilir
 function FAQItem({ q, a, isLast }: { q: string; a: string; isLast: boolean }) {
   const [open, setOpen] = useFAQState(false);
   return (
@@ -246,5 +242,4 @@ const FAQS = [
   { q: 'What is the Donate section?', a: 'A peer-to-peer donation system where users can support community causes directly on-chain.' }
 ];
 
-// Default export'u kaldırıp named export kullanıyoruz (opsiyonel ama tutarlılık için iyi)
 export default Hero;
