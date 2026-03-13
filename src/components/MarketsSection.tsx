@@ -207,7 +207,7 @@ export default function MarketsSection() {
         <div style={{ display: 'flex', gap: 4 }}>
           {SORT_OPTIONS.map(opt => (
             <button key={opt.key} onClick={() => setSortBy(opt.key)} style={{
-              padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
+              padding: '8px 16px', borderRadius: 10, cursor: 'pointer',
               fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
               background: sortBy === opt.key ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.04)',
               color: sortBy === opt.key ? '#A78BFA' : '#9999CC',
