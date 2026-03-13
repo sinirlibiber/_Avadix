@@ -748,7 +748,7 @@ export default function PortfolioSection() {
           { key: 'markets', label: '📈 Market Positions' },
           { key: 'dao', label: '🏛 DAO Votes' },
           { key: 'donations', label: '💚 Donations' },
-          { key: 'history', label: '🔍 Tx History' },
+          { key: 'history', label: '⚡ Activity' },
           { key: 'stats', label: '📊 Stats' },
         ] as const).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{

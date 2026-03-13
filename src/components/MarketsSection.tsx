@@ -90,6 +90,12 @@ export default function MarketsSection() {
     functionName: 'marketCount',
   }) as { data: bigint | undefined; refetch: () => void };
 
+  const { data: creationFee } = useReadContract({
+    address: contracts.PredictionMarket,
+    abi: MARKET_ABI,
+    functionName: 'MARKET_CREATION_FEE',
+  }) as { data: bigint | undefined };
+
   const count     = Number(marketCount ?? 0n);
   const marketIds = Array.from({ length: count }, (_, i) => i + 1);
 
@@ -135,16 +141,17 @@ export default function MarketsSection() {
       address: contracts.PredictionMarket,
       abi: MARKET_ABI,
       functionName: 'createMarket',
-      args: [
-        form.title,
-        form.category,
-        imageURI,
-        durationSecs,
-        Number(form.marketType),
-        Number(form.tokenPair),
-        isOracle ? BigInt(Math.round(parseFloat(form.targetPrice) * 1e8)) : BigInt(0),
-        form.targetAbove === 'true',
-      ],
+      args: [{
+        question:    form.title,
+        category:    form.category,
+        imageURI:    imageURI,
+        duration:    durationSecs,
+        marketType:  0,
+        tokenPair:   0,
+        targetPrice: BigInt(0),
+        targetAbove: false,
+      }],
+      value: creationFee ?? BigInt(0),
     });
   };
 
@@ -398,6 +405,11 @@ export default function MarketsSection() {
                 >
                   {isCreating ? '⏳ Submitting...' : '🚀 Create Market'}
                 </button>
+                {creationFee !== undefined && (
+                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#55557A', textAlign: 'center' }}>
+                    Market creation fee: {(Number(creationFee) / 1e18).toFixed(4)} AVAX
+                  </p>
+                )}
 
                 <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#33334A', textAlign: 'center' }}>
                   
