@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState as useFAQState } from 'react';
 import { TrendingUp, Shield, Zap, BarChart3, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useReadContract, useChainId } from 'wagmi';
@@ -234,6 +235,138 @@ export default function Hero() {
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+// ─── FAQ ──────────────────────────────────────────────────────────────────────
+const FAQS = [
+  {
+    q: 'What is Avadix?',
+    a: 'Avadix is a decentralized prediction market protocol built on Avalanche Fuji. You can trade binary YES/NO outcomes on real-world events — crypto prices, politics, sports and more — and earn AVAX if your prediction is correct.',
+  },
+  {
+    q: 'How do I make a prediction?',
+    a: 'Connect your wallet, browse the Markets page, pick a market you have an opinion on, and buy YES or NO shares with AVAX. The lower the current probability, the cheaper the shares — and the higher your potential payout.',
+  },
+  {
+    q: 'How are markets resolved?',
+    a: 'Markets resolve either manually by the admin or automatically via Chainlink price oracles (for crypto price markets). Once resolved, winning share-holders can claim their AVAX reward from the Portfolio page.',
+  },
+  {
+    q: 'What is the DAO?',
+    a: 'The Avadix DAO lets any community member create and vote on proposals — from protocol parameter changes to new market categories. Voting is on-chain and transparent. Every wallet can participate.',
+  },
+  {
+    q: 'What is the Donate section?',
+    a: 'Community members can launch fundraising campaigns for causes they care about. Other users can donate AVAX directly on-chain. All funds go straight to the campaign creator\'s wallet — no intermediaries.',
+  },
+  {
+    q: 'How do I create a market?',
+    a: 'Only the contract owner can create markets directly via the Create Market button. Any user can suggest a market and the community can request it via the DAO. Oracle-based markets (e.g. BTC price targets) resolve automatically.',
+  },
+];
+
+function FAQItem({ q, a, isLast }: { q: string; a: string; isLast: boolean }) {
+  const [open, setOpen] = useFAQState(false);
+  return (
+    <div style={{
+      borderBottom: isLast ? 'none' : '1px solid #1A1A1A',
+    }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', padding: '22px 0',
+          background: 'none', border: 'none', cursor: 'pointer',
+          textAlign: 'left', gap: 24,
+        }}
+      >
+        <span style={{
+          fontFamily: 'var(--font-display)', fontWeight: 600,
+          fontSize: 16, color: '#FAFAFA', letterSpacing: '-0.02em',
+          lineHeight: 1.4,
+        }}>{q}</span>
+        <span style={{
+          color: open ? '#FAFAFA' : '#444',
+          fontSize: 20, lineHeight: 1, flexShrink: 0,
+          transition: 'transform 0.25s, color 0.2s',
+          display: 'inline-block',
+          transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
+        }}>+</span>
+      </button>
+      <div style={{
+        overflow: 'hidden',
+        maxHeight: open ? 300 : 0,
+        transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1)',
+      }}>
+        <p style={{
+          fontFamily: 'var(--font-body)', fontSize: 14,
+          color: '#888', lineHeight: 1.8,
+          paddingBottom: 22,
+        }}>{a}</p>
+      </div>
+    </div>
+  );
+}
+
+export function FAQ() {
+  return (
+    <section style={{
+      maxWidth: 760, margin: '0 auto',
+      padding: '100px 24px 120px',
+      position: 'relative', zIndex: 1,
+    }}>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: 64 }}>
+        <p style={{
+          fontFamily: 'var(--font-mono)', fontSize: 10,
+          color: '#444', letterSpacing: '0.12em',
+          textTransform: 'uppercase', marginBottom: 16,
+        }}>FAQ</p>
+        <h2 style={{
+          fontFamily: 'var(--font-display)', fontWeight: 800,
+          fontSize: 'clamp(32px, 5vw, 52px)', color: '#FAFAFA',
+          letterSpacing: '-0.04em', lineHeight: 1.05,
+        }}>
+          Common questions
+        </h2>
+        <p style={{
+          fontFamily: 'var(--font-body)', fontSize: 15,
+          color: '#555', marginTop: 16, lineHeight: 1.7,
+        }}>
+          Everything you need to know about Avadix.
+        </p>
+      </div>
+
+      {/* Accordion */}
+      <div style={{
+        border: '1px solid #1A1A1A',
+        borderRadius: 20,
+        background: '#0E0E0E',
+        padding: '0 28px',
+        backdropFilter: 'blur(10px)',
+      }}>
+        {FAQS.map((item, i) => (
+          <FAQItem key={i} q={item.q} a={item.a} isLast={i === FAQS.length - 1} />
+        ))}
+      </div>
+
+      {/* Bottom CTA */}
+      <p style={{
+        textAlign: 'center', marginTop: 40,
+        fontFamily: 'var(--font-mono)', fontSize: 12, color: '#444',
+        letterSpacing: '0.02em',
+      }}>
+        Still have questions?{' '}
+        <a href="https://discord.gg/nG9UyBFhMK" target="_blank" rel="noreferrer"
+          style={{ color: '#FAFAFA', textDecoration: 'none', borderBottom: '1px solid #333' }}
+          onMouseEnter={e => (e.currentTarget.style.borderBottomColor = '#FAFAFA')}
+          onMouseLeave={e => (e.currentTarget.style.borderBottomColor = '#333')}
+        >
+          Ask in Discord →
+        </a>
+      </p>
     </section>
   );
 }
