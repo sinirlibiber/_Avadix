@@ -1,5 +1,5 @@
 // src/lib/contracts/addresses.ts
-// Contract addresses — Fuji Testnet (43113) + Mainnet (43114)
+// Contract addresses — Fuji Testnet (43113) only
 
 import PredictionMarketABI from './AvadixPredictionMarket.json'
 import DAOABI from './AvadixDAO.json'
@@ -11,15 +11,8 @@ export const FUJI_ADDRESSES = {
   AvadixDonations:  '0xC7f1D448570f052aA879326ec3BA60C20005Fcd2' as `0x${string}`,
 }
 
-export const MAINNET_ADDRESSES = {
-  PredictionMarket: '0x0000000000000000000000000000000000000000' as `0x${string}`,
-  AvadixDAO:        '0x0000000000000000000000000000000000000000' as `0x${string}`,
-  AvadixDonations:  '0x0000000000000000000000000000000000000000' as `0x${string}`,
-}
-
-export function getAddresses(chainId: number) {
-  if (chainId === 43114) return MAINNET_ADDRESSES
-  return FUJI_ADDRESSES // default: Fuji
+export function getAddresses(_chainId?: number) {
+  return FUJI_ADDRESSES
 }
 
 export const ABIS = {

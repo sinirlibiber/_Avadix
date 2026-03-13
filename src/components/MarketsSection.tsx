@@ -127,10 +127,10 @@ export default function MarketsSection() {
     <section style={{ padding: '40px 24px 80px', maxWidth: 1280, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 40, flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#E84142', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>// Live Markets</p>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>// Live Markets</p>
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(32px,5vw,52px)', color: '#E2E2F0', letterSpacing: '-0.03em', lineHeight: 1 }}>Predict the Future</h2>
         </div>
-        <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px', background: '#E84142', border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, boxShadow: '0 0 20px rgba(232,65,66,0.3)' }}>
+        <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px', background: '#7C3AED', border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, boxShadow: '0 0 20px rgba(124,58,237,0.3)' }}>
           <Lightbulb size={16} /> Suggest Market
         </button>
       </div>
@@ -139,7 +139,7 @@ export default function MarketsSection() {
       {showCreate && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', padding: 24 }}>
           <div style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 20, padding: 32, width: '100%', maxWidth: 540, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-            <button onClick={() => setShowCreate(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(232,65,66,0.1)', border: '1px solid rgba(232,65,66,0.2)', borderRadius: 8, padding: '6px 10px', color: '#E84142', cursor: 'pointer' }}><X size={16} /></button>
+            <button onClick={() => setShowCreate(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 8, padding: '6px 10px', color: '#7C3AED', cursor: 'pointer' }}><X size={16} /></button>
             <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#E2E2F0', marginBottom: 6 }}>Suggest a Market</h3>
             <p style={{ color: '#8888AA', fontSize: 13, marginBottom: 24, fontFamily: 'var(--font-mono)' }}>Your suggestion will be reviewed and published by admin.</p>
             {createSuccess ? (
@@ -151,7 +151,7 @@ export default function MarketsSection() {
                 <div>
                   <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Image (optional)</label>
                   <div onClick={() => fileRef.current?.click()} style={{ border: '2px dashed #1E1E2E', borderRadius: 12, padding: 20, textAlign: 'center', cursor: 'pointer', background: '#0A0A0F' }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(232,65,66,0.4)')}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)')}
                     onMouseLeave={e => (e.currentTarget.style.borderColor = '#1E1E2E')}>
                     {imagePreview ? (
                       <div style={{ position: 'relative' }}>
@@ -184,7 +184,7 @@ export default function MarketsSection() {
                   <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Market Type</label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     {[{ v: '0', label: '👤 Manual', desc: 'Resolved by admin' }, { v: '1', label: '🔗 Oracle', desc: 'Auto via Chainlink' }].map(opt => (
-                      <button key={opt.v} onClick={() => setForm(f => ({ ...f, marketType: opt.v }))} style={{ flex: 1, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', background: form.marketType === opt.v ? 'rgba(232,65,66,0.12)' : '#0A0A0F', border: `1px solid ${form.marketType === opt.v ? 'rgba(232,65,66,0.4)' : '#1E1E2E'}`, color: form.marketType === opt.v ? '#E84142' : '#8888AA', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, textAlign: 'left' }}>
+                      <button key={opt.v} onClick={() => setForm(f => ({ ...f, marketType: opt.v }))} style={{ flex: 1, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', background: form.marketType === opt.v ? 'rgba(124,58,237,0.12)' : '#0A0A0F', border: `1px solid ${form.marketType === opt.v ? 'rgba(124,58,237,0.4)' : '#1E1E2E'}`, color: form.marketType === opt.v ? '#7C3AED' : '#8888AA', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, textAlign: 'left' }}>
                         <div>{opt.label}</div>
                         <div style={{ fontSize: 11, fontWeight: 400, marginTop: 2, color: '#555570' }}>{opt.desc}</div>
                       </button>
@@ -218,8 +218,8 @@ export default function MarketsSection() {
                     </div>
                   </div>
                 )}
-                {createError && <div style={{ padding: '10px 14px', background: 'rgba(232,65,66,0.1)', border: '1px solid rgba(232,65,66,0.3)', borderRadius: 8, color: '#E84142', fontSize: 13, fontFamily: 'var(--font-mono)' }}>⚠ {createError}</div>}
-                <button onClick={handleSuggest} disabled={isCreating} style={{ width: '100%', padding: '13px 0', background: '#E84142', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1, boxShadow: '0 0 20px rgba(232,65,66,0.3)' }}>
+                {createError && <div style={{ padding: '10px 14px', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 8, color: '#7C3AED', fontSize: 13, fontFamily: 'var(--font-mono)' }}>⚠ {createError}</div>}
+                <button onClick={handleSuggest} disabled={isCreating} style={{ width: '100%', padding: '13px 0', background: '#7C3AED', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1, boxShadow: '0 0 20px rgba(124,58,237,0.3)' }}>
                   {isCreating ? '⏳ Awaiting wallet confirmation...' : !isConnected ? '⚠ Connect Wallet' : '💡 Submit Suggestion'}
                 </button>
               </div>
@@ -253,7 +253,7 @@ export default function MarketsSection() {
               style={{
                 padding: '8px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
                 fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 13,
-                background: category === cat ? '#E84142' : '#12121A',
+                background: category === cat ? '#7C3AED' : '#12121A',
                 color: category === cat ? 'white' : '#8888AA',
                 transition: 'all 0.2s',
               }}
@@ -264,7 +264,7 @@ export default function MarketsSection() {
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           {(['volume', 'hot', 'recent'] as const).map(s => (
-            <button key={s} onClick={() => setSortBy(s)} style={{ padding: '8px 12px', borderRadius: 8, cursor: 'pointer', border: `1px solid ${sortBy === s ? 'rgba(232,65,66,0.4)' : '#1E1E2E'}`, fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'capitalize', background: sortBy === s ? 'rgba(232,65,66,0.1)' : 'transparent', color: sortBy === s ? '#E84142' : '#8888AA' }}>{s}</button>
+            <button key={s} onClick={() => setSortBy(s)} style={{ padding: '8px 12px', borderRadius: 8, cursor: 'pointer', border: `1px solid ${sortBy === s ? 'rgba(124,58,237,0.4)' : '#1E1E2E'}`, fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'capitalize', background: sortBy === s ? 'rgba(124,58,237,0.1)' : 'transparent', color: sortBy === s ? '#7C3AED' : '#8888AA' }}>{s}</button>
           ))}
         </div>
       </div>
@@ -273,7 +273,7 @@ export default function MarketsSection() {
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Active filters:</span>
           {category !== 'all' && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(232,65,66,0.1)', color: '#E84142', border: '1px solid rgba(232,65,66,0.2)', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => setCategory('all')}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(124,58,237,0.1)', color: '#7C3AED', border: '1px solid rgba(124,58,237,0.2)', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => setCategory('all')}>
               {CATEGORY_LABELS[category]} <X size={10} />
             </span>
           )}

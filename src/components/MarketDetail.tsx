@@ -12,7 +12,7 @@ import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
 
 // ─── CoinGecko fallback hook ──────────────────────────────────────────────────
 const TOKEN_PAIR_META: Record<number, { symbol: string; color: string; bg: string; coingeckoId: string }> = {
-  0: { symbol: 'AVAX/USD', color: '#E84142', bg: 'rgba(232,65,66,0.08)',  coingeckoId: 'avalanche-2' },
+  0: { symbol: 'AVAX/USD', color: '#7C3AED', bg: 'rgba(124,58,237,0.08)',  coingeckoId: 'avalanche-2' },
   1: { symbol: 'BTC/USD',  color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', coingeckoId: 'bitcoin' },
   2: { symbol: 'ETH/USD',  color: '#6366F1', bg: 'rgba(99,102,241,0.08)', coingeckoId: 'ethereum' },
   3: { symbol: 'LINK/USD', color: '#3B82F6', bg: 'rgba(59,130,246,0.08)', coingeckoId: 'chainlink' },
@@ -68,7 +68,7 @@ function PriceChart({ yesPercent }: { yesPercent: number }) {
   const pts = data.map((d, i) => `${scaleX(i)},${scaleY(d.yes)}`).join(' ');
   const areaBottom = `${scaleX(data.length - 1)},${h} ${scaleX(0)},${h}`;
   const isUp = data[data.length - 1].yes >= data[0].yes;
-  const color = isUp ? '#22c55e' : '#E84142';
+  const color = isUp ? '#22c55e' : '#7C3AED';
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 120 }}>
@@ -108,7 +108,7 @@ function ActivityFeed({ yesPool, noPool }: { yesPool: bigint; noPool: bigint }) 
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderBottom: '1px solid #1E1E2E', transition: 'background 0.15s' }}
           onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 7px', borderRadius: 4, background: t.side === 'YES' ? 'rgba(34,197,94,0.15)' : 'rgba(232,65,66,0.15)', color: t.side === 'YES' ? '#22c55e' : '#E84142', fontWeight: 600, minWidth: 30, textAlign: 'center' }}>{t.side}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 7px', borderRadius: 4, background: t.side === 'YES' ? 'rgba(34,197,94,0.15)' : 'rgba(124,58,237,0.15)', color: t.side === 'YES' ? '#22c55e' : '#7C3AED', fontWeight: 600, minWidth: 30, textAlign: 'center' }}>{t.side}</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#E2E2F0', flex: 1 }}>{t.amount} AVAX</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>@ {t.price}¢</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{t.addr}</span>
@@ -167,8 +167,8 @@ function MarketDepth({ yesPool, noPool }: { yesPool: bigint; noPool: bigint }) {
         </div>
         {noAsks.map((a, i) => (
           <div key={i} style={{ position: 'relative', padding: '6px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, background: 'rgba(232,65,66,0.07)', width: `${(parseFloat(a.size) / maxSize) * 100}%` }} />
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#E84142', position: 'relative', zIndex: 1 }}>{a.price}¢</span>
+            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, background: 'rgba(124,58,237,0.07)', width: `${(parseFloat(a.size) / maxSize) * 100}%` }} />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED', position: 'relative', zIndex: 1 }}>{a.price}¢</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textAlign: 'right', position: 'relative', zIndex: 1 }}>{a.size}</span>
           </div>
         ))}
@@ -246,7 +246,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
   if (!market?.exists) return (
     <div style={{ maxWidth: 1280, margin: '0 auto', padding: '60px 24px', textAlign: 'center' }}>
       <p style={{ color: '#8888AA', fontFamily: 'var(--font-display)', fontSize: 18 }}>Market not found.</p>
-      <Link href="/markets" style={{ color: '#E84142', marginTop: 12, display: 'inline-block' }}>← Back to Markets</Link>
+      <Link href="/markets" style={{ color: '#7C3AED', marginTop: 12, display: 'inline-block' }}>← Back to Markets</Link>
     </div>
   );
 
@@ -331,7 +331,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
           {/* Market header */}
           <div style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 20, padding: '28px 28px 24px' }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(232,65,66,0.12)', color: '#E84142', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{market.category}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(124,58,237,0.12)', color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{market.category}</span>
               {market.resolved ? (
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
                   ✓ Resolved — {market.outcome === 1 ? 'YES' : 'NO'} Won
@@ -355,7 +355,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
               <div style={{ width: 1, background: '#1E1E2E', alignSelf: 'stretch' }} />
               <div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginBottom: 4, textTransform: 'uppercase' }}>NO</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 48, color: '#E84142', lineHeight: 1 }}>{noPercent}¢</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 48, color: '#7C3AED', lineHeight: 1 }}>{noPercent}¢</div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', marginTop: 2 }}>probability</div>
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 10 }}>
@@ -377,11 +377,11 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#22c55e' }}>YES pool: {yesPoolF.toFixed(3)} AVAX</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#E84142' }}>NO pool: {noPoolF.toFixed(3)} AVAX</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#7C3AED' }}>NO pool: {noPoolF.toFixed(3)} AVAX</span>
               </div>
               <div style={{ background: '#1E1E2E', borderRadius: 6, height: 10, overflow: 'hidden', display: 'flex' }}>
                 <div style={{ width: `${yesPercent}%`, background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: '6px 0 0 6px', transition: 'width 0.6s ease' }} />
-                <div style={{ flex: 1, background: 'linear-gradient(90deg, #dc2626, #E84142)', borderRadius: '0 6px 6px 0' }} />
+                <div style={{ flex: 1, background: 'linear-gradient(90deg, #dc2626, #7C3AED)', borderRadius: '0 6px 6px 0' }} />
               </div>
             </div>
           </div>
@@ -389,7 +389,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
           {/* 🔴 LIVE PRICE PANEL — oracle markets only */}
           {isOracle && !market.resolved && oraclePrice && (() => {
             const TOKEN_META: Record<number, { symbol: string; color: string; bg: string }> = {
-              0: { symbol: 'AVAX/USD', color: '#E84142', bg: 'rgba(232,65,66,0.08)' },
+              0: { symbol: 'AVAX/USD', color: '#7C3AED', bg: 'rgba(124,58,237,0.08)' },
               1: { symbol: 'BTC/USD',  color: '#F59E0B', bg: 'rgba(245,158,11,0.08)' },
               2: { symbol: 'ETH/USD',  color: '#6366F1', bg: 'rgba(99,102,241,0.08)' },
               3: { symbol: 'LINK/USD', color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' },
@@ -406,8 +406,8 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
 
             return (
               <div style={{
-                background: winning ? 'rgba(34,197,94,0.06)' : 'rgba(232,65,66,0.06)',
-                border: `1px solid ${winning ? 'rgba(34,197,94,0.25)' : 'rgba(232,65,66,0.25)'}`,
+                background: winning ? 'rgba(34,197,94,0.06)' : 'rgba(124,58,237,0.06)',
+                border: `1px solid ${winning ? 'rgba(34,197,94,0.25)' : 'rgba(124,58,237,0.25)'}`,
                 borderRadius: 14, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12,
               }}>
                 {/* Header */}
@@ -416,7 +416,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     {priceSource === 'chainlink' ? '⚡ Chainlink' : '🦎 CoinGecko'} · {meta.symbol} · Live
                   </span>
-                  <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 6, background: winning ? 'rgba(34,197,94,0.15)' : 'rgba(232,65,66,0.15)', color: winning ? '#22c55e' : '#E84142', fontWeight: 700 }}>
+                  <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 6, background: winning ? 'rgba(34,197,94,0.15)' : 'rgba(124,58,237,0.15)', color: winning ? '#22c55e' : '#7C3AED', fontWeight: 700 }}>
                     {winning ? '✓ In YES zone' : '✗ In NO zone'}
                   </span>
                 </div>
@@ -452,7 +452,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                   {/* Fark */}
                   <div style={{ paddingLeft: 16 }}>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4 }}>Distance to Target</div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, lineHeight: 1, color: current === null ? '#555570' : winning ? '#22c55e' : '#E84142' }}>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, lineHeight: 1, color: current === null ? '#555570' : winning ? '#22c55e' : '#7C3AED' }}>
                       {current !== null ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%` : '—'}
                     </div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 3 }}>
@@ -498,7 +498,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                   flex: 1, padding: '14px 0', background: 'none', border: 'none', cursor: 'pointer',
                   fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 13,
                   color: tab === t.key ? '#E2E2F0' : '#555570',
-                  borderBottom: tab === t.key ? '2px solid #E84142' : '2px solid transparent',
+                  borderBottom: tab === t.key ? '2px solid #7C3AED' : '2px solid transparent',
                   transition: 'all 0.2s',
                 }}>{t.label}</button>
               ))}
@@ -510,7 +510,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', textTransform: 'uppercase' }}>YES probability over time</span>
                   <div style={{ display: 'flex', gap: 10 }}>
                     {['1H', '1D', '1W', 'ALL'].map(p => (
-                      <button key={p} style={{ background: p === '1W' ? 'rgba(232,65,66,0.15)' : 'none', border: 'none', color: p === '1W' ? '#E84142' : '#555570', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer', padding: '3px 8px', borderRadius: 4 }}>{p}</button>
+                      <button key={p} style={{ background: p === '1W' ? 'rgba(124,58,237,0.15)' : 'none', border: 'none', color: p === '1W' ? '#7C3AED' : '#555570', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer', padding: '3px 8px', borderRadius: 4 }}>{p}</button>
                     ))}
                   </div>
                 </div>
@@ -518,7 +518,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                 <div style={{ display: 'flex', gap: 24, marginTop: 14, paddingTop: 14, borderTop: '1px solid #1E1E2E' }}>
                   {[
                     { label: '24h High', value: `${Math.min(99, yesPercent + Math.floor(Math.random() * 5 + 2))}¢`, color: '#22c55e' },
-                    { label: '24h Low',  value: `${Math.max(1, yesPercent - Math.floor(Math.random() * 5 + 2))}¢`,  color: '#E84142' },
+                    { label: '24h Low',  value: `${Math.max(1, yesPercent - Math.floor(Math.random() * 5 + 2))}¢`,  color: '#7C3AED' },
                     { label: '24h Vol',  value: `${(totalPoolF * 0.12).toFixed(3)} AVAX`, color: '#8888AA' },
                     { label: 'All-time High', value: `${Math.min(99, yesPercent + 15)}¢`, color: '#8888AA' },
                   ].map(({ label, value, color }) => (
@@ -577,7 +577,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 80 }}>
           {/* My Position */}
           {(hasYes || hasNo) && (
-            <div style={{ background: '#12121A', border: '1px solid rgba(232,65,66,0.2)', borderRadius: 16, padding: '16px 20px' }}>
+            <div style={{ background: '#12121A', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 16, padding: '16px 20px' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', textTransform: 'uppercase', marginBottom: 12 }}>Your Position</div>
               <div style={{ display: 'flex', gap: 16, marginBottom: 10, flexWrap: 'wrap' }}>
                 {hasYes && (
@@ -589,7 +589,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                 {hasNo && (
                   <div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', marginBottom: 2 }}>NO shares</div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#E84142' }}>{myNoF.toFixed(3)}</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#7C3AED' }}>{myNoF.toFixed(3)}</div>
                   </div>
                 )}
                 <div>
@@ -622,10 +622,10 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
             <div style={{ display: 'flex' }}>
               {[
                 { key: 'buy', label: 'Buy', color: '#22c55e' },
-                { key: 'sell', label: 'Sell (at resolution)', color: '#E84142' },
+                { key: 'sell', label: 'Sell (at resolution)', color: '#7C3AED' },
               ].map(t => (
                 <button key={t.key} onClick={() => setTradeTab(t.key as 'buy' | 'sell')} style={{
-                  flex: 1, padding: '14px 0', background: tradeTab === t.key ? (t.key === 'buy' ? 'rgba(34,197,94,0.08)' : 'rgba(232,65,66,0.08)') : 'transparent',
+                  flex: 1, padding: '14px 0', background: tradeTab === t.key ? (t.key === 'buy' ? 'rgba(34,197,94,0.08)' : 'rgba(124,58,237,0.08)') : 'transparent',
                   border: 'none', cursor: 'pointer',
                   fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14,
                   color: tradeTab === t.key ? t.color : '#555570',
@@ -664,7 +664,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                       {hasNo && (
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA' }}>{myNoF.toFixed(3)} NO shares</span>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#E84142', fontWeight: 600 }}>~{(myNoF * (totalPoolF / (parseFloat(formatEther(noPool)) || 1))).toFixed(3)} AVAX</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#7C3AED', fontWeight: 600 }}>~{(myNoF * (totalPoolF / (parseFloat(formatEther(noPool)) || 1))).toFixed(3)} AVAX</span>
                         </div>
                       )}
                     </div>
@@ -696,9 +696,9 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                     <button onClick={() => setSide('no')} style={{
                       padding: '12px 0', borderRadius: 10, cursor: 'pointer',
                       fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16,
-                      background: side === 'no' ? 'rgba(232,65,66,0.15)' : '#0A0A0F',
-                      border: `2px solid ${side === 'no' ? 'rgba(232,65,66,0.5)' : '#1E1E2E'}`,
-                      color: '#E84142', transition: 'all 0.2s',
+                      background: side === 'no' ? 'rgba(124,58,237,0.15)' : '#0A0A0F',
+                      border: `2px solid ${side === 'no' ? 'rgba(124,58,237,0.5)' : '#1E1E2E'}`,
+                      color: '#7C3AED', transition: 'all 0.2s',
                     }}>
                       NO <span style={{ fontSize: 13, fontWeight: 500 }}>{noPercent}¢</span>
                     </button>
@@ -736,13 +736,13 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                     {/* Quick amounts */}
                     <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
                       {['0.001', '0.01', '0.1', '1'].map(a => (
-                        <button key={a} onClick={() => setAmount(a)} style={{ flex: 1, padding: '5px 0', background: amount === a ? 'rgba(232,65,66,0.1)' : '#0A0A0F', border: `1px solid ${amount === a ? 'rgba(232,65,66,0.3)' : '#1E1E2E'}`, borderRadius: 6, color: amount === a ? '#E84142' : '#555570', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer' }}>{a}</button>
+                        <button key={a} onClick={() => setAmount(a)} style={{ flex: 1, padding: '5px 0', background: amount === a ? 'rgba(124,58,237,0.1)' : '#0A0A0F', border: `1px solid ${amount === a ? 'rgba(124,58,237,0.3)' : '#1E1E2E'}`, borderRadius: 6, color: amount === a ? '#7C3AED' : '#555570', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer' }}>{a}</button>
                       ))}
                     </div>
-                    <div style={{ background: '#0A0A0F', border: `1px solid ${side === 'yes' ? 'rgba(34,197,94,0.3)' : 'rgba(232,65,66,0.3)'}`, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
+                    <div style={{ background: '#0A0A0F', border: `1px solid ${side === 'yes' ? 'rgba(34,197,94,0.3)' : 'rgba(124,58,237,0.3)'}`, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', marginRight: 6 }}>AVAX</span>
                       <input type="number" step="0.001" min={MIN_AMOUNT} value={amount} onChange={e => handleAmountChange(e.target.value)} onBlur={handleAmountBlur} style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#E2E2F0', fontFamily: 'var(--font-mono)', fontSize: 14, padding: '10px 0' }} />
-                      {balance && <button onClick={() => { const b = Math.floor(parseFloat(balance.formatted) * 1000) / 1000; setAmount(b.toFixed(3)); }} style={{ background: 'none', border: 'none', color: '#E84142', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer' }}>MAX</button>}
+                      {balance && <button onClick={() => { const b = Math.floor(parseFloat(balance.formatted) * 1000) / 1000; setAmount(b.toFixed(3)); }} style={{ background: 'none', border: 'none', color: '#7C3AED', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer' }}>MAX</button>}
                     </div>
                   </div>
 
@@ -754,8 +754,8 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                       { label: 'Shares out', value: `${potentialPayout.toFixed(3)} ${side.toUpperCase()}` },
                       { label: 'Price impact', value: `${priceImpact.toFixed(1)}%`, color: priceImpact > 5 ? '#F59E0B' : '#8888AA' },
                       { label: 'Max payout', value: `${maxPayout.toFixed(3)} AVAX`, color: '#E2E2F0' },
-                      { label: 'Potential profit', value: `${potentialProfit > 0 ? '+' : ''}${potentialProfit.toFixed(3)} AVAX`, color: potentialProfit > 0 ? '#22c55e' : '#E84142' },
-                      { label: 'ROI if win', value: `${roi}%`, color: parseFloat(roi) > 0 ? '#22c55e' : '#E84142' },
+                      { label: 'Potential profit', value: `${potentialProfit > 0 ? '+' : ''}${potentialProfit.toFixed(3)} AVAX`, color: potentialProfit > 0 ? '#22c55e' : '#7C3AED' },
+                      { label: 'ROI if win', value: `${roi}%`, color: parseFloat(roi) > 0 ? '#22c55e' : '#7C3AED' },
                     ].map(({ label, value, color }) => (
                       <div key={label} style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570' }}>{label}</span>
@@ -790,10 +790,10 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                   ) : (
                     <button onClick={handleBuy} disabled={txPending} style={{
                       width: '100%', padding: '14px', border: 'none', borderRadius: 10,
-                      background: side === 'yes' ? '#22c55e' : '#E84142',
+                      background: side === 'yes' ? '#22c55e' : '#7C3AED',
                       color: 'white', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
                       cursor: txPending ? 'wait' : 'pointer', opacity: txPending ? 0.7 : 1,
-                      boxShadow: `0 0 20px ${side === 'yes' ? 'rgba(34,197,94,0.25)' : 'rgba(232,65,66,0.25)'}`,
+                      boxShadow: `0 0 20px ${side === 'yes' ? 'rgba(34,197,94,0.25)' : 'rgba(124,58,237,0.25)'}`,
                     }}>
                       {isPending ? 'Awaiting wallet...' : isConfirming ? 'Confirming...' : `Buy ${side.toUpperCase()} — ${amount} AVAX`}
                     </button>

@@ -10,7 +10,7 @@ const config: Config = {
     extend: {
       colors: {
         avax: {
-          red: '#E84142',
+          red: '#7C3AED',
           dark: '#0A0A0F',
           card: '#12121A',
           border: '#1E1E2E',
@@ -38,8 +38,8 @@ const config: Config = {
           '50%': { transform: 'translateY(-10px)' },
         },
         glow: {
-          '0%': { boxShadow: '0 0 5px #E84142, 0 0 10px #E84142' },
-          '100%': { boxShadow: '0 0 20px #E84142, 0 0 40px #E84142' },
+          '0%': { boxShadow: '0 0 5px #7C3AED, 0 0 10px #7C3AED' },
+          '100%': { boxShadow: '0 0 20px #7C3AED, 0 0 40px #7C3AED' },
         }
       }
     },

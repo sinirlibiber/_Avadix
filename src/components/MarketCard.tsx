@@ -9,12 +9,12 @@ import { getAddresses } from '@/lib/contracts/addresses';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
 
 const CATEGORY_COLORS: Record<string, string> = {
-  crypto: '#F59E0B', avax: '#E84142', politics: '#8B5CF6',
+  crypto: '#F59E0B', avax: '#7C3AED', politics: '#8B5CF6',
   sports: '#10B981', tech: '#3B82F6',
 };
 
 const TOKEN_PAIR_META: Record<number, { symbol: string; color: string; coingeckoId: string }> = {
-  0: { symbol: 'AVAX', color: '#E84142', coingeckoId: 'avalanche-2' },
+  0: { symbol: 'AVAX', color: '#7C3AED', coingeckoId: 'avalanche-2' },
   1: { symbol: 'BTC',  color: '#F59E0B', coingeckoId: 'bitcoin' },
   2: { symbol: 'ETH',  color: '#6366F1', coingeckoId: 'ethereum' },
   3: { symbol: 'LINK', color: '#3B82F6', coingeckoId: 'chainlink' },
@@ -129,8 +129,8 @@ function LivePriceChip({
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      background: winning ? 'rgba(34,197,94,0.07)' : 'rgba(232,65,66,0.07)',
-      border: `1px solid ${winning ? 'rgba(34,197,94,0.2)' : 'rgba(232,65,66,0.2)'}`,
+      background: winning ? 'rgba(34,197,94,0.07)' : 'rgba(124,58,237,0.07)',
+      border: `1px solid ${winning ? 'rgba(34,197,94,0.2)' : 'rgba(124,58,237,0.2)'}`,
       borderRadius: 10, padding: '8px 12px', marginTop: 2,
     }}>
       {/* Left: symbol + price */}
@@ -171,7 +171,7 @@ function LivePriceChip({
         </div>
         <div style={{
           fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, lineHeight: 1.2,
-          color: winning ? '#22c55e' : '#E84142',
+          color: winning ? '#22c55e' : '#7C3AED',
         }}>
           {winning ? '✓ In YES zone' : `${diffAbs}% away`}
         </div>
@@ -211,7 +211,7 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
   const yesPercent = Number(probability ?? BigInt(50));
   const noPercent  = 100 - yesPercent;
   const category   = market.category?.toLowerCase() ?? 'crypto';
-  const catColor   = CATEGORY_COLORS[category] || '#E84142';
+  const catColor   = CATEGORY_COLORS[category] || '#7C3AED';
   const endDate    = new Date(Number(market.endTime) * 1000);
   const daysLeft   = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86400000));
   const yesPool    = market.yesPool ?? BigInt(0);
@@ -228,7 +228,7 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
           display: 'flex', flexDirection: 'column', gap: 12, cursor: 'pointer', height: '100%',
         }}
         onMouseEnter={e => {
-          (e.currentTarget as HTMLElement).style.borderColor = 'rgba(232,65,66,0.3)';
+          (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,58,237,0.3)';
           (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
           (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 30px rgba(0,0,0,0.3)';
         }}
@@ -292,13 +292,13 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#22c55e', fontWeight: 700 }}>
               {yesPercent}¢ YES
             </span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#E84142', fontWeight: 700 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#7C3AED', fontWeight: 700 }}>
               {noPercent}¢ NO
             </span>
           </div>
           <div style={{ background: '#1E1E2E', borderRadius: 6, height: 6, overflow: 'hidden', display: 'flex' }}>
             <div style={{ width: `${yesPercent}%`, background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: '6px 0 0 6px' }} />
-            <div style={{ flex: 1, background: 'linear-gradient(90deg, #dc2626, #E84142)', borderRadius: '0 6px 6px 0' }} />
+            <div style={{ flex: 1, background: 'linear-gradient(90deg, #6D28D9, #7C3AED)', borderRadius: '0 6px 6px 0' }} />
           </div>
         </div>
 
@@ -314,7 +314,7 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
               {market.resolved ? 'Resolved' : `${daysLeft}d`}
             </span>
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, color: '#E84142', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, color: '#7C3AED', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
             Trade <ArrowRight size={11} />
           </div>
         </div>

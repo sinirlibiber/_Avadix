@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <QueryClientProvider client={queryClient}>
             <RainbowKitProvider
               theme={darkTheme({
-                accentColor: '#E84142',
+                accentColor: '#7C3AED',
                 accentColorForeground: 'white',
                 borderRadius: 'medium',
                 fontStack: 'system',
