@@ -74,7 +74,7 @@ export default function Hero() {
     canvas.height = canvas.offsetHeight;
 
     const particles: { x: number; y: number; vx: number; vy: number; size: number; color: string; alpha: number }[] = [];
-    const colors = ['#7C3AED', '#3B82F6', '#06B6D4', '#A78BFA', '#93C5FD'];
+    const colors = ['#FAFAFA', '#888888', '#666666', '#FAFAFA', '#93C5FD'];
 
     for (let i = 0; i < 60; i++) {
       particles.push({
@@ -132,9 +132,9 @@ export default function Hero() {
   const traderCount = new Set(Object.values(creatorMap).filter(Boolean)).size;
 
   const stats = [
-    { label: 'Total Volume', value: count === 0 ? '—' : `${formatVolume(totalVolume)} AVAX`, icon: BarChart3, color: '#A78BFA' },
+    { label: 'Total Volume', value: count === 0 ? '—' : `${formatVolume(totalVolume)} AVAX`, icon: BarChart3, color: '#FAFAFA' },
     { label: 'Markets',      value: count > 0 ? `${count}` : '—', icon: TrendingUp, color: '#60A5FA' },
-    { label: 'Traders',      value: traderCount > 0 ? `${traderCount}+` : '—', icon: Shield, color: '#67E8F9' },
+    { label: 'Traders',      value: traderCount > 0 ? `${traderCount}+` : '—', icon: Shield, color: '#888888' },
     { label: 'Network',      value: 'Fuji', icon: Zap, color: '#C4F135' },
   ];
 
@@ -153,10 +153,10 @@ export default function Hero() {
       <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0.6 }} />
 
       {/* Color orbs */}
-      <Orb color="#7C3AED" size={500} top="5%" left="5%" delay={0} duration={10} />
-      <Orb color="#3B82F6" size={400} top="50%" left="70%" delay={2} duration={13} />
+      <Orb color="#FAFAFA" size={500} top="5%" left="5%" delay={0} duration={10} />
+      <Orb color="#888888" size={400} top="50%" left="70%" delay={2} duration={13} />
       <Orb color="#06B6D4" size={350} top="75%" left="15%" delay={4} duration={11} />
-      <Orb color="#A78BFA" size={300} top="20%" left="55%" delay={1} duration={15} />
+      <Orb color="#FAFAFA" size={300} top="20%" left="55%" delay={1} duration={15} />
 
       {/* Grid */}
       <div className="bg-grid" style={{ position: 'absolute', inset: 0, opacity: 0.45, pointerEvents: 'none' }} />
@@ -175,15 +175,15 @@ export default function Hero() {
       {/* Live badge */}
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
-        background: 'linear-gradient(135deg, rgba(124,58,237,0.12), rgba(6,182,212,0.08))',
-        border: '1px solid rgba(124,58,237,0.25)',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(6,182,212,0.08))',
+        border: '1px solid rgba(255,255,255,0.25)',
         borderRadius: 24, padding: '7px 18px', marginBottom: 40,
-        fontFamily: 'var(--font-mono)', fontSize: 11, color: '#67E8F9',
+        fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888',
         letterSpacing: '0.08em', textTransform: 'uppercase' as const,
         boxShadow: '0 0 20px rgba(6,182,212,0.1)',
         backdropFilter: 'blur(10px)',
       }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#67E8F9', display: 'inline-block', animation: 'pulse 2s infinite', boxShadow: '0 0 8px #67E8F9' }} />
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#888888', display: 'inline-block', animation: 'pulse 2s infinite', boxShadow: '0 0 8px #67E8F9' }} />
         Live on Avalanche Fuji Testnet
       </div>
 
@@ -194,14 +194,14 @@ export default function Hero() {
         letterSpacing: '-0.05em', marginBottom: 30, maxWidth: 960,
         position: 'relative',
       }}>
-        <span style={{ color: '#EEF0FF', display: 'block' }}>Predict.</span>
-        <span style={{ color: '#EEF0FF', display: 'block' }}>Trade.</span>
+        <span style={{ color: '#FAFAFA', display: 'block' }}>Predict.</span>
+        <span style={{ color: '#FAFAFA', display: 'block' }}>Trade.</span>
         <span className="gradient-text" style={{ display: 'block' }}>Win on Avalanche.</span>
       </h1>
 
       <p style={{
         fontFamily: 'var(--font-body)', fontWeight: 400,
-        fontSize: 'clamp(16px, 2vw, 19px)', color: '#9999CC',
+        fontSize: 'clamp(16px, 2vw, 19px)', color: '#888888',
         maxWidth: 540, lineHeight: 1.8, marginBottom: 48, position: 'relative',
       }}>
         The most advanced decentralized prediction market on Avalanche.
@@ -222,14 +222,14 @@ export default function Hero() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, width: '100%', maxWidth: 740, position: 'relative' }}>
         {stats.map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="glass card" style={{ padding: '24px 18px', textAlign: 'center' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,58,237,0.4)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.12)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1C1C1C'; }}
           >
             <Icon size={18} color={color} style={{ marginBottom: 10, margin: '0 auto 10px' }} />
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, color: '#EEF0FF', lineHeight: 1, marginBottom: 7 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, color: '#FAFAFA', lineHeight: 1, marginBottom: 7 }}>
               {value}
             </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#55557A', textTransform: 'uppercase' as const, letterSpacing: '0.07em' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555555', textTransform: 'uppercase' as const, letterSpacing: '0.07em' }}>
               {label}
             </div>
           </div>

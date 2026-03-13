@@ -170,10 +170,10 @@ export default function MarketsSection() {
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 32 }}>
         <div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 36, color: '#EEF0FF', letterSpacing: '-0.04em', marginBottom: 6 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 36, color: '#FAFAFA', letterSpacing: '-0.04em', marginBottom: 6 }}>
             Prediction Markets
           </h2>
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: '#9999CC' }}>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: '#888888' }}>
             {count > 0 ? `${count} active market${count !== 1 ? 's' : ''}` : 'No markets yet — create the first one!'}
           </p>
         </div>
@@ -181,15 +181,15 @@ export default function MarketsSection() {
           onClick={() => { setShowCreate(true); setCreateError(''); }}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+            background: '#FFFFFF',
             color: 'white', border: 'none', borderRadius: 14,
             padding: '12px 24px', fontFamily: 'var(--font-display)',
             fontWeight: 700, fontSize: 15, cursor: 'pointer',
-            boxShadow: '0 4px 20px rgba(124,58,237,0.35)',
+            boxShadow: '0 4px 20px rgba(255,255,255,0.10)',
             transition: 'all 0.25s',
           }}
-          onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 30px rgba(124,58,237,0.5)'; }}
-          onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(124,58,237,0.35)'; }}
+          onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 30px rgba(255,255,255,0.15)'; }}
+          onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(255,255,255,0.10)'; }}
         >
           <Plus size={18} /> Create Market
         </button>
@@ -199,15 +199,15 @@ export default function MarketsSection() {
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24, alignItems: 'center' }}>
         {/* Search */}
         <div style={{ position: 'relative', flex: '1', minWidth: 220 }}>
-          <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#55557A' }} />
+          <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#555555' }} />
           <input
             value={search}
             onChange={(e: React.ChangeEvent<any>) => setSearch(e.target.value)}
             placeholder="Search markets..."
             style={{
               width: '100%', background: 'rgba(12,12,26,0.8)',
-              border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12,
-              padding: '10px 12px 10px 34px', color: '#EEF0FF',
+              border: '1px solid #1C1C1C', borderRadius: 12,
+              padding: '10px 12px 10px 34px', color: '#FAFAFA',
               fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none',
             }}
           />
@@ -219,9 +219,9 @@ export default function MarketsSection() {
             <button key={opt.key} onClick={() => setSortBy(opt.key)} style={{
               padding: '8px 16px', borderRadius: 10, cursor: 'pointer',
               fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
-              background: sortBy === opt.key ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.04)',
-              color: sortBy === opt.key ? '#A78BFA' : '#9999CC',
-              border: sortBy === opt.key ? '1px solid rgba(124,58,237,0.4)' : '1px solid transparent',
+              background: sortBy === opt.key ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.04)',
+              color: sortBy === opt.key ? '#FAFAFA' : '#888888',
+              border: sortBy === opt.key ? '1px solid rgba(255,255,255,0.12)' : '1px solid transparent',
               transition: 'all 0.2s',
             }}>{opt.label}</button>
           ))}
@@ -236,10 +236,10 @@ export default function MarketsSection() {
             fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: 11,
             textTransform: 'uppercase', letterSpacing: '0.05em',
             background: category === cat
-              ? 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(59,130,246,0.25))'
+              ? 'linear-gradient(135deg, rgba(255,255,255,0.3), rgba(59,130,246,0.25))'
               : 'rgba(255,255,255,0.04)',
-            color:  category === cat ? '#A78BFA' : '#9999CC',
-            border: category === cat ? '1px solid rgba(124,58,237,0.4)' : '1px solid rgba(255,255,255,0.06)',
+            color:  category === cat ? '#FAFAFA' : '#888888',
+            border: category === cat ? '1px solid rgba(255,255,255,0.12)' : '1px solid #1C1C1C',
             transition: 'all 0.2s',
           }}>{cat}</button>
         ))}
@@ -247,7 +247,7 @@ export default function MarketsSection() {
 
       {/* ── Market grid ── */}
       {count === 0 ? (
-        <div style={{ textAlign: 'center', padding: '80px 0', color: '#55557A' }}>
+        <div style={{ textAlign: 'center', padding: '80px 0', color: '#555555' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔮</div>
           <p style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>No markets yet. Be the first to create one!</p>
         </div>
@@ -265,22 +265,22 @@ export default function MarketsSection() {
           onClick={e => { if (e.target === e.currentTarget) setShowCreate(false); }}
         >
           <div style={{
-            background: '#0C0C1A', border: '1px solid rgba(124,58,237,0.25)',
+            background: '#111111', border: '1px solid rgba(255,255,255,0.25)',
             borderRadius: 24, padding: 32, width: '100%', maxWidth: 520,
             maxHeight: '90vh', overflowY: 'auto',
-            boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 60px rgba(124,58,237,0.1)',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 60px #1C1C1C',
           }}>
             {/* Modal header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <div>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: '#EEF0FF', letterSpacing: '-0.03em' }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: '#FAFAFA', letterSpacing: '-0.03em' }}>
                   Create Market
                 </h3>
-                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#55557A', marginTop: 2 }}>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555555', marginTop: 2 }}>
                   Your prediction will be submitted on-chain
                 </p>
               </div>
-              <button onClick={() => setShowCreate(false)} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 10, padding: '8px 10px', color: '#9999CC', cursor: 'pointer' }}>
+              <button onClick={() => setShowCreate(false)} style={{ background: '#1C1C1C', border: 'none', borderRadius: 10, padding: '8px 10px', color: '#888888', cursor: 'pointer' }}>
                 <X size={16} />
               </button>
             </div>
@@ -288,7 +288,7 @@ export default function MarketsSection() {
             {createSuccess ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
                 <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
-                <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#A78BFA' }}>
+                <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#FAFAFA' }}>
                   Market submitted successfully!
                 </p>
               </div>
@@ -297,19 +297,19 @@ export default function MarketsSection() {
 
                 {/* Image upload */}
                 <div>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
                     Market Image (optional)
                   </label>
                   <div
                     onClick={() => fileRef.current?.click()}
                     style={{
-                      border: '2px dashed rgba(124,58,237,0.3)', borderRadius: 16,
+                      border: '2px dashed rgba(255,255,255,0.3)', borderRadius: 16,
                       cursor: 'pointer', overflow: 'hidden', transition: 'all 0.2s',
                       minHeight: 100, position: 'relative',
-                      background: imagePreview ? 'transparent' : 'rgba(124,58,237,0.04)',
+                      background: imagePreview ? 'transparent' : 'rgba(255,255,255,0.04)',
                     }}
-                    onMouseEnter={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,58,237,0.6)'}
-                    onMouseLeave={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,58,237,0.3)'}
+                    onMouseEnter={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.18)'}
+                    onMouseLeave={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.3)'}
                   >
                     {imagePreview ? (
                       <>
@@ -319,17 +319,17 @@ export default function MarketsSection() {
                           style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: 8, padding: '4px 8px', color: 'white', cursor: 'pointer' }}>
                           <X size={12} />
                         </button>
-                        <div style={{ padding: '6px 12px', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#55557A' }}>
+                        <div style={{ padding: '6px 12px', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555555' }}>
                           ✓ Image compressed (200px) — ready to submit
                         </div>
                       </>
                     ) : (
                       <div style={{ padding: 24, textAlign: 'center' }}>
-                        <ImageIcon size={28} color="#55557A" style={{ margin: '0 auto 8px' }} />
-                        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#55557A' }}>
+                        <ImageIcon size={28} color="#555555" style={{ margin: '0 auto 8px' }} />
+                        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555555' }}>
                           Click or drag to upload
                         </p>
-                        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#33334A', marginTop: 4 }}>
+                        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333333', marginTop: 4 }}>
                           JPG, PNG, GIF — auto-resized to 200px
                         </p>
                       </div>
@@ -340,7 +340,7 @@ export default function MarketsSection() {
 
                 {/* Question */}
                 <div>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
                     Market Question *
                   </label>
                   <textarea
@@ -350,8 +350,8 @@ export default function MarketsSection() {
                     rows={3}
                     style={{
                       width: '100%', background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12,
-                      padding: '12px 14px', color: '#EEF0FF',
+                      border: '1px solid #222222', borderRadius: 12,
+                      padding: '12px 14px', color: '#FAFAFA',
                       fontFamily: 'var(--font-body)', fontSize: 14,
                       outline: 'none', resize: 'vertical',
                     }}
@@ -361,22 +361,22 @@ export default function MarketsSection() {
                 {/* Category + Duration row */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
-                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Category</label>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Category</label>
                     <select
                       value={form.category}
                       onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, category: e.target.value }))}
-                      style={{ width: '100%', background: '#0F0F20', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 12px', color: '#EEF0FF', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}
+                      style={{ width: '100%', background: '#0F0F20', border: '1px solid #222222', borderRadius: 10, padding: '10px 12px', color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}
                     >
                       {catList.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Duration (days)</label>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Duration (days)</label>
                     <input
                       type="number" min={1} max={90}
                       value={form.durationDays}
                       onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, durationDays: e.target.value }))}
-                      style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 12px', color: '#EEF0FF', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid #222222', borderRadius: 10, padding: '10px 12px', color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}
                     />
                   </div>
                 </div>
@@ -395,23 +395,23 @@ export default function MarketsSection() {
                   onClick={handleCreate}
                   disabled={isCreating}
                   style={{
-                    width: '100%', background: isCreating ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+                    width: '100%', background: isCreating ? 'rgba(255,255,255,0.3)' : '#FFFFFF',
                     color: 'white', border: 'none', borderRadius: 14,
                     padding: '14px', fontFamily: 'var(--font-display)',
                     fontWeight: 700, fontSize: 16, cursor: isCreating ? 'not-allowed' : 'pointer',
                     transition: 'all 0.25s',
-                    boxShadow: isCreating ? 'none' : '0 4px 20px rgba(124,58,237,0.4)',
+                    boxShadow: isCreating ? 'none' : '0 4px 20px rgba(255,255,255,0.12)',
                   }}
                 >
                   {isCreating ? '⏳ Submitting...' : '🚀 Create Market'}
                 </button>
                 {creationFee !== undefined && (
-                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#55557A', textAlign: 'center' }}>
+                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555555', textAlign: 'center' }}>
                     Market creation fee: {(Number(creationFee) / 1e18).toFixed(4)} AVAX
                   </p>
                 )}
 
-                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#33334A', textAlign: 'center' }}>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333333', textAlign: 'center' }}>
                   
                 </p>
               </div>

@@ -92,8 +92,8 @@ function CampaignCard({
     <div
       onClick={() => onSelect(campaignId, { ...campaign, id: campaignId, progress: pct, _emoji: emoji, _imageData: imageData })}
       style={{
-        background: isSelected ? 'rgba(124,58,237,0.06)' : '#12121A',
-        border: `1px solid ${isSelected ? 'rgba(124,58,237,0.35)' : '#1E1E2E'}`,
+        background: isSelected ? 'rgba(255,255,255,0.06)' : '#111111',
+        border: `1px solid ${isSelected ? 'rgba(255,255,255,0.10)' : '#1C1C1C'}`,
         borderRadius: 14, padding: 16, cursor: 'pointer', transition: 'all 0.2s',
       }}
     >
@@ -116,13 +116,13 @@ function CampaignCard({
       <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
         <span style={{ fontSize: 28 }}>{emoji}</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#E2E2F0' }}>{campaign.name}</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#FAFAFA' }}>{campaign.name}</div>
           <div style={{ fontSize: 12, color: '#8888AA', marginTop: 2, lineHeight: 1.4 }}>{campaign.description}</div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginTop: 4 }}>by {shortAddr(campaign.creator)}</div>
         </div>
       </div>
 
-      <div style={{ background: '#1E1E2E', borderRadius: 4, height: 6, overflow: 'hidden', marginBottom: 8 }}>
+      <div style={{ background: '#1C1C1C', borderRadius: 4, height: 6, overflow: 'hidden', marginBottom: 8 }}>
         <div style={{
           width: `${Math.min(100, pct)}%`, height: '100%',
           background: isComplete ? 'linear-gradient(90deg,#22c55e,#16a34a)' : 'linear-gradient(90deg,#7C3AED,#ff6b6b)',
@@ -132,7 +132,7 @@ function CampaignCard({
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: 10 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: isComplete ? '#22c55e' : '#7C3AED', fontWeight: 600 }}>{pct}%</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: isComplete ? '#22c55e' : '#FAFAFA', fontWeight: 600 }}>{pct}%</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{donors} donors</span>
           {!isComplete && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{daysLeft}d left</span>}
         </div>
@@ -157,9 +157,9 @@ function DonationHistory({ campaignId, contractAddr }: { campaignId: number; con
       <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Donation History ({donations.length})</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
         {[...donations].reverse().map((d: any, i: number) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#0A0A0F', borderRadius: 8, gap: 10 }}>
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#0A0A0A', borderRadius: 8, gap: 10 }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>{shortAddr(d.donor)}</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED', fontWeight: 600 }}>{parseFloat(formatEther(d.amount)).toFixed(3)} AVAX</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', fontWeight: 600 }}>{parseFloat(formatEther(d.amount)).toFixed(3)} AVAX</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570' }}>{new Date(Number(d.timestamp) * 1000).toLocaleDateString()}</span>
           </div>
         ))}
@@ -359,23 +359,23 @@ export default function DonationSection() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 40, flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>// Community</p>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(32px,5vw,52px)', color: '#E2E2F0', letterSpacing: '-0.03em', lineHeight: 1 }}>Give Back</h2>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>// Community</p>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(32px,5vw,52px)', color: '#FAFAFA', letterSpacing: '-0.03em', lineHeight: 1 }}>Give Back</h2>
         </div>
-        <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px', background: '#7C3AED', border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, boxShadow: '0 0 20px rgba(124,58,237,0.3)' }}>
+        <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px', background: '#FAFAFA', border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, boxShadow: 'none' }}>
           <Plus size={16} /> Create Campaign
         </button>
       </div>
 
       {/* Quote carousel */}
-      <div style={{ background: 'linear-gradient(135deg,rgba(124,58,237,0.08),rgba(18,18,26,0.8))', border: '1px solid rgba(124,58,237,0.18)', borderRadius: 20, padding: '28px 36px', marginBottom: 40, position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: -20, left: -10, fontSize: 100, color: 'rgba(124,58,237,0.06)', fontFamily: 'Georgia,serif', lineHeight: 1, userSelect: 'none' }}>"</div>
-        <p style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(16px,2vw,20px)', fontWeight: 500, color: '#E2E2F0', lineHeight: 1.5, fontStyle: 'italic', marginBottom: 10, position: 'relative', zIndex: 1 }}>"{quote.text}"</p>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#7C3AED', position: 'relative', zIndex: 1 }}>— {quote.author}</p>
+      <div style={{ background: 'linear-gradient(135deg,rgba(255,255,255,0.04),rgba(18,18,26,0.8))', border: '1px solid #222222', borderRadius: 20, padding: '28px 36px', marginBottom: 40, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: -20, left: -10, fontSize: 100, color: 'rgba(255,255,255,0.06)', fontFamily: 'Georgia,serif', lineHeight: 1, userSelect: 'none' }}>"</div>
+        <p style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(16px,2vw,20px)', fontWeight: 500, color: '#FAFAFA', lineHeight: 1.5, fontStyle: 'italic', marginBottom: 10, position: 'relative', zIndex: 1 }}>"{quote.text}"</p>
+        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#FAFAFA', position: 'relative', zIndex: 1 }}>— {quote.author}</p>
         <div style={{ display: 'flex', gap: 8, marginTop: 14, alignItems: 'center' }}>
-          <button onClick={() => setQuoteIdx((i: number) => (i - 1 + DONATION_QUOTES.length) % DONATION_QUOTES.length)} style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 6, padding: '4px 8px', color: '#7C3AED', cursor: 'pointer' }}><ChevronLeft size={14} /></button>
-          {DONATION_QUOTES.map((_: any, i: number) => <div key={i} onClick={() => setQuoteIdx(i)} style={{ width: i === quoteIdx ? 20 : 6, height: 6, borderRadius: 3, background: i === quoteIdx ? '#7C3AED' : '#2A2A3E', cursor: 'pointer', transition: 'all 0.3s' }} />)}
-          <button onClick={() => setQuoteIdx((i: number) => (i + 1) % DONATION_QUOTES.length)} style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 6, padding: '4px 8px', color: '#7C3AED', cursor: 'pointer' }}><ChevronRight size={14} /></button>
+          <button onClick={() => setQuoteIdx((i: number) => (i - 1 + DONATION_QUOTES.length) % DONATION_QUOTES.length)} style={{ background: '#1C1C1C', border: '1px solid #222222', borderRadius: 6, padding: '4px 8px', color: '#FAFAFA', cursor: 'pointer' }}><ChevronLeft size={14} /></button>
+          {DONATION_QUOTES.map((_: any, i: number) => <div key={i} onClick={() => setQuoteIdx(i)} style={{ width: i === quoteIdx ? 20 : 6, height: 6, borderRadius: 3, background: i === quoteIdx ? '#FAFAFA' : '#1C1C1C', cursor: 'pointer', transition: 'all 0.3s' }} />)}
+          <button onClick={() => setQuoteIdx((i: number) => (i + 1) % DONATION_QUOTES.length)} style={{ background: '#1C1C1C', border: '1px solid #222222', borderRadius: 6, padding: '4px 8px', color: '#FAFAFA', cursor: 'pointer' }}><ChevronRight size={14} /></button>
         </div>
       </div>
 
@@ -383,14 +383,14 @@ export default function DonationSection() {
         {/* Campaign list */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#E2E2F0', margin: 0 }}>Campaigns ({count})</h3>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#FAFAFA', margin: 0 }}>Campaigns ({count})</h3>
             <div style={{ display: 'flex', gap: 6 }}>
               {(['all', 'active', 'completed'] as const).map(f => (
                 <button key={f} onClick={() => setCampaignFilter(f)} style={{
                   padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
                   fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 12, textTransform: 'capitalize',
-                  background: campaignFilter === f ? '#7C3AED' : '#12121A',
-                  color: campaignFilter === f ? 'white' : '#8888AA', transition: 'all 0.2s',
+                  background: campaignFilter === f ? '#FAFAFA' : '#111111',
+                  color: campaignFilter === f ? '#0A0A0A' : '#666', transition: 'all 0.2s',
                 }}>{f === 'completed' ? '✅ Completed' : f === 'active' ? '🟢 Active' : 'All'}</button>
               ))}
             </div>
@@ -411,25 +411,25 @@ export default function DonationSection() {
 
         {/* Donate panel */}
         <div style={{ position: 'sticky', top: 80 }}>
-          <div style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Heart size={20} color="#7C3AED" fill="#7C3AED" />
-              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, color: '#E2E2F0' }}>Donate to {selectedName}</h3>
+              <Heart size={20} color="#FAFAFA" fill="#FAFAFA" />
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, color: '#FAFAFA' }}>Donate to {selectedName}</h3>
             </div>
 
             {/* Kalan miktar göstergesi */}
             {selectedId > 0 && liveGoal > 0 && (
-              <div style={{ background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, padding: '10px 14px' }}>
+              <div style={{ background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 10, padding: '10px 14px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>Campaign Progress</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: isComplete ? '#22c55e' : '#7C3AED', fontWeight: 600 }}>{livePct}%</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: isComplete ? '#22c55e' : '#FAFAFA', fontWeight: 600 }}>{livePct}%</span>
                 </div>
-                <div style={{ background: '#1E1E2E', borderRadius: 4, height: 6, overflow: 'hidden', marginBottom: 6 }}>
+                <div style={{ background: '#1C1C1C', borderRadius: 4, height: 6, overflow: 'hidden', marginBottom: 6 }}>
                   <div style={{ width: `${Math.min(100, livePct)}%`, height: '100%', background: isComplete ? 'linear-gradient(90deg,#22c55e,#16a34a)' : 'linear-gradient(90deg,#7C3AED,#ff6b6b)', borderRadius: 4, transition: 'width 0.8s' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Raised: {liveRaised.toFixed(3)} AVAX</span>
-                  {!isComplete && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#7C3AED', fontWeight: 600 }}>Remaining: {liveRemaining.toFixed(3)} AVAX</span>}
+                  {!isComplete && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#FAFAFA', fontWeight: 600 }}>Remaining: {liveRemaining.toFixed(3)} AVAX</span>}
                 </div>
               </div>
             )}
@@ -445,22 +445,22 @@ export default function DonationSection() {
                 {SUGGESTED.map(a => (
                   <button key={a} onClick={() => { setAmount(a); setDonateError(''); }} style={{
                     flex: 1, minWidth: 52, padding: '7px 0',
-                    background: amount === a ? 'rgba(124,58,237,0.15)' : '#0A0A0F',
-                    border: `1px solid ${amount === a ? 'rgba(124,58,237,0.4)' : '#1E1E2E'}`,
-                    borderRadius: 8, color: amount === a ? '#7C3AED' : '#8888AA',
+                    background: amount === a ? '#1C1C1C' : '#0A0A0A',
+                    border: `1px solid ${amount === a ? 'rgba(255,255,255,0.12)' : '#1C1C1C'}`,
+                    borderRadius: 8, color: amount === a ? '#FAFAFA' : '#8888AA',
                     fontFamily: 'var(--font-mono)', fontSize: 12, cursor: 'pointer',
                   }}>{a}</button>
                 ))}
                 {/* MAX butonu */}
                 {maxDonation > 0 && !isComplete && (
                   <button onClick={() => { setAmount(maxDonation.toFixed(3)); setDonateError(''); }} style={{
-                    padding: '7px 12px', background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)',
-                    borderRadius: 8, color: '#7C3AED', fontFamily: 'var(--font-mono)', fontSize: 12, cursor: 'pointer', fontWeight: 600,
+                    padding: '7px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid #222222',
+                    borderRadius: 8, color: '#FAFAFA', fontFamily: 'var(--font-mono)', fontSize: 12, cursor: 'pointer', fontWeight: 600,
                   }}>MAX</button>
                 )}
               </div>
 
-              <div style={{ background: '#0A0A0F', border: `1px solid ${donateError ? 'rgba(124,58,237,0.5)' : '#1E1E2E'}`, borderRadius: 10, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
+              <div style={{ background: '#0A0A0A', border: `1px solid ${donateError ? 'rgba(255,255,255,0.15)' : '#1C1C1C'}`, borderRadius: 10, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', marginRight: 6 }}>AVAX</span>
                 <input
                   type="number" step="0.001" min={MIN_AMOUNT}
@@ -468,7 +468,7 @@ export default function DonationSection() {
                   placeholder="0.001" value={amount}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleAmountChange(e.target.value)}
                   onBlur={handleAmountBlur}
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#E2E2F0', fontFamily: 'var(--font-mono)', fontSize: 14, padding: '10px 0' }}
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#FAFAFA', fontFamily: 'var(--font-mono)', fontSize: 14, padding: '10px 0' }}
                 />
               </div>
               {balance && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', textAlign: 'right', marginTop: 4 }}>Balance: {parseFloat(balance.formatted).toFixed(3)} AVAX</div>}
@@ -476,7 +476,7 @@ export default function DonationSection() {
 
             {/* Hata mesajı */}
             {donateError && (
-              <div style={{ padding: '10px 14px', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 8, color: '#7C3AED', fontSize: 13, fontFamily: 'var(--font-mono)' }}>
+              <div style={{ padding: '10px 14px', background: '#1C1C1C', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8, color: '#FAFAFA', fontSize: 13, fontFamily: 'var(--font-mono)' }}>
                 ⚠ {donateError}
               </div>
             )}
@@ -505,13 +505,13 @@ export default function DonationSection() {
                 disabled={txPending || isComplete}
                 style={{
                   width: '100%', padding: '14px',
-                  background: isComplete ? '#2A2A3E' : (isConnected ? '#7C3AED' : '#2A2A3E'),
+                  background: isComplete ? '#1C1C1C' : (isConnected ? '#FAFAFA' : '#1C1C1C'),
                   border: 'none', borderRadius: 10, color: 'white',
                   fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15,
                   cursor: (txPending || isComplete) ? 'not-allowed' : 'pointer',
                   opacity: (txPending || isComplete) ? 0.5 : 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  boxShadow: isConnected && !isComplete ? '0 0 20px rgba(124,58,237,0.2)' : 'none',
+                  boxShadow: isConnected && !isComplete ? '0 0 20px #222222' : 'none',
                 }}
               >
                 <Heart size={16} fill="white" />
@@ -524,7 +524,7 @@ export default function DonationSection() {
               </button>
             )}
 
-            <button onClick={() => setShowHistory((h: boolean) => !h)} style={{ background: 'none', border: '1px solid #1E1E2E', borderRadius: 8, padding: '8px 0', color: '#8888AA', fontFamily: 'var(--font-mono)', fontSize: 12, cursor: 'pointer', width: '100%' }}>
+            <button onClick={() => setShowHistory((h: boolean) => !h)} style={{ background: 'none', border: '1px solid #1C1C1C', borderRadius: 8, padding: '8px 0', color: '#8888AA', fontFamily: 'var(--font-mono)', fontSize: 12, cursor: 'pointer', width: '100%' }}>
               {showHistory ? '▲ Hide' : '▼ Show'} donation history
             </button>
 
@@ -538,9 +538,9 @@ export default function DonationSection() {
       {/* Create Campaign Modal */}
       {showCreate && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', padding: 24 }}>
-          <div style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 20, padding: 32, width: '100%', maxWidth: 500, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-            <button onClick={() => setShowCreate(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 8, padding: '6px 10px', color: '#7C3AED', cursor: 'pointer' }}><X size={16} /></button>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#E2E2F0', marginBottom: 6 }}>Create Campaign</h3>
+          <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 20, padding: 32, width: '100%', maxWidth: 500, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+            <button onClick={() => setShowCreate(false)} style={{ position: 'absolute', top: 16, right: 16, background: '#1C1C1C', border: '1px solid #222222', borderRadius: 8, padding: '6px 10px', color: '#FAFAFA', cursor: 'pointer' }}><X size={16} /></button>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#FAFAFA', marginBottom: 6 }}>Create Campaign</h3>
             <p style={{ color: '#8888AA', fontSize: 14, marginBottom: 24 }}>Launch a fundraising campaign on Avadix.</p>
 
             {createSuccess ? (
@@ -553,9 +553,9 @@ export default function DonationSection() {
                     Campaign Image (optional)
                     <span style={{ color: '#555570', fontWeight: 400, marginLeft: 6 }}>— stored on-chain, visible to everyone</span>
                   </label>
-                  <div onClick={() => fileRef.current?.click()} style={{ border: '2px dashed #1E1E2E', borderRadius: 12, padding: 16, textAlign: 'center', cursor: 'pointer', background: '#0A0A0F' }}
-                    onMouseEnter={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)')}
-                    onMouseLeave={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.borderColor = '#1E1E2E')}>
+                  <div onClick={() => fileRef.current?.click()} style={{ border: '2px dashed #1C1C1C', borderRadius: 12, padding: 16, textAlign: 'center', cursor: 'pointer', background: '#0A0A0A' }}
+                    onMouseEnter={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)')}
+                    onMouseLeave={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.borderColor = '#1C1C1C')}>
                     {imagePreview ? (
                       <div style={{ position: 'relative' }}>
                         <img src={imagePreview} alt="" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8 }} />
@@ -577,7 +577,7 @@ export default function DonationSection() {
                   <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Emoji</label>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {EMOJIS.map(e => (
-                      <button key={e} onClick={() => setForm((f: any) => ({ ...f, emoji: e }))} style={{ width: 36, height: 36, fontSize: 18, background: form.emoji === e ? 'rgba(124,58,237,0.2)' : '#0A0A0F', border: `1px solid ${form.emoji === e ? 'rgba(124,58,237,0.4)' : '#1E1E2E'}`, borderRadius: 8, cursor: 'pointer' }}>{e}</button>
+                      <button key={e} onClick={() => setForm((f: any) => ({ ...f, emoji: e }))} style={{ width: 36, height: 36, fontSize: 18, background: form.emoji === e ? '#222222' : '#0A0A0A', border: `1px solid ${form.emoji === e ? 'rgba(255,255,255,0.12)' : '#1C1C1C'}`, borderRadius: 8, cursor: 'pointer' }}>{e}</button>
                     ))}
                   </div>
                 </div>
@@ -589,9 +589,9 @@ export default function DonationSection() {
                   <div key={key}>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>{label}</label>
                     {type === 'textarea' ? (
-                      <textarea placeholder={placeholder} value={(form as any)[key]} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, [key]: e.target.value }))} rows={3} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, color: '#E2E2F0', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none', resize: 'none', boxSizing: 'border-box' }} />
+                      <textarea placeholder={placeholder} value={(form as any)[key]} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, [key]: e.target.value }))} rows={3} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 10, color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none', resize: 'none', boxSizing: 'border-box' }} />
                     ) : (
-                      <input type="text" placeholder={placeholder} value={(form as any)[key]} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, [key]: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, color: '#E2E2F0', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                      <input type="text" placeholder={placeholder} value={(form as any)[key]} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, [key]: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 10, color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
                     )}
                   </div>
                 ))}
@@ -599,16 +599,16 @@ export default function DonationSection() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Goal (AVAX)</label>
-                    <input type="number" step="0.001" min={MIN_AMOUNT} placeholder="e.g. 1" value={form.goal} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, goal: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, color: '#E2E2F0', fontFamily: 'var(--font-mono)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                    <input type="number" step="0.001" min={MIN_AMOUNT} placeholder="e.g. 1" value={form.goal} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, goal: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 10, color: '#FAFAFA', fontFamily: 'var(--font-mono)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                   <div>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Duration (days)</label>
-                    <input type="number" min="1" max="365" placeholder="30" value={form.durationDays} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, durationDays: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, color: '#E2E2F0', fontFamily: 'var(--font-mono)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                    <input type="number" min="1" max="365" placeholder="30" value={form.durationDays} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, durationDays: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 10, color: '#FAFAFA', fontFamily: 'var(--font-mono)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                 </div>
 
-                {createError && <div style={{ padding: '10px', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 8, color: '#7C3AED', fontSize: 13, fontFamily: 'var(--font-mono)' }}>⚠ {createError}</div>}
-                <button onClick={handleCreate} disabled={isCreating} style={{ width: '100%', padding: '13px', background: '#7C3AED', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1, boxShadow: '0 0 20px rgba(124,58,237,0.3)' }}>
+                {createError && <div style={{ padding: '10px', background: '#1C1C1C', border: '1px solid #222222', borderRadius: 8, color: '#FAFAFA', fontSize: 13, fontFamily: 'var(--font-mono)' }}>⚠ {createError}</div>}
+                <button onClick={handleCreate} disabled={isCreating} style={{ width: '100%', padding: '13px', background: '#FAFAFA', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1, boxShadow: 'none' }}>
                   {isCreating ? '⏳ Awaiting wallet...' : !isConnected ? '⚠ Connect Wallet First' : 'Launch Campaign On-Chain'}
                 </button>
               </div>

@@ -69,42 +69,42 @@ function PositionDetailModal({ marketId, contracts, onClose }: { marketId: numbe
 
   const OUTCOME_LABELS: Record<number, string> = { 0: 'Unresolved', 1: '✅ YES Won', 2: '❌ NO Won' };
   const CATEGORY_COLORS: Record<string, string> = {
-    crypto: '#F59E0B', avax: '#7C3AED', politics: '#8B5CF6', sports: '#10B981', tech: '#3B82F6',
+    crypto: '#F59E0B', avax: '#FAFAFA', politics: '#8B5CF6', sports: '#10B981', tech: '#888888',
   };
-  const catColor = CATEGORY_COLORS[market.category?.toLowerCase()] ?? '#7C3AED';
+  const catColor = CATEGORY_COLORS[market.category?.toLowerCase()] ?? '#FAFAFA';
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', padding: 24 }}>
-      <div style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 20, padding: 32, width: '100%', maxWidth: 560, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 8, padding: '6px 10px', color: '#7C3AED', cursor: 'pointer' }}><X size={16} /></button>
+      <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 20, padding: 32, width: '100%', maxWidth: 560, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: '#1C1C1C', border: '1px solid #222222', borderRadius: 8, padding: '6px 10px', color: '#FAFAFA', cursor: 'pointer' }}><X size={16} /></button>
         
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 12, background: `${catColor}20`, color: catColor, border: `1px solid ${catColor}40` }}>{market.category?.toUpperCase()}</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 12, background: 'rgba(124,58,237,0.1)', color: '#7C3AED' }}>Market #{marketId}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 12, background: '#1C1C1C', color: '#FAFAFA' }}>Market #{marketId}</span>
             {market.resolved && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 12, background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>{OUTCOME_LABELS[market.outcome] ?? 'Resolved'}</span>}
           </div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#E2E2F0', lineHeight: 1.4 }}>{market.question}</h3>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#FAFAFA', lineHeight: 1.4 }}>{market.question}</h3>
         </div>
 
         {/* My Position */}
-        <div style={{ background: type === 'YES' ? 'rgba(34,197,94,0.06)' : 'rgba(124,58,237,0.06)', border: `1px solid ${type === 'YES' ? 'rgba(34,197,94,0.2)' : 'rgba(124,58,237,0.2)'}`, borderRadius: 14, padding: 20, marginBottom: 16 }}>
+        <div style={{ background: type === 'YES' ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.06)', border: `1px solid ${type === 'YES' ? 'rgba(34,197,94,0.2)' : '#222222'}`, borderRadius: 14, padding: 20, marginBottom: 16 }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.06em' }}>My Position</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
             {[
-              { label: 'Side', value: type, color: type === 'YES' ? '#22c55e' : '#7C3AED' },
+              { label: 'Side', value: type, color: type === 'YES' ? '#22c55e' : '#FAFAFA' },
               { label: 'Shares', value: shares.toFixed(4) },
               { label: 'Current Prob.', value: `${currentPct}%` },
             ].map(({ label, value, color }) => (
               <div key={label}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginBottom: 4 }}>{label}</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: color ?? '#E2E2F0' }}>{value}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: color ?? '#FAFAFA' }}>{value}</div>
               </div>
             ))}
           </div>
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginBottom: 4 }}>Estimated Value</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#E2E2F0' }}>{estimatedValue.toFixed(4)} <span style={{ fontSize: 14, color: '#8888AA' }}>AVAX</span></div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#FAFAFA' }}>{estimatedValue.toFixed(4)} <span style={{ fontSize: 14, color: '#8888AA' }}>AVAX</span></div>
           </div>
         </div>
 
@@ -112,13 +112,13 @@ function PositionDetailModal({ marketId, contracts, onClose }: { marketId: numbe
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
           {[
             { label: 'YES Pool', value: `${yesPool.toFixed(3)} AVAX`, color: '#22c55e' },
-            { label: 'NO Pool', value: `${noPool.toFixed(3)} AVAX`, color: '#7C3AED' },
+            { label: 'NO Pool', value: `${noPool.toFixed(3)} AVAX`, color: '#FAFAFA' },
             { label: 'Total Volume', value: `${totalPool.toFixed(3)} AVAX` },
             { label: market.resolved ? 'Ended' : 'Time Left', value: market.resolved ? endDate.toLocaleDateString() : `${daysLeft} days` },
           ].map(({ label, value, color }) => (
-            <div key={label} style={{ background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, padding: '12px 14px' }}>
+            <div key={label} style={{ background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 10, padding: '12px 14px' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginBottom: 4 }}>{label}</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 14, color: color ?? '#E2E2F0' }}>{value}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 14, color: color ?? '#FAFAFA' }}>{value}</div>
             </div>
           ))}
         </div>
@@ -127,9 +127,9 @@ function PositionDetailModal({ marketId, contracts, onClose }: { marketId: numbe
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>YES {yesPct}%</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED' }}>NO {100 - yesPct}%</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA' }}>NO {100 - yesPct}%</span>
           </div>
-          <div style={{ background: '#1E1E2E', borderRadius: 6, height: 8, overflow: 'hidden' }}>
+          <div style={{ background: '#1C1C1C', borderRadius: 6, height: 8, overflow: 'hidden' }}>
             <div style={{ width: `${yesPct}%`, height: '100%', background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: 6 }} />
           </div>
         </div>
@@ -148,7 +148,7 @@ function PositionDetailModal({ marketId, contracts, onClose }: { marketId: numbe
         )}
 
         {!market.resolved && (
-          <a href={`/markets/${marketId}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 10, color: '#7C3AED', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, textDecoration: 'none', marginTop: 8 }}>
+          <a href={`/markets/${marketId}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', background: '#1C1C1C', border: '1px solid #222222', borderRadius: 10, color: '#FAFAFA', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, textDecoration: 'none', marginTop: 8 }}>
             View Market <ExternalLink size={14} />
           </a>
         )}
@@ -169,9 +169,9 @@ function VoteDetailModal({ proposalId, contracts, onClose }: { proposalId: numbe
   if (!proposal?.exists) return null;
 
   const STATUS_MAP: Record<number, { label: string; color: string; bg: string }> = {
-    0: { label: 'Active', color: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },
+    0: { label: 'Active', color: '#888888', bg: 'rgba(59,130,246,0.1)' },
     1: { label: 'Passed', color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
-    2: { label: 'Rejected', color: '#7C3AED', bg: 'rgba(124,58,237,0.1)' },
+    2: { label: 'Rejected', color: '#FAFAFA', bg: '#1C1C1C' },
     3: { label: 'Pending', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' },
   };
   const st = STATUS_MAP[proposal.status] ?? STATUS_MAP[0];
@@ -184,18 +184,18 @@ function VoteDetailModal({ proposalId, contracts, onClose }: { proposalId: numbe
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', padding: 24 }}>
-      <div style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 20, padding: 32, width: '100%', maxWidth: 560, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 8, padding: '6px 10px', color: '#7C3AED', cursor: 'pointer' }}><X size={16} /></button>
+      <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 20, padding: 32, width: '100%', maxWidth: 560, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: '#1C1C1C', border: '1px solid #222222', borderRadius: 8, padding: '6px 10px', color: '#FAFAFA', cursor: 'pointer' }}><X size={16} /></button>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 12, background: 'rgba(124,58,237,0.1)', color: '#7C3AED' }}>{proposal.category}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 12, background: '#1C1C1C', color: '#FAFAFA' }}>{proposal.category}</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 12, background: st.bg, color: st.color }}>{st.label}</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 12, background: voteStatus?.[0] ? (voteStatus[1] ? 'rgba(34,197,94,0.1)' : 'rgba(124,58,237,0.1)') : 'rgba(136,136,170,0.1)', color: voteStatus?.[0] ? (voteStatus[1] ? '#22c55e' : '#7C3AED') : '#8888AA' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 12, background: voteStatus?.[0] ? (voteStatus[1] ? 'rgba(34,197,94,0.1)' : '#1C1C1C') : 'rgba(136,136,170,0.1)', color: voteStatus?.[0] ? (voteStatus[1] ? '#22c55e' : '#FAFAFA') : '#8888AA' }}>
             {voteStatus?.[0] ? `Voted ${voteStatus[1] ? 'YES' : 'NO'}` : 'Not voted'}
           </span>
         </div>
 
-        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#E2E2F0', marginBottom: 8, lineHeight: 1.4 }}>{proposal.title}</h3>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#FAFAFA', marginBottom: 8, lineHeight: 1.4 }}>{proposal.title}</h3>
         <p style={{ fontSize: 14, color: '#8888AA', lineHeight: 1.7, marginBottom: 20 }}>{proposal.description}</p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
@@ -205,9 +205,9 @@ function VoteDetailModal({ proposalId, contracts, onClose }: { proposalId: numbe
             { label: votingOpen ? 'Days Left' : 'Ended', value: votingOpen ? `${daysLeft} days` : endDate.toLocaleDateString() },
             { label: 'Proposal #', value: `#${proposalId}` },
           ].map(({ label, value, color }) => (
-            <div key={label} style={{ background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, padding: '12px 14px' }}>
+            <div key={label} style={{ background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 10, padding: '12px 14px' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginBottom: 4 }}>{label}</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13, color: color ?? '#E2E2F0' }}>{value}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13, color: color ?? '#FAFAFA' }}>{value}</div>
             </div>
           ))}
         </div>
@@ -216,15 +216,15 @@ function VoteDetailModal({ proposalId, contracts, onClose }: { proposalId: numbe
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>YES {yesPct}% — {yesVotesDisplay}K votes</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED' }}>NO {100 - yesPct}% — {noVotesDisplay}K votes</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA' }}>NO {100 - yesPct}% — {noVotesDisplay}K votes</span>
           </div>
-          <div style={{ background: '#1E1E2E', borderRadius: 6, height: 10, overflow: 'hidden' }}>
+          <div style={{ background: '#1C1C1C', borderRadius: 6, height: 10, overflow: 'hidden' }}>
             <div style={{ width: `${yesPct}%`, height: '100%', background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: 6 }} />
           </div>
         </div>
 
         {voteStatus?.[0] && (
-          <div style={{ padding: '12px 16px', background: voteStatus[1] ? 'rgba(34,197,94,0.08)' : 'rgba(124,58,237,0.08)', border: `1px solid ${voteStatus[1] ? 'rgba(34,197,94,0.2)' : 'rgba(124,58,237,0.2)'}`, borderRadius: 10, textAlign: 'center', color: voteStatus[1] ? '#22c55e' : '#7C3AED', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14 }}>
+          <div style={{ padding: '12px 16px', background: voteStatus[1] ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${voteStatus[1] ? 'rgba(34,197,94,0.2)' : '#222222'}`, borderRadius: 10, textAlign: 'center', color: voteStatus[1] ? '#22c55e' : '#FAFAFA', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14 }}>
             {voteStatus[1] ? '✓ You voted YES on this proposal' : '✗ You voted NO on this proposal'}
           </div>
         )}
@@ -257,8 +257,8 @@ function DonationDetailModal({ campaignId, contracts, onClose }: { campaignId: n
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', padding: 24 }}>
-      <div style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 20, padding: 32, width: '100%', maxWidth: 560, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 8, padding: '6px 10px', color: '#7C3AED', cursor: 'pointer' }}><X size={16} /></button>
+      <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 20, padding: 32, width: '100%', maxWidth: 560, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: '#1C1C1C', border: '1px solid #222222', borderRadius: 8, padding: '6px 10px', color: '#FAFAFA', cursor: 'pointer' }}><X size={16} /></button>
 
         <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'flex-start' }}>
           {/* Campaign büyük image veya emoji */}
@@ -269,7 +269,7 @@ function DonationDetailModal({ campaignId, contracts, onClose }: { campaignId: n
               : <span style={{ fontSize: 40 }}>{emoji}</span>;
           })()}
           <div>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#E2E2F0', marginBottom: 4 }}>{campaign.name}</h3>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#FAFAFA', marginBottom: 4 }}>{campaign.name}</h3>
             <p style={{ fontSize: 13, color: '#8888AA', lineHeight: 1.5 }}>{campaign.description}</p>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginTop: 6 }}>by {shortAddr(campaign.creator)}</div>
           </div>
@@ -278,10 +278,10 @@ function DonationDetailModal({ campaignId, contracts, onClose }: { campaignId: n
         {/* Progress bar */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: isComplete ? '#22c55e' : '#7C3AED', fontWeight: 600 }}>{pct}% funded</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: isComplete ? '#22c55e' : '#FAFAFA', fontWeight: 600 }}>{pct}% funded</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA' }}>{raised.toFixed(3)} / {goal.toFixed(3)} AVAX</span>
           </div>
-          <div style={{ background: '#1E1E2E', borderRadius: 6, height: 10, overflow: 'hidden' }}>
+          <div style={{ background: '#1C1C1C', borderRadius: 6, height: 10, overflow: 'hidden' }}>
             <div style={{ width: `${Math.min(100, pct)}%`, height: '100%', background: isComplete ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #7C3AED, #ff6b6b)', borderRadius: 6, transition: 'width 0.8s ease' }} />
           </div>
         </div>
@@ -291,11 +291,11 @@ function DonationDetailModal({ campaignId, contracts, onClose }: { campaignId: n
           {[
             { label: 'Total Donors', value: donors.toString() },
             { label: campaign.active ? 'Days Left' : 'Status', value: campaign.active ? `${daysLeft}d` : 'Closed' },
-            { label: 'My Total', value: `${myAmt.toFixed(3)} AVAX`, color: '#7C3AED' },
+            { label: 'My Total', value: `${myAmt.toFixed(3)} AVAX`, color: '#FAFAFA' },
           ].map(({ label, value, color }) => (
-            <div key={label} style={{ background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, padding: '12px 14px', textAlign: 'center' }}>
+            <div key={label} style={{ background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 10, padding: '12px 14px', textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginBottom: 4 }}>{label}</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: color ?? '#E2E2F0' }}>{value}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: color ?? '#FAFAFA' }}>{value}</div>
             </div>
           ))}
         </div>
@@ -315,8 +315,8 @@ function DonationDetailModal({ campaignId, contracts, onClose }: { campaignId: n
                 .filter(d => d.donor?.toLowerCase() === address?.toLowerCase())
                 .reverse()
                 .map((d, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#0A0A0F', borderRadius: 8 }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED', fontWeight: 600 }}>+{parseFloat(formatEther(d.amount)).toFixed(3)} AVAX</span>
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#0A0A0A', borderRadius: 8 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', fontWeight: 600 }}>+{parseFloat(formatEther(d.amount)).toFixed(3)} AVAX</span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{new Date(Number(d.timestamp) * 1000).toLocaleDateString()}</span>
                   </div>
                 ))}
@@ -367,20 +367,20 @@ function PositionRow({ marketId, contracts, onClick }: { marketId: number; contr
     ((market.outcome === 1 && position.yesShares > 0n) || (market.outcome === 2 && position.noShares > 0n));
 
   return (
-    <div onClick={onClick} style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', transition: 'all 0.2s', cursor: 'pointer' }}
-      onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'; e.currentTarget.style.background = '#14141E'; }}
-      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.background = '#12121A'; }}>
+    <div onClick={onClick} style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', transition: 'all 0.2s', cursor: 'pointer' }}
+      onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.background = '#14141E'; }}
+      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = '#1C1C1C'; e.currentTarget.style.background = '#111111'; }}>
       <div style={{ flex: 1, minWidth: 200 }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#E2E2F0', marginBottom: 6 }}>{market.question}</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#FAFAFA', marginBottom: 6 }}>{market.question}</div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '2px 8px', borderRadius: 4, background: type === 'YES' ? 'rgba(34,197,94,0.15)' : 'rgba(124,58,237,0.15)', color: type === 'YES' ? '#22c55e' : '#7C3AED', fontWeight: 600 }}>{type}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '2px 8px', borderRadius: 4, background: type === 'YES' ? 'rgba(34,197,94,0.15)' : '#1C1C1C', color: type === 'YES' ? '#22c55e' : '#FAFAFA', fontWeight: 600 }}>{type}</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>{shares.toFixed(3)} shares</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Prob: {currentPct}%</span>
         </div>
       </div>
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', marginBottom: 2 }}>Est. Value</div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, color: '#E2E2F0', fontWeight: 600 }}>{estimatedValue.toFixed(3)} AVAX</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, color: '#FAFAFA', fontWeight: 600 }}>{estimatedValue.toFixed(3)} AVAX</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {canClaim && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}>🎉 Claim</span>}
@@ -401,21 +401,21 @@ function VoteRow({ proposalId, contracts, onClick }: { proposalId: number; contr
   if (!proposal?.exists || !voteStatus?.[0]) return null;
 
   const STATUS_MAP: Record<number, { label: string; color: string }> = {
-    0: { label: 'Active', color: '#3B82F6' }, 1: { label: 'Passed', color: '#22c55e' },
-    2: { label: 'Rejected', color: '#7C3AED' }, 3: { label: 'Pending', color: '#F59E0B' },
+    0: { label: 'Active', color: '#888888' }, 1: { label: 'Passed', color: '#22c55e' },
+    2: { label: 'Rejected', color: '#FAFAFA' }, 3: { label: 'Pending', color: '#F59E0B' },
   };
   const st = STATUS_MAP[proposal.status] ?? STATUS_MAP[0];
 
   return (
-    <div onClick={onClick} style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 14, padding: '14px 20px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', cursor: 'pointer', transition: 'all 0.2s' }}
-      onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'; e.currentTarget.style.background = '#14141E'; }}
-      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.background = '#12121A'; }}>
+    <div onClick={onClick} style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 14, padding: '14px 20px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', cursor: 'pointer', transition: 'all 0.2s' }}
+      onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.background = '#14141E'; }}
+      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = '#1C1C1C'; e.currentTarget.style.background = '#111111'; }}>
       <div style={{ flex: 1 }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#E2E2F0', marginBottom: 4 }}>{proposal.title}</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#FAFAFA', marginBottom: 4 }}>{proposal.title}</div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>{proposal.category}</div>
       </div>
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: `${st.color}20`, color: st.color }}>{st.label}</span>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, padding: '3px 10px', borderRadius: 8, background: voteStatus[1] ? 'rgba(34,197,94,0.15)' : 'rgba(124,58,237,0.15)', color: voteStatus[1] ? '#22c55e' : '#7C3AED' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, padding: '3px 10px', borderRadius: 8, background: voteStatus[1] ? 'rgba(34,197,94,0.15)' : '#1C1C1C', color: voteStatus[1] ? '#22c55e' : '#FAFAFA' }}>
         {voteStatus[1] ? '✓ YES' : '✗ NO'}
       </span>
       <ArrowUpRight size={14} color="#555570" />
@@ -440,9 +440,9 @@ function DonationRow({ campaignId, contracts, onClick }: { campaignId: number; c
   const isComplete = pct >= 100 || !campaign.active;
 
   return (
-    <div onClick={onClick} style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 14, padding: '14px 20px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', cursor: 'pointer', transition: 'all 0.2s' }}
-      onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'; e.currentTarget.style.background = '#14141E'; }}
-      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.background = '#12121A'; }}>
+    <div onClick={onClick} style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 14, padding: '14px 20px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', cursor: 'pointer', transition: 'all 0.2s' }}
+      onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.background = '#14141E'; }}
+      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = '#1C1C1C'; e.currentTarget.style.background = '#111111'; }}>
       {/* Campaign image veya emoji */}
       {(() => {
         const { emoji, imageData } = parseEmojiField(campaign.emoji ?? '💎');
@@ -451,15 +451,15 @@ function DonationRow({ campaignId, contracts, onClick }: { campaignId: number; c
           : <span style={{ fontSize: 24, flexShrink: 0 }}>{emoji}</span>;
       })()}
       <div style={{ flex: 1 }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#E2E2F0', marginBottom: 4 }}>{campaign.name}</div>
-        <div style={{ background: '#1E1E2E', borderRadius: 4, height: 4, overflow: 'hidden', maxWidth: 200 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#FAFAFA', marginBottom: 4 }}>{campaign.name}</div>
+        <div style={{ background: '#1C1C1C', borderRadius: 4, height: 4, overflow: 'hidden', maxWidth: 200 }}>
           <div style={{ width: `${Math.min(100, pct)}%`, height: '100%', background: isComplete ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #7C3AED, #ff6b6b)' }} />
         </div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginTop: 4 }}>{pct}% — {raised.toFixed(3)}/{goal.toFixed(3)} AVAX</div>
       </div>
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>My donation</div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: '#7C3AED', fontWeight: 600 }}>{myAmt.toFixed(3)} AVAX</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: '#FAFAFA', fontWeight: 600 }}>{myAmt.toFixed(3)} AVAX</div>
       </div>
       {isComplete ? (
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>✅ Complete</span>
@@ -499,8 +499,8 @@ function TransactionHistory({ address, chainId }: { address: string; chainId: nu
 
   const getTxType = (tx: any): { label: string; color: string; bg: string } => {
     const cat = getLabel(tx);
-    if (cat === 'Prediction Market') return { label: '📈 Market', color: '#7C3AED', bg: 'rgba(124,58,237,0.12)' };
-    if (cat === 'DAO')               return { label: '🏛 DAO', color: '#3B82F6', bg: 'rgba(59,130,246,0.12)' };
+    if (cat === 'Prediction Market') return { label: '📈 Market', color: '#FAFAFA', bg: 'rgba(255,255,255,0.05)' };
+    if (cat === 'DAO')               return { label: '🏛 DAO', color: '#888888', bg: 'rgba(59,130,246,0.12)' };
     if (cat === 'Donations')         return { label: '💚 Donate', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' };
     if (cat === 'Transfer')          return { label: '↗ Transfer', color: '#F59E0B', bg: 'rgba(245,158,11,0.12)' };
     return { label: '⚡ Call', color: '#8888AA', bg: 'rgba(136,136,170,0.1)' };
@@ -552,10 +552,10 @@ function TransactionHistory({ address, chainId }: { address: string; chainId: nu
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {[...Array(6)].map((_, i) => (
-          <div key={i} style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 12, padding: '16px 20px', display: 'flex', gap: 16, alignItems: 'center', opacity: 0.5 }}>
-            <div style={{ width: 80, height: 22, background: '#1E1E2E', borderRadius: 6 }} />
-            <div style={{ flex: 1, height: 14, background: '#1E1E2E', borderRadius: 4 }} />
-            <div style={{ width: 100, height: 14, background: '#1E1E2E', borderRadius: 4 }} />
+          <div key={i} style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 12, padding: '16px 20px', display: 'flex', gap: 16, alignItems: 'center', opacity: 0.5 }}>
+            <div style={{ width: 80, height: 22, background: '#1C1C1C', borderRadius: 6 }} />
+            <div style={{ flex: 1, height: 14, background: '#1C1C1C', borderRadius: 4 }} />
+            <div style={{ width: 100, height: 14, background: '#1C1C1C', borderRadius: 4 }} />
           </div>
         ))}
       </div>
@@ -575,7 +575,7 @@ function TransactionHistory({ address, chainId }: { address: string; chainId: nu
           </p>
         </div>
         <a href={`${EXPLORER_BASE}/address/${address}`} target="_blank" rel="noreferrer"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED', textDecoration: 'none' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', textDecoration: 'none' }}>
           View on Snowtrace <ExternalLink size={12} />
         </a>
       </div>
@@ -606,18 +606,18 @@ function TransactionHistory({ address, chainId }: { address: string; chainId: nu
                   style={{
                     display: 'grid', gridTemplateColumns: '130px 1fr 120px 130px 80px',
                     gap: 12, padding: '14px 20px',
-                    background: '#12121A',
-                    border: `1px solid ${isSuccess ? '#1E1E2E' : 'rgba(239,68,68,0.2)'}`,
+                    background: '#111111',
+                    border: `1px solid ${isSuccess ? '#1C1C1C' : 'rgba(239,68,68,0.2)'}`,
                     borderRadius: 12, textDecoration: 'none', alignItems: 'center',
                     transition: 'all 0.15s',
                   }}
-                  onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,58,237,0.4)'; (e.currentTarget as HTMLElement).style.background = '#14141E'; }}
-                  onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { (e.currentTarget as HTMLElement).style.borderColor = isSuccess ? '#1E1E2E' : 'rgba(239,68,68,0.2)'; (e.currentTarget as HTMLElement).style.background = '#12121A'; }}
+                  onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.12)'; (e.currentTarget as HTMLElement).style.background = '#14141E'; }}
+                  onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { (e.currentTarget as HTMLElement).style.borderColor = isSuccess ? '#1C1C1C' : 'rgba(239,68,68,0.2)'; (e.currentTarget as HTMLElement).style.background = '#111111'; }}
                 >
                   {/* Hash */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {!isSuccess && <span style={{ fontSize: 10, color: '#EF4444' }}>✗</span>}
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA' }}>
                       {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
                     </span>
                   </div>
@@ -643,7 +643,7 @@ function TransactionHistory({ address, chainId }: { address: string; chainId: nu
                   </span>
 
                   {/* Value */}
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: incoming ? '#22c55e' : '#E2E2F0', fontWeight: avaxVal ? 600 : 400 }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: incoming ? '#22c55e' : '#FAFAFA', fontWeight: avaxVal ? 600 : 400 }}>
                     {avaxVal || '—'}
                   </span>
                 </a>
@@ -655,14 +655,14 @@ function TransactionHistory({ address, chainId }: { address: string; chainId: nu
           {totalPages > 1 && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20, alignItems: 'center' }}>
               <button onClick={() => setPage((p: number) => Math.max(1, p - 1))} disabled={page === 1}
-                style={{ padding: '8px 14px', background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 8, color: page === 1 ? '#555570' : '#E2E2F0', cursor: page === 1 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                style={{ padding: '8px 14px', background: '#111111', border: '1px solid #1C1C1C', borderRadius: 8, color: page === 1 ? '#555570' : '#FAFAFA', cursor: page === 1 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                 ← Prev
               </button>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA' }}>
                 Page {page} / {totalPages}
               </span>
               <button onClick={() => setPage((p: number) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                style={{ padding: '8px 14px', background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 8, color: page === totalPages ? '#555570' : '#E2E2F0', cursor: page === totalPages ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                style={{ padding: '8px 14px', background: '#111111', border: '1px solid #1C1C1C', borderRadius: 8, color: page === totalPages ? '#555570' : '#FAFAFA', cursor: page === totalPages ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                 Next →
               </button>
             </div>
@@ -701,11 +701,11 @@ export default function PortfolioSection() {
     return (
       <section style={{ padding: '40px 24px 80px', maxWidth: 1280, margin: '0 auto' }}>
         <div style={{ marginBottom: 40 }}>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>// Portfolio</p>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(32px,5vw,52px)', color: '#E2E2F0', letterSpacing: '-0.03em' }}>Your Dashboard</h2>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>// Portfolio</p>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(32px,5vw,52px)', color: '#FAFAFA', letterSpacing: '-0.03em' }}>Your Dashboard</h2>
         </div>
-        <div style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 20, padding: '80px 24px', textAlign: 'center' }}>
-          <Wallet size={56} color="#2A2A3E" style={{ marginBottom: 20, margin: '0 auto 20px' }} />
+        <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 20, padding: '80px 24px', textAlign: 'center' }}>
+          <Wallet size={56} color="#1C1C1C" style={{ marginBottom: 20, margin: '0 auto 20px' }} />
           <p style={{ color: '#8888AA', fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 20, marginBottom: 8 }}>Connect your wallet</p>
           <p style={{ color: '#555570', fontSize: 14, marginBottom: 32 }}>View your positions, DAO votes, donations and stats</p>
           <ConnectButton />
@@ -728,8 +728,8 @@ export default function PortfolioSection() {
       )}
 
       <div style={{ marginBottom: 32 }}>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>// Portfolio</p>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(32px,5vw,52px)', color: '#E2E2F0', letterSpacing: '-0.03em' }}>Your Dashboard</h2>
+        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>// Portfolio</p>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(32px,5vw,52px)', color: '#FAFAFA', letterSpacing: '-0.03em' }}>Your Dashboard</h2>
         <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570', marginTop: 8 }}>
           {address?.slice(0, 10)}...{address?.slice(-6)}
         </p>
@@ -737,23 +737,23 @@ export default function PortfolioSection() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 36 }}>
         {[
-          { label: 'Wallet Balance', value: `${parseFloat(balance?.formatted || '0').toFixed(3)} AVAX`, icon: Wallet, color: '#3B82F6' },
+          { label: 'Wallet Balance', value: `${parseFloat(balance?.formatted || '0').toFixed(3)} AVAX`, icon: Wallet, color: '#888888' },
           { label: 'Active Markets', value: mCount.toString(), icon: BarChart3, color: '#F59E0B' },
           { label: 'DAO Votes', value: pCount.toString(), icon: CheckCircle, color: '#8B5CF6' },
-          { label: 'Campaigns', value: cCount.toString(), icon: Heart, color: '#7C3AED' },
+          { label: 'Campaigns', value: cCount.toString(), icon: Heart, color: '#FAFAFA' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 14, padding: '18px 20px' }}>
+          <div key={label} style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 14, padding: '18px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <Icon size={16} color={color} />
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
             </div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#E2E2F0' }}>{value}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#FAFAFA' }}>{value}</div>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 28, background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 4, width: 'fit-content', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 28, background: '#111111', border: '1px solid #1C1C1C', borderRadius: 12, padding: 4, width: 'fit-content', flexWrap: 'wrap' }}>
         {([
           { key: 'markets', label: '📈 Market Positions' },
           { key: 'dao', label: '🏛 DAO Votes' },
@@ -764,8 +764,8 @@ export default function PortfolioSection() {
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer',
             fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 13,
-            background: tab === t.key ? '#7C3AED' : 'transparent',
-            color: tab === t.key ? 'white' : '#8888AA', transition: 'all 0.2s',
+            background: tab === t.key ? '#FAFAFA' : 'transparent',
+            color: tab === t.key ? '#0A0A0A' : '#666', transition: 'all 0.2s',
           }}>{t.label}</button>
         ))}
       </div>
@@ -774,7 +774,7 @@ export default function PortfolioSection() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570', marginBottom: 8 }}>Click a position to see full details:</p>
           {marketIds.map(id => /* @ts-ignore */ <PositionRow key={id} marketId={id} contracts={contracts} onClick={() => { setSelectedMarket(id); }} />)}
-          {mCount === 0 && <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No market positions yet. <a href="/markets" style={{ color: '#7C3AED' }}>Explore Markets →</a></div>}
+          {mCount === 0 && <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No market positions yet. <a href="/markets" style={{ color: '#FAFAFA' }}>Explore Markets →</a></div>}
         </div>
       )}
 
@@ -782,7 +782,7 @@ export default function PortfolioSection() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570', marginBottom: 8 }}>Click a proposal to see full details:</p>
           {proposalIds.map(id => /* @ts-ignore */ <VoteRow key={id} proposalId={id} contracts={contracts} onClick={() => { setSelectedProposal(id); }} />)}
-          {pCount === 0 && <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No votes yet. <a href="/dao" style={{ color: '#7C3AED' }}>Go to DAO →</a></div>}
+          {pCount === 0 && <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No votes yet. <a href="/dao" style={{ color: '#FAFAFA' }}>Go to DAO →</a></div>}
         </div>
       )}
 
@@ -790,7 +790,7 @@ export default function PortfolioSection() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570', marginBottom: 8 }}>Click a campaign to see full details:</p>
           {campaignIds.map(id => /* @ts-ignore */ <DonationRow key={id} campaignId={id} contracts={contracts} onClick={() => { setSelectedCampaign(id); }} />)}
-          {cCount === 0 && <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No donations yet. <a href="/donate" style={{ color: '#7C3AED' }}>Donate →</a></div>}
+          {cCount === 0 && <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No donations yet. <a href="/donate" style={{ color: '#FAFAFA' }}>Donate →</a></div>}
         </div>
       )}
 
@@ -808,12 +808,12 @@ export default function PortfolioSection() {
             { label: 'Wallet', value: `${address?.slice(0, 6)}...${address?.slice(-4)}`, icon: Wallet },
             { label: 'Balance', value: `${parseFloat(balance?.formatted || '0').toFixed(3)} AVAX`, icon: TrendingUp },
           ].map(({ label, value, icon: Icon }) => (
-            <div key={label} style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 14, padding: '20px 24px' }}>
+            <div key={label} style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 14, padding: '20px 24px' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-                <Icon size={14} color="#7C3AED" />
+                <Icon size={14} color="#FAFAFA" />
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
               </div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#E2E2F0' }}>{value}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#FAFAFA' }}>{value}</div>
             </div>
           ))}
         </div>

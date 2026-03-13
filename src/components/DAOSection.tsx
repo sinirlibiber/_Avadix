@@ -10,9 +10,9 @@ import { getAddresses } from '@/lib/contracts/addresses';
 import DAO_ABI from '@/lib/contracts/AvadixDAO.json';
 
 const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
-  active:   { bg: 'rgba(59,130,246,0.15)', color: '#3B82F6', label: 'Active' },
+  active:   { bg: 'rgba(59,130,246,0.15)', color: '#888888', label: 'Active' },
   passed:   { bg: 'rgba(34,197,94,0.15)',  color: '#22c55e', label: 'Passed' },
-  rejected: { bg: 'rgba(124,58,237,0.15)', color: '#7C3AED', label: 'Rejected' },
+  rejected: { bg: '#1C1C1C', color: '#FAFAFA', label: 'Rejected' },
   pending:  { bg: 'rgba(245,158,11,0.15)', color: '#F59E0B', label: 'Pending' },
 
 };
@@ -106,20 +106,20 @@ function ProposalRow({
   return (
     <div
       style={{
-        background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 16, padding: '22px 24px',
+        background: '#111111', border: '1px solid #1C1C1C', borderRadius: 16, padding: '22px 24px',
         transition: 'border-color 0.2s',
       }}
-      onMouseEnter={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.borderColor = 'rgba(124,58,237,0.25)')}
-      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.borderColor = '#1E1E2E')}
+      onMouseEnter={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)')}
+      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.borderColor = '#1C1C1C')}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: 'rgba(124,58,237,0.1)', color: '#7C3AED', border: '1px solid rgba(124,58,237,0.2)' }}>{proposal.category}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: '#1C1C1C', color: '#FAFAFA', border: '1px solid #222222' }}>{proposal.category}</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: st.bg, color: st.color }}>{st.label}</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>by {shortAddr(proposal.proposer)}</span>
           </div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 17, color: '#E2E2F0', marginBottom: 8 }}>{proposal.title}</h3>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 17, color: '#FAFAFA', marginBottom: 8 }}>{proposal.title}</h3>
           <p style={{ fontSize: 14, color: '#8888AA', lineHeight: 1.6, maxWidth: 700 }}>{proposal.description}</p>
         </div>
       </div>
@@ -127,9 +127,9 @@ function ProposalRow({
       <div style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>YES {yesPct}% — {yesVotesDisplay}K votes</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED' }}>NO {100 - yesPct}% — {noVotesDisplay}K votes</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA' }}>NO {100 - yesPct}% — {noVotesDisplay}K votes</span>
         </div>
-        <div style={{ background: '#1E1E2E', borderRadius: 6, height: 8, overflow: 'hidden' }}>
+        <div style={{ background: '#1C1C1C', borderRadius: 6, height: 8, overflow: 'hidden' }}>
           <div style={{ width: `${yesPct}%`, height: '100%', background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: 6, transition: 'width 0.8s ease' }} />
         </div>
       </div>
@@ -148,7 +148,7 @@ function ProposalRow({
             <div style={{ display: 'flex', gap: 8 }}>
               {!isConnected && <ConnectButton accountStatus="avatar" showBalance={false} />}
               <button onClick={() => handleVote(true)} style={{ padding: '8px 20px', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: '#22c55e', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13 }}>✓ Vote Yes</button>
-              <button onClick={() => handleVote(false)} style={{ padding: '8px 20px', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 8, color: '#7C3AED', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13 }}>✗ Vote No</button>
+              <button onClick={() => handleVote(false)} style={{ padding: '8px 20px', background: '#1C1C1C', border: '1px solid #222222', borderRadius: 8, color: '#FAFAFA', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13 }}>✗ Vote No</button>
             </div>
           )
         )}
@@ -215,10 +215,10 @@ export default function DAOSection() {
     <section id="dao" style={{ padding: '80px 24px', maxWidth: 1280, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 40, flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7C3AED', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>// Governance</p>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(32px,5vw,52px)', color: '#E2E2F0', letterSpacing: '-0.03em', lineHeight: 1 }}>DAO Proposals</h2>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>// Governance</p>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(32px,5vw,52px)', color: '#FAFAFA', letterSpacing: '-0.03em', lineHeight: 1 }}>DAO Proposals</h2>
         </div>
-        <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px', background: '#7C3AED', border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, boxShadow: '0 0 20px rgba(124,58,237,0.3)', transition: 'all 0.2s' }}>
+        <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px', background: '#FAFAFA', border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, boxShadow: 'none', transition: 'all 0.2s' }}>
           <Plus size={16} /> New Proposal
         </button>
       </div>
@@ -231,9 +231,9 @@ export default function DAOSection() {
           { label: 'Network', value: chainId === 43113 ? 'Fuji' : 'Mainnet', icon: CheckCircle },
           { label: 'Contract', value: `${contracts.AvadixDAO.slice(0, 6)}...`, icon: Users },
         ].map(({ label, value, icon: Icon }) => (
-          <div key={label} style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 12, padding: '16px 18px' }}>
-            <Icon size={16} color="#7C3AED" style={{ marginBottom: 8 }} />
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#E2E2F0' }}>{value}</div>
+          <div key={label} style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 12, padding: '16px 18px' }}>
+            <Icon size={16} color="#FAFAFA" style={{ marginBottom: 8 }} />
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#FAFAFA' }}>{value}</div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
           </div>
         ))}
@@ -242,7 +242,7 @@ export default function DAOSection() {
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap' }}>
         {(['all', 'active', 'passed', 'rejected'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 13, textTransform: 'capitalize', background: filter === f ? '#7C3AED' : '#12121A', color: filter === f ? 'white' : '#8888AA', transition: 'all 0.2s' }}>{f}</button>
+          <button key={f} onClick={() => setFilter(f)} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 13, textTransform: 'capitalize', background: filter === f ? '#FAFAFA' : '#111111', color: filter === f ? '#0A0A0A' : '#666', transition: 'all 0.2s' }}>{f}</button>
         ))}
       </div>
 
@@ -265,9 +265,9 @@ export default function DAOSection() {
       {/* Create Proposal Modal */}
       {showCreate && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)', padding: 24 }}>
-          <div style={{ background: '#12121A', border: '1px solid #1E1E2E', borderRadius: 20, padding: 32, width: '100%', maxWidth: 520, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-            <button onClick={() => setShowCreate(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 8, padding: '6px 10px', color: '#7C3AED', cursor: 'pointer' }}><X size={16} /></button>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#E2E2F0', marginBottom: 6 }}>New Proposal</h3>
+          <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 20, padding: 32, width: '100%', maxWidth: 520, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+            <button onClick={() => setShowCreate(false)} style={{ position: 'absolute', top: 16, right: 16, background: '#1C1C1C', border: '1px solid #222222', borderRadius: 8, padding: '6px 10px', color: '#FAFAFA', cursor: 'pointer' }}><X size={16} /></button>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: '#FAFAFA', marginBottom: 6 }}>New Proposal</h3>
             <p style={{ color: '#8888AA', fontSize: 14, marginBottom: 24 }}>Submit a proposal for community governance vote.</p>
 
             {createSuccess ? (
@@ -281,28 +281,28 @@ export default function DAOSection() {
                   <div key={key}>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>{label}</label>
                     {type === 'textarea' ? (
-                      <textarea placeholder={placeholder} value={(form as any)[key]} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, [key]: e.target.value }))} rows={4} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, color: '#E2E2F0', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none', resize: 'none', boxSizing: 'border-box' }} />
+                      <textarea placeholder={placeholder} value={(form as any)[key]} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, [key]: e.target.value }))} rows={4} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 10, color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none', resize: 'none', boxSizing: 'border-box' }} />
                     ) : (
-                      <input type="text" placeholder={placeholder} value={(form as any)[key]} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, [key]: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, color: '#E2E2F0', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                      <input type="text" placeholder={placeholder} value={(form as any)[key]} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, [key]: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 10, color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
                     )}
                   </div>
                 ))}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Category</label>
-                    <select value={form.category} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, category: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, color: '#E2E2F0', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}>
+                    <select value={form.category} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, category: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 10, color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}>
                       {['Governance', 'Fee Structure', 'New Markets', 'Tokenomics', 'Product', 'Treasury'].map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Duration (days)</label>
-                    <input type="number" min="1" max="30" placeholder="7" value={form.durationDays} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, durationDays: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 10, color: '#E2E2F0', fontFamily: 'var(--font-mono)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                    <input type="number" min="1" max="30" placeholder="7" value={form.durationDays} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, durationDays: e.target.value }))} style={{ width: '100%', padding: '12px 14px', background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 10, color: '#FAFAFA', fontFamily: 'var(--font-mono)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                 </div>
                 {createError && (
-                  <div style={{ padding: '10px 14px', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 8, color: '#7C3AED', fontSize: 13, fontFamily: 'var(--font-mono)' }}>⚠ {createError}</div>
+                  <div style={{ padding: '10px 14px', background: '#1C1C1C', border: '1px solid #222222', borderRadius: 8, color: '#FAFAFA', fontSize: 13, fontFamily: 'var(--font-mono)' }}>⚠ {createError}</div>
                 )}
-                <button onClick={handleCreate} disabled={isCreating} style={{ width: '100%', padding: '13px 0', background: '#7C3AED', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1, boxShadow: '0 0 20px rgba(124,58,237,0.3)' }}>
+                <button onClick={handleCreate} disabled={isCreating} style={{ width: '100%', padding: '13px 0', background: '#FAFAFA', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, cursor: isCreating ? 'wait' : 'pointer', opacity: isCreating ? 0.7 : 1, boxShadow: 'none' }}>
                   {isCreating ? '⏳ Submitting...' : !isConnected ? '⚠ Connect Wallet First' : 'Submit Proposal On-Chain'}
                 </button>
               </div>

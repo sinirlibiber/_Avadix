@@ -18,16 +18,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="description" content="Trade on real-world events. Decentralized prediction markets powered by Avalanche." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="talentapp:project_verification" content="033052ef8cbb62276f84f91e24511edefaa860296599fceb14390e5931190e3b268d5c866bbcec8501a65b571376e86d595fa72fb6e6063377162e3f203a6ff7" />
-        <link rel="icon" href="/logo.jpg" type="image/jpeg" />
-        <link rel="apple-touch-icon" href="/logo.jpg" />
+        <link rel="icon" href="/logo-new.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/logo-new.png" />
       </head>
       <body>
         <WagmiProvider config={config}>
           <QueryClientProvider client={queryClient}>
             <RainbowKitProvider
               theme={darkTheme({
-                accentColor: '#7C3AED',
-                accentColorForeground: 'white',
+                accentColor: '#FFFFFF',
+                accentColorForeground: '#0A0A0A',
                 borderRadius: 'medium',
                 fontStack: 'system',
                 overlayBlur: 'small',

@@ -15,11 +15,11 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled]     = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 30);
+    const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -27,93 +27,76 @@ export default function Navbar() {
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-      borderBottom: scrolled ? '1px solid rgba(124,58,237,0.18)' : '1px solid transparent',
-      backdropFilter: scrolled ? 'blur(28px)' : 'blur(0px)',
-      WebkitBackdropFilter: scrolled ? 'blur(28px)' : 'blur(0px)',
-      backgroundColor: scrolled ? 'rgba(6,6,14,0.88)' : 'transparent',
-      transition: 'all 0.4s ease',
+      borderBottom: `1px solid ${scrolled ? '#1C1C1C' : 'transparent'}`,
+      backdropFilter: scrolled ? 'blur(20px)' : 'none',
+      WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
+      backgroundColor: scrolled ? 'rgba(10,10,10,0.92)' : 'transparent',
+      transition: 'all 0.3s ease',
     }}>
-      {/* Animated top border */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-        background: 'linear-gradient(90deg, transparent, #7C3AED, #3B82F6, #06B6D4, transparent)',
-        backgroundSize: '200% 100%',
-        animation: 'navLine 4s linear infinite',
-        opacity: scrolled ? 1 : 0,
-        transition: 'opacity 0.4s',
-      }} />
-
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68 }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 28px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
 
           {/* Logo */}
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 11, textDecoration: 'none' }}>
-            <div style={{
-              width: 38, height: 38, borderRadius: 12, overflow: 'hidden', flexShrink: 0,
-              background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
-              padding: 2,
-              boxShadow: '0 0 20px rgba(124,58,237,0.5), 0 0 40px rgba(59,130,246,0.2)',
-            }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="Avadix"
-                style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 10, background: '#0C0C1A' }} />
-            </div>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-new.png"
+              alt="Avadix"
+              style={{ width: 28, height: 28, objectFit: 'contain' }}
+            />
             <span style={{
-              fontFamily: 'var(--font-display)', fontWeight: 800,
-              fontSize: 22, color: '#EEF0FF', letterSpacing: '-0.04em',
+              fontFamily: 'var(--font-display)', fontWeight: 700,
+              fontSize: 18, color: '#FAFAFA', letterSpacing: '-0.03em',
             }}>
-              AVA<span style={{
-                background: 'linear-gradient(90deg, #A78BFA, #60A5FA, #67E8F9)',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>DIX</span>
+              AVADIX
             </span>
             <span style={{
               fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 500,
-              color: '#67E8F9', background: 'rgba(6,182,212,0.1)',
-              border: '1px solid rgba(6,182,212,0.25)',
-              borderRadius: 6, padding: '2px 7px', letterSpacing: '0.07em',
+              color: '#555', background: '#161616',
+              border: '1px solid #222',
+              borderRadius: 5, padding: '2px 7px', letterSpacing: '0.08em',
               textTransform: 'uppercase',
             }}>Testnet</span>
           </Link>
 
           {/* Desktop nav */}
-          <div style={{ display: 'flex', gap: 2, alignItems: 'center' }} className="nav-desktop">
+          <div style={{ display: 'flex', gap: 0, alignItems: 'center' }} className="nav-desktop">
             {NAV_LINKS.map(link => {
-              const active = pathname === link.href;
+              const active = pathname === link.href || pathname?.startsWith(link.href + '/');
               return (
                 <Link key={link.label} href={link.href} style={{
-                  color: active ? '#EEF0FF' : '#9999CC',
+                  color: active ? '#FAFAFA' : '#666',
                   textDecoration: 'none',
-                  fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14,
-                  padding: '7px 16px', borderRadius: 12, transition: 'all 0.25s',
-                  background: active ? 'rgba(124,58,237,0.15)' : 'transparent',
-                  border: active ? '1px solid rgba(124,58,237,0.35)' : '1px solid transparent',
-                  boxShadow: active ? '0 0 20px rgba(124,58,237,0.15)' : 'none',
-                }}>
+                  fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 14,
+                  padding: '6px 14px', borderRadius: 8, transition: 'color 0.2s',
+                  letterSpacing: '-0.01em',
+                }}
+                onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.color = '#AAAAAA'; }}
+                onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.color = '#666'; }}
+                >
                   {link.label}
                 </Link>
               );
             })}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <ConnectButton showBalance={false} chainStatus="icon" accountStatus="avatar" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ConnectButton showBalance={false} chainStatus="none" accountStatus="avatar" />
             <button onClick={() => setMobileOpen(!mobileOpen)} className="nav-mobile-btn"
-              style={{ background: 'none', border: 'none', color: '#9999CC', cursor: 'pointer', padding: 4, display: 'none' }}>
-              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+              style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: 4, display: 'none' }}>
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
         </div>
 
         {mobileOpen && (
-          <div style={{ borderTop: '1px solid rgba(124,58,237,0.15)', padding: '12px 0 16px' }}>
+          <div style={{ borderTop: '1px solid #1C1C1C', padding: '10px 0 14px' }}>
             {NAV_LINKS.map(link => (
               <Link key={link.label} href={link.href} onClick={() => setMobileOpen(false)} style={{
                 display: 'block',
-                color: pathname === link.href ? '#A78BFA' : '#9999CC',
+                color: pathname === link.href ? '#FAFAFA' : '#666',
                 textDecoration: 'none', fontFamily: 'var(--font-display)',
-                fontWeight: 600, padding: '10px 8px', fontSize: 15, borderRadius: 10,
+                fontWeight: 500, padding: '10px 4px', fontSize: 14, borderRadius: 8,
               }}>
                 {link.label}
               </Link>
@@ -123,10 +106,6 @@ export default function Navbar() {
       </div>
 
       <style>{`
-        @keyframes navLine {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
         @media (min-width: 768px) { .nav-desktop { display: flex !important; } .nav-mobile-btn { display: none !important; } }
         @media (max-width: 767px) { .nav-desktop { display: none !important; } .nav-mobile-btn { display: flex !important; } }
       `}</style>

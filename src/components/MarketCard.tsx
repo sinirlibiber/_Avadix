@@ -9,16 +9,16 @@ import { getAddresses } from '@/lib/contracts/addresses';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
 
 const CATEGORY_COLORS: Record<string, string> = {
-  crypto: '#F59E0B', avax: '#7C3AED', politics: '#8B5CF6',
-  sports: '#10B981', tech: '#3B82F6', business: '#06B6D4',
-  nba: '#F97316', esports: '#EC4899', culture: '#A78BFA',
+  crypto: '#F59E0B', avax: '#FAFAFA', politics: '#8B5CF6',
+  sports: '#10B981', tech: '#888888', business: '#666666',
+  nba: '#F97316', esports: '#EC4899', culture: '#FAFAFA',
 };
 
 const TOKEN_PAIR_META: Record<number, { symbol: string; color: string; coingeckoId: string }> = {
-  0: { symbol: 'AVAX', color: '#7C3AED', coingeckoId: 'avalanche-2' },
+  0: { symbol: 'AVAX', color: '#FAFAFA', coingeckoId: 'avalanche-2' },
   1: { symbol: 'BTC',  color: '#F59E0B', coingeckoId: 'bitcoin' },
   2: { symbol: 'ETH',  color: '#6366F1', coingeckoId: 'ethereum' },
-  3: { symbol: 'LINK', color: '#3B82F6', coingeckoId: 'chainlink' },
+  3: { symbol: 'LINK', color: '#888888', coingeckoId: 'chainlink' },
 };
 
 function useCoinGeckoPrice(coingeckoId: string, enabled: boolean) {
@@ -81,33 +81,33 @@ function LivePriceChip({ tokenPair, targetPrice, targetAbove }: { tokenPair: num
   const winning = currentPrice !== null && (targetAbove ? currentPrice >= target : currentPrice <= target);
 
   if (currentPrice === null) return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(85,85,112,0.1)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px 12px' }}>
-      <WifiOff size={11} color="#55557A" />
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#55557A' }}>Price unavailable</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(85,85,112,0.1)', border: '1px solid #1C1C1C', borderRadius: 10, padding: '8px 12px' }}>
+      <WifiOff size={11} color="#555555" />
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555555' }}>Price unavailable</span>
     </div>
   );
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: winning ? 'rgba(34,197,94,0.07)' : 'rgba(124,58,237,0.07)', border: `1px solid ${winning ? 'rgba(34,197,94,0.2)' : 'rgba(124,58,237,0.2)'}`, borderRadius: 10, padding: '8px 12px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: winning ? 'rgba(34,197,94,0.07)' : 'rgba(255,255,255,0.07)', border: `1px solid ${winning ? 'rgba(34,197,94,0.2)' : '#222222'}`, borderRadius: 10, padding: '8px 12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ width: 20, height: 20, borderRadius: '50%', background: meta.color + '22', border: `1px solid ${meta.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-mono)', fontSize: 9, color: meta.color, fontWeight: 700 }}>
           {meta.symbol[0]}
         </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#55557A' }}>{meta.symbol}/USD</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, padding: '1px 5px', borderRadius: 4, background: source === 'chainlink' ? 'rgba(59,130,246,0.15)' : 'rgba(245,158,11,0.15)', color: source === 'chainlink' ? '#3B82F6' : '#F59E0B' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555555' }}>{meta.symbol}/USD</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, padding: '1px 5px', borderRadius: 4, background: source === 'chainlink' ? 'rgba(59,130,246,0.15)' : 'rgba(245,158,11,0.15)', color: source === 'chainlink' ? '#888888' : '#F59E0B' }}>
               {source === 'chainlink' ? '⚡ CL' : '🦎 CG'}
             </span>
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#EEF0FF', fontWeight: 700, lineHeight: 1.2 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#FAFAFA', fontWeight: 700, lineHeight: 1.2 }}>
             ${currentPrice.toLocaleString('en-US', { maximumFractionDigits: currentPrice > 1000 ? 0 : 2 })}
           </div>
         </div>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#55557A' }}>Target: ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: winning ? '#22c55e' : '#A78BFA' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555555' }}>Target: ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: winning ? '#22c55e' : '#FAFAFA' }}>
           {winning ? '✓ YES zone' : `${Math.abs(((currentPrice - target) / target) * 100).toFixed(1)}% away`}
         </div>
       </div>
@@ -168,7 +168,7 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
   const isOracle   = market.marketType === 1;
   const yesPercent = Number(probability ?? BigInt(50));
   const noPercent  = 100 - yesPercent;
-  const catColor   = CATEGORY_COLORS[cat] || '#7C3AED';
+  const catColor   = CATEGORY_COLORS[cat] || '#FAFAFA';
   const endDate    = new Date(Number(market.endTime) * 1000);
   const daysLeft   = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86400000));
   const totalPool  = (market.yesPool ?? 0n) + (market.noPool ?? 0n);
@@ -182,19 +182,19 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
     <Link href={`/markets/${marketId}`} style={{ textDecoration: 'none' }}>
       <div
         style={{
-          background: '#0C0C1A', border: '1px solid rgba(255,255,255,0.06)',
+          background: '#111111', border: '1px solid #1C1C1C',
           borderRadius: 20, overflow: 'hidden', transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
           display: 'flex', flexDirection: 'column', cursor: 'pointer', height: '100%',
         }}
         onMouseEnter={e => {
           const el = e.currentTarget as HTMLElement;
-          el.style.borderColor = 'rgba(124,58,237,0.4)';
+          el.style.borderColor = 'rgba(255,255,255,0.12)';
           el.style.transform = 'translateY(-4px)';
-          el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.4), 0 0 30px rgba(124,58,237,0.1)';
+          el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.4), 0 0 30px #1C1C1C';
         }}
         onMouseLeave={e => {
           const el = e.currentTarget as HTMLElement;
-          el.style.borderColor = 'rgba(255,255,255,0.06)';
+          el.style.borderColor = '#1C1C1C';
           el.style.transform = 'none';
           el.style.boxShadow = 'none';
         }}
@@ -243,10 +243,10 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
         {/* ── İçerik ── */}
         <div style={{ padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
           {/* Market ID */}
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#33334A' }}>#{marketId}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333333' }}>#{marketId}</span>
 
           {/* Soru */}
-          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: '#EEF0FF', lineHeight: 1.45, flex: 1, margin: 0 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: '#FAFAFA', lineHeight: 1.45, flex: 1, margin: 0 }}>
             {market.question}
           </h3>
 
@@ -259,9 +259,9 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#22c55e', fontWeight: 700 }}>{yesPercent}¢ YES</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#A78BFA', fontWeight: 700 }}>{noPercent}¢ NO</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#FAFAFA', fontWeight: 700 }}>{noPercent}¢ NO</span>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 6, height: 6, overflow: 'hidden', display: 'flex' }}>
+            <div style={{ background: '#1C1C1C', borderRadius: 6, height: 6, overflow: 'hidden', display: 'flex' }}>
               <div style={{ width: `${yesPercent}%`, background: 'linear-gradient(90deg, #22c55e, #4ade80)', borderRadius: '6px 0 0 6px', transition: 'width 0.6s ease' }} />
               <div style={{ flex: 1, background: 'linear-gradient(90deg, #6D28D9, #7C3AED)', borderRadius: '0 6px 6px 0' }} />
             </div>
@@ -270,16 +270,16 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
           {/* Footer */}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <TrendingUp size={11} color="#55557A" />
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC' }}>{totalPoolF} AVAX</span>
+              <TrendingUp size={11} color="#555555" />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888' }}>{totalPoolF} AVAX</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Clock size={11} color="#55557A" />
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9999CC' }}>
+              <Clock size={11} color="#555555" />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888' }}>
                 {market.resolved ? 'Resolved' : `${daysLeft}d left`}
               </span>
             </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, color: '#A78BFA', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, color: '#FAFAFA', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
               Trade <ArrowRight size={11} />
             </div>
           </div>
