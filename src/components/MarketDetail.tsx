@@ -95,6 +95,7 @@ function PriceChart({ trades, yesPercent, loading, range }: { trades: TradeEvent
   const isUp = data.length > 1 ? data[data.length - 1].yes >= data[0].yes : true;
   const color = isUp ? '#22c55e' : '#EF4444';
   const gridVals = [0, 25, 50, 75, 100].filter(v => v >= minY - 2 && v <= maxY + 2);
+  const noTradesYet = filtered.length < 2;
 
   if (loading) return (
     <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 6 }}>
@@ -102,13 +103,11 @@ function PriceChart({ trades, yesPercent, loading, range }: { trades: TradeEvent
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>Fetching on-chain data...</span>
     </div>
   );
-  // Trades yoksa mevcut probability'den basit grafik çiz (simüle değil — gerçek anlık değer)
-  const noTradesYet = filtered.length < 2;
 
   return (
-    <>
+    <div style={{ position: 'relative' }}>
     {noTradesYet && (
-      <div style={{ textAlign: 'center', padding: '4px 0 8px', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>
+      <div style={{ textAlign: 'center', padding: '4px 0 6px', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>
         No trade history yet — showing current probability
       </div>
     )}
@@ -128,12 +127,13 @@ function PriceChart({ trades, yesPercent, loading, range }: { trades: TradeEvent
       <polygon points={`${pts} ${areaBottom}`} fill="url(#cg)" />
       <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       {data.length > 1 && (
-        <>
+        <g>
           <circle cx={sx(data.length - 1)} cy={sy(data[data.length - 1].yes)} r="4" fill={color} />
           <text x={sx(data.length - 1) + 6} y={sy(data[data.length - 1].yes) + 4} fill={color} fontSize="10" fontFamily="monospace" fontWeight="bold">{yesPercent}%</text>
-        </>
+        </g>
       )}
     </svg>
+    </div>
   );
 }
 
