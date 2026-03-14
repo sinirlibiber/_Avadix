@@ -485,7 +485,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>CPMM pool depth</span>
               </div>
               <MarketDepth yesPool={yesPool} noPool={noPool} />
-            </div>
+            </div>}
 
             {/* Activity */}
             {tab === 'activity' && <div>
