@@ -36,8 +36,6 @@ function useCoinGeckoPrice(id: string, enabled: boolean) {
 }
 
 const MIN_AMOUNT = 0.001;
-const CONTRACT_ADDR = '0x8c2436412BF7f42b1AbC906e0b5F880773B9C69F';
-const TRADE_TOPIC0 = '0x482ba39b8e8f0be2dcea6fdf1f91e8c3e3af9ee5a5f55f5d1cdab8e9a88c46fe';
 
 interface TradeEvent {
   hash: string; trader: string; isYes: boolean;
@@ -53,29 +51,12 @@ function useMarketTrades(marketId: number, refreshKey = 0) {
     async function load() {
       setLoading(true);
       try {
-        const t1 = '0x' + marketId.toString(16).padStart(64, '0');
-        const url = `https://api.routescan.io/v2/network/testnet/evm/43113/etherscan/api?module=logs&action=getLogs&address=${CONTRACT_ADDR}&topic0=${TRADE_TOPIC0}&topic0_1_opr=and&topic1=${t1}&fromBlock=0&toBlock=99999999&apikey=free`;
-        const res = await fetch(url);
+        // Server-side API route — CORS yok, Routescan doğrudan çağrılır
+        const res  = await fetch(`/api/trades?marketId=${marketId}&t=${refreshKey}`);
         const json = await res.json();
-        if (c || !Array.isArray(json.result)) { if (!c) { setTrades([]); setLoading(false); } return; }
-        const parsed: TradeEvent[] = [];
-        for (const log of json.result) {
-          try {
-            const trader = '0x' + log.topics[2].slice(26);
-            // isYes, amount, shares indexed değil — data içinde
-            const data = log.data.replace('0x', '');
-            // data layout: isYes(bool,32bytes) + amount(uint256,32bytes) + shares(uint256,32bytes)
-            const isYes = data.slice(62, 64) === '01';
-            const amountF = Number(BigInt('0x' + data.slice(64, 128))) / 1e18;
-            const sharesF = Number(BigInt('0x' + data.slice(128, 192))) / 1e18;
-            const rawProb = sharesF > 0 ? Math.min(99, Math.max(1, Math.round((amountF / sharesF) * 100))) : 50;
-            parsed.push({ hash: log.transactionHash, trader, isYes, amount: amountF, shares: sharesF, blockNumber: parseInt(log.blockNumber, 16), timestamp: parseInt(log.timeStamp, 16), yesProb: isYes ? rawProb : 100 - rawProb });
-          } catch { /**/ }
-        }
-        parsed.sort((a, b) => b.blockNumber - a.blockNumber);
-        if (!c) setTrades(parsed);
+        if (!c) setTrades(Array.isArray(json.trades) ? json.trades : []);
       } catch { if (!c) setTrades([]); }
-      finally { if (!c) setLoading(false); }
+      finally  { if (!c) setLoading(false); }
     }
     load();
     return () => { c = true; };
@@ -115,9 +96,22 @@ function PriceChart({ trades, yesPercent, loading, range }: { trades: TradeEvent
   const color = isUp ? '#22c55e' : '#EF4444';
   const gridVals = [0, 25, 50, 75, 100].filter(v => v >= minY - 2 && v <= maxY + 2);
 
-  if (loading) return <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Loading chart data...</span></div>;
+  if (loading) return (
+    <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 6 }}>
+      <div style={{ width: 20, height: 20, border: '2px solid #22c55e', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>Fetching on-chain data...</span>
+    </div>
+  );
+  // Trades yoksa mevcut probability'den basit grafik çiz (simüle değil — gerçek anlık değer)
+  const noTradesYet = filtered.length < 2;
 
   return (
+    <>
+    {noTradesYet && (
+      <div style={{ textAlign: 'center', padding: '4px 0 8px', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>
+        No trade history yet — showing current probability
+      </div>
+    )}
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 140 }}>
       <defs>
         <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
@@ -176,6 +170,7 @@ function TopHolders({ trades, yesPercent }: { trades: TradeEvent[]; yesPercent: 
     </div>
   );
 }
+
 
 // ─── Market Depth ─────────────────────────────────────────────────────────────
 function MarketDepth({ yesPool, noPool }: { yesPool: bigint; noPool: bigint }) {
