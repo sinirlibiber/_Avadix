@@ -26,7 +26,7 @@ All three Avadix contracts are **live on Avalanche Fuji Testnet** — fully veri
 
 | Contract | Address | Explorer |
 |---|---|---|
-| **AvadixPredictionMarket** | `0x8c2436412BF7f42b1AbC906e0b5F880773B9C69F` | [View](https://testnet.snowtrace.io/address/0x8c2436412BF7f42b1AbC906e0b5F880773B9C69F) |
+| **AvadixPredictionMarket** | `0xc6dcF18054b8cAC46F242e87b0758325DCC8B853` | [View](https://testnet.snowtrace.io/address/0xc6dcF18054b8cAC46F242e87b0758325DCC8B853) |
 | **AvadixDAO** | `0xa70770942ECba3aBCEB0096a824e94b2FB01fA27` | [View](https://testnet.snowtrace.io/address/0xa70770942ECba3aBCEB0096a824e94b2FB01fA27) |
 | **AvadixDonations** | `0xC7f1D448570f052aA879326ec3BA60C20005Fcd2` | [View](https://testnet.snowtrace.io/address/0xC7f1D448570f052aA879326ec3BA60C20005Fcd2) |
 

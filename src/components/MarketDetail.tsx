@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowLeft, TrendingUp, Clock, Users, BarChart3, Activity, AlertCircle, CheckCircle, Info, ChevronUp, ChevronDown, Zap, Target } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, TrendingUp, Clock, Users, BarChart3, Activity, AlertCircle, CheckCircle, Info, Zap, Target, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance, useChainId } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
@@ -9,261 +9,195 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { getAddresses } from '@/lib/contracts/addresses';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
 
-
-// ─── CoinGecko fallback hook ──────────────────────────────────────────────────
-const TOKEN_PAIR_META: Record<number, { symbol: string; color: string; bg: string; coingeckoId: string }> = {
-  0: { symbol: 'AVAX/USD', color: '#FAFAFA', bg: 'rgba(255,255,255,0.04)',  coingeckoId: 'avalanche-2' },
-  1: { symbol: 'BTC/USD',  color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', coingeckoId: 'bitcoin' },
-  2: { symbol: 'ETH/USD',  color: '#6366F1', bg: 'rgba(99,102,241,0.08)', coingeckoId: 'ethereum' },
-  3: { symbol: 'LINK/USD', color: '#888888', bg: 'rgba(59,130,246,0.08)', coingeckoId: 'chainlink' },
+const TOKEN_PAIR_META: Record<number, { symbol: string; color: string; coingeckoId: string }> = {
+  0: { symbol: 'AVAX/USD', color: '#E84142', coingeckoId: 'avalanche-2' },
+  1: { symbol: 'BTC/USD',  color: '#F59E0B', coingeckoId: 'bitcoin' },
+  2: { symbol: 'ETH/USD',  color: '#6366F1', coingeckoId: 'ethereum' },
+  3: { symbol: 'LINK/USD', color: '#2563EB', coingeckoId: 'chainlink' },
 };
 
-function useCoinGeckoPrice(coingeckoId: string, enabled: boolean) {
+function useCoinGeckoPrice(id: string, enabled: boolean) {
   const [price, setPrice] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
   useEffect(() => {
-    if (!enabled || !coingeckoId) return;
-    let cancelled = false;
-    const fetch_ = async () => {
-      setLoading(true);
+    if (!enabled || !id) return;
+    let c = false;
+    const go = async () => {
       try {
-        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`);
-        const json = await res.json();
-        if (!cancelled) setPrice(json[coingeckoId]?.usd ?? null);
-      } catch { if (!cancelled) setPrice(null); }
-      finally { if (!cancelled) setLoading(false); }
+        const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`);
+        const j = await r.json();
+        if (!c) setPrice(j[id]?.usd ?? null);
+      } catch { if (!c) setPrice(null); }
     };
-    fetch_();
-    const iv = setInterval(fetch_, 60_000);
-    return () => { cancelled = true; clearInterval(iv); };
-  }, [coingeckoId, enabled]);
-  return { price, loading };
+    go();
+    const iv = setInterval(go, 60_000);
+    return () => { c = true; clearInterval(iv); };
+  }, [id, enabled]);
+  return price;
 }
 
 const MIN_AMOUNT = 0.001;
-
-// ─── Real on-chain data via Snowtrace API ────────────────────────────────────
-const CONTRACT_ADDR = '0xc6dcF18054b8cAC46F242e87b0758325DCC8B853';
-// keccak256("TradePlaced(uint256,address,bool,uint256,uint256)")
+const CONTRACT_ADDR = '0x8c2436412BF7f42b1AbC906e0b5F880773B9C69F';
 const TRADE_TOPIC0 = '0x482ba39b8e8f0be2dcea6fdf1f91e8c3e3af9ee5a5f55f5d1cdab8e9a88c46fe';
 
 interface TradeEvent {
-  hash: string;
-  trader: string;
-  isYes: boolean;
-  amount: number;
-  shares: number;
-  blockNumber: number;
-  timestamp: number;
-  yesProb: number;
+  hash: string; trader: string; isYes: boolean;
+  amount: number; shares: number;
+  blockNumber: number; timestamp: number; yesProb: number;
 }
 
 function useMarketTrades(marketId: number) {
   const [trades, setTrades] = useState<TradeEvent[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
-    let cancelled = false;
-
+    let c = false;
     async function load() {
       setLoading(true);
       try {
-        // topic1 = marketId padded to 32 bytes
-        const topic1 = '0x' + marketId.toString(16).padStart(64, '0');
-
-        const url = `https://api.routescan.io/v2/network/testnet/evm/43113/etherscan/api` +
-          `?module=logs&action=getLogs` +
-          `&address=${CONTRACT_ADDR}` +
-          `&topic0=${TRADE_TOPIC0}` +
-          `&topic0_1_opr=and&topic1=${topic1}` +
-          `&fromBlock=0&toBlock=99999999` +
-          `&apikey=free`;
-
+        const t1 = '0x' + marketId.toString(16).padStart(64, '0');
+        const url = `https://api.routescan.io/v2/network/testnet/evm/43113/etherscan/api?module=logs&action=getLogs&address=${CONTRACT_ADDR}&topic0=${TRADE_TOPIC0}&topic0_1_opr=and&topic1=${t1}&fromBlock=0&toBlock=99999999&apikey=free`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error('fetch failed');
         const json = await res.json();
-
-        if (cancelled) return;
-
-        const result = json.result;
-        if (!Array.isArray(result)) { setTrades([]); setLoading(false); return; }
-
+        if (c || !Array.isArray(json.result)) { if (!c) { setTrades([]); setLoading(false); } return; }
         const parsed: TradeEvent[] = [];
-        for (const log of result) {
+        for (const log of json.result) {
           try {
-            // topics[1]=marketId, topics[2]=trader, topics[3]=isYes
             const trader = '0x' + log.topics[2].slice(26);
-            const isYes  = log.topics[3].endsWith('1');
-            const data   = log.data.replace('0x', '');
-            const amountWei = BigInt('0x' + data.slice(0, 64));
-            const sharesWei = BigInt('0x' + data.slice(64, 128));
-            const amountF   = Number(amountWei) / 1e18;
-            const sharesF   = Number(sharesWei) / 1e18;
-            const rawProb   = sharesF > 0
-              ? Math.min(99, Math.max(1, Math.round((amountF / sharesF) * 100)))
-              : 50;
-            parsed.push({
-              hash:        log.transactionHash,
-              trader,
-              isYes,
-              amount:      amountF,
-              shares:      sharesF,
-              blockNumber: parseInt(log.blockNumber, 16),
-              timestamp:   parseInt(log.timeStamp, 16),
-              yesProb:     isYes ? rawProb : 100 - rawProb,
-            });
-          } catch { /* skip malformed */ }
+            const isYes = log.topics[3].endsWith('1');
+            const data = log.data.replace('0x', '');
+            const amountF = Number(BigInt('0x' + data.slice(0, 64))) / 1e18;
+            const sharesF = Number(BigInt('0x' + data.slice(64, 128))) / 1e18;
+            const rawProb = sharesF > 0 ? Math.min(99, Math.max(1, Math.round((amountF / sharesF) * 100))) : 50;
+            parsed.push({ hash: log.transactionHash, trader, isYes, amount: amountF, shares: sharesF, blockNumber: parseInt(log.blockNumber, 16), timestamp: parseInt(log.timeStamp, 16), yesProb: isYes ? rawProb : 100 - rawProb });
+          } catch { /**/ }
         }
-
-        // newest first
         parsed.sort((a, b) => b.blockNumber - a.blockNumber);
-        if (!cancelled) setTrades(parsed);
-      } catch (e) {
-        console.warn('Snowtrace fetch failed:', e);
-        if (!cancelled) setTrades([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+        if (!c) setTrades(parsed);
+      } catch { if (!c) setTrades([]); }
+      finally { if (!c) setLoading(false); }
     }
-
     load();
-    return () => { cancelled = true; };
+    return () => { c = true; };
   }, [marketId]);
-
   return { trades, loading };
 }
 
-function timeAgo(ts: number): string {
-  const diff = Math.floor(Date.now() / 1000) - ts;
-  if (diff < 60)   return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400)return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
+function timeAgo(ts: number) {
+  const d = Math.floor(Date.now() / 1000) - ts;
+  if (d < 60) return `${d}s ago`;
+  if (d < 3600) return `${Math.floor(d / 60)}m ago`;
+  if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
+  return `${Math.floor(d / 86400)}d ago`;
 }
+function shortAddr(a: string) { return a.slice(0, 6) + '...' + a.slice(-4); }
 
-function shortAddr(addr: string) {
-  return addr.slice(0, 6) + '...' + addr.slice(-4);
-}
+// ─── SVG Price Chart ──────────────────────────────────────────────────────────
+function PriceChart({ trades, yesPercent, loading, range }: { trades: TradeEvent[]; yesPercent: number; loading: boolean; range: string }) {
+  const now2 = Date.now() / 1000;
+  const rangeMap: Record<string, number> = { '1D': 86400, '1W': 604800, '1M': 2592000, 'ALL': Infinity };
+  const filtered = range === 'ALL' ? trades : trades.filter(t => t.timestamp && (now2 - t.timestamp) <= rangeMap[range]);
 
-// ─── Real Price Chart from on-chain trades ─────────────────────────────────────
-function PriceChart({ trades, yesPercent, loading }: { trades: TradeEvent[]; yesPercent: number; loading: boolean }) {
-  // Build price history from trades (oldest→newest) or fallback to single point
-  const data: { t: number; yes: number }[] = trades.length >= 2
-    ? [...trades].reverse().map((tr, i) => ({ t: i, yes: tr.isYes ? tr.yesProb : 100 - tr.yesProb }))
+  const data = filtered.length >= 2
+    ? [...filtered].reverse().map((tr, i) => ({ t: i, yes: tr.yesProb }))
     : [{ t: 0, yes: yesPercent }];
+  if (data[data.length - 1].yes !== yesPercent) data.push({ t: data.length, yes: yesPercent });
 
-  // Always end with current probability
-  if (data[data.length - 1].yes !== yesPercent) {
-    data.push({ t: data.length, yes: yesPercent });
-  }
-
-  const w = 560, h = 120, pad = 8;
-  const minY = Math.min(...data.map(d => d.yes), yesPercent - 5);
-  const maxY = Math.max(...data.map(d => d.yes), yesPercent + 5);
-  const range = maxY - minY || 10;
-  const scaleX = (i: number) => pad + (i / Math.max(1, data.length - 1)) * (w - pad * 2);
-  const scaleY = (v: number) => h - pad - ((v - minY) / range) * (h - pad * 2);
-  const pts = data.map((d, i) => `${scaleX(i)},${scaleY(d.yes)}`).join(' ');
-  const areaBottom = `${scaleX(data.length - 1)},${h} ${scaleX(0)},${h}`;
+  const w = 600, h = 140, pad = { top: 12, right: 16, bottom: 24, left: 36 };
+  const minY = Math.max(0, Math.min(...data.map(d => d.yes)) - 5);
+  const maxY = Math.min(100, Math.max(...data.map(d => d.yes)) + 5);
+  const range2 = maxY - minY || 10;
+  const sx = (i: number) => pad.left + (i / Math.max(1, data.length - 1)) * (w - pad.left - pad.right);
+  const sy = (v: number) => pad.top + (1 - (v - minY) / range2) * (h - pad.top - pad.bottom);
+  const pts = data.map((d, i) => `${sx(i)},${sy(d.yes)}`).join(' ');
+  const areaBottom = `${sx(data.length - 1)},${h - pad.bottom} ${sx(0)},${h - pad.bottom}`;
   const isUp = data.length > 1 ? data[data.length - 1].yes >= data[0].yes : true;
   const color = isUp ? '#22c55e' : '#EF4444';
+  const gridVals = [0, 25, 50, 75, 100].filter(v => v >= minY - 2 && v <= maxY + 2);
 
-  if (loading) return (
-    <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Loading chart...</span>
-    </div>
-  );
+  if (loading) return <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Loading chart data...</span></div>;
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 120 }}>
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 140 }}>
       <defs>
-        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+        <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      {[0, 25, 50, 75, 100].map(v => (
-        <line key={v} x1={pad} y1={scaleY(minY + (v / 100) * range)} x2={w - pad} y2={scaleY(minY + (v / 100) * range)} stroke="#1C1C1C" strokeWidth="1" />
+      {gridVals.map(v => (
+        <g key={v}>
+          <line x1={pad.left} y1={sy(v)} x2={w - pad.right} y2={sy(v)} stroke="#1C1C1C" strokeWidth="1" strokeDasharray="3,3" />
+          <text x={pad.left - 4} y={sy(v) + 4} fill="#555570" fontSize="9" textAnchor="end" fontFamily="monospace">{v}%</text>
+        </g>
       ))}
-      <polygon points={`${pts} ${areaBottom}`} fill="url(#areaGrad)" />
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
-      <circle cx={scaleX(data.length - 1)} cy={scaleY(data[data.length - 1].yes)} r="4" fill={color} />
-      <text x={w - pad} y={scaleY(data[data.length - 1].yes) - 8} fill={color} fontSize="11" textAnchor="end" fontFamily="monospace">{yesPercent}¢</text>
+      <polygon points={`${pts} ${areaBottom}`} fill="url(#cg)" />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {data.length > 1 && (
+        <>
+          <circle cx={sx(data.length - 1)} cy={sy(data[data.length - 1].yes)} r="4" fill={color} />
+          <text x={sx(data.length - 1) + 6} y={sy(data[data.length - 1].yes) + 4} fill={color} fontSize="10" fontFamily="monospace" fontWeight="bold">{yesPercent}%</text>
+        </>
+      )}
     </svg>
   );
 }
 
-// ─── Real Activity Feed from on-chain TradePlaced events ──────────────────────
-function ActivityFeed({ trades, loading }: { trades: TradeEvent[]; loading: boolean }) {
-  if (loading) return (
-    <div style={{ padding: '32px', textAlign: 'center' }}>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570' }}>Fetching on-chain trades...</span>
-    </div>
-  );
+// ─── Top Holders ──────────────────────────────────────────────────────────────
+function TopHolders({ trades, yesPercent }: { trades: TradeEvent[]; yesPercent: number }) {
+  const holderMap: Record<string, { yes: number; no: number }> = {};
+  for (const t of trades) {
+    if (!holderMap[t.trader]) holderMap[t.trader] = { yes: 0, no: 0 };
+    if (t.isYes) holderMap[t.trader].yes += t.shares;
+    else holderMap[t.trader].no += t.shares;
+  }
+  const holders = Object.entries(holderMap)
+    .map(([addr, pos]) => ({ addr, value: pos.yes * (yesPercent / 100) + pos.no * ((100 - yesPercent) / 100), yes: pos.yes, no: pos.no }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
 
-  if (trades.length === 0) return (
-    <div style={{ padding: '32px', textAlign: 'center' }}>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570' }}>No trades yet — be the first!</span>
-    </div>
+  if (holders.length === 0) return (
+    <div style={{ textAlign: 'center', padding: '24px 0', color: '#555570', fontFamily: 'var(--font-mono)', fontSize: 12 }}>No traders yet</div>
   );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-      {trades.slice(0, 20).map((t, i) => (
-        <a
-          key={i}
-          href={`https://testnet.snowtrace.io/tx/${t.hash}`}
-          target="_blank" rel="noreferrer"
-          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderBottom: '1px solid #1C1C1C', transition: 'background 0.15s', textDecoration: 'none' }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 7px', borderRadius: 4, background: t.isYes ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', color: t.isYes ? '#22c55e' : '#EF4444', fontWeight: 600, minWidth: 30, textAlign: 'center' }}>
-            {t.isYes ? 'YES' : 'NO'}
-          </span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', flex: 1 }}>{t.amount.toFixed(3)} AVAX</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>@ {t.yesProb}¢</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{shortAddr(t.trader)}</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', minWidth: 50, textAlign: 'right' }}>
-            {t.timestamp ? timeAgo(t.timestamp) : `#${t.blockNumber}`}
-          </span>
-        </a>
+      {holders.map((h, i) => (
+        <div key={h.addr} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: i < holders.length - 1 ? '1px solid #111' : 'none' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#444', minWidth: 18 }}>{i + 1}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', flex: 1 }}>{shortAddr(h.addr)}</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {h.yes > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>YES {h.yes.toFixed(2)}</span>}
+            {h.no > 0  && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(239,68,68,0.12)', color: '#EF4444' }}>NO {h.no.toFixed(2)}</span>}
+          </div>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#FAFAFA', minWidth: 52, textAlign: 'right' }}>{h.value.toFixed(3)}</span>
+        </div>
       ))}
     </div>
   );
 }
 
-// ─── Market depth — real AMM pool visualization ───────────────────────────────
+// ─── Market Depth ─────────────────────────────────────────────────────────────
 function MarketDepth({ yesPool, noPool }: { yesPool: bigint; noPool: bigint }) {
   const ye = parseFloat(formatEther(yesPool));
   const no = parseFloat(formatEther(noPool));
   const total = ye + no || 1;
-  const yesPct = Math.round(ye / total * 100);
-  const noPct  = 100 - yesPct;
-
-  // AMM depth: simulate buy pressure at different sizes using x*y=k
-  const genDepth = (pool: number, counterPool: number, isYes: boolean) => {
-    const sizes = [0.001, 0.01, 0.05, 0.1, 0.5];
-    return sizes.map(size => {
-      const sharesOut = counterPool - (pool * counterPool) / (pool + size);
-      const effPrice  = sharesOut > 0 ? Math.min(99, Math.max(1, Math.round((size / sharesOut) * 100))) : 50;
-      return { price: isYes ? effPrice : 100 - effPrice, size: size.toFixed(3) };
+  const genDepth = (pool: number, counter: number, isYes: boolean) =>
+    [0.001, 0.01, 0.05, 0.1, 0.5].map(size => {
+      const out = counter - (pool * counter) / (pool + size);
+      const eff = out > 0 ? Math.min(99, Math.max(1, Math.round((size / out) * 100))) : 50;
+      return { price: isYes ? eff : 100 - eff, size: size.toFixed(3) };
     });
-  };
-
   const yesBids = genDepth(ye, no, true);
-  const noAsks  = genDepth(no, ye, false);
+  const noAsks = genDepth(no, ye, false);
   const maxSize = Math.max(...[...yesBids, ...noAsks].map(d => parseFloat(d.size)));
-
   return (
-    <div style={{ display: 'flex', gap: 0 }}>
-      {/* YES bids */}
+    <div style={{ display: 'flex' }}>
       <div style={{ flex: 1 }}>
-        <div style={{ padding: '6px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, borderBottom: '1px solid #1C1C1C' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase' }}>Price (YES)</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textAlign: 'right', textTransform: 'uppercase' }}>Size (AVAX)</span>
+        <div style={{ padding: '8px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid #111' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#555570', textTransform: 'uppercase' }}>Price (YES)</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#555570', textAlign: 'right', textTransform: 'uppercase' }}>Size</span>
         </div>
         {yesBids.map((b, i) => (
-          <div key={i} style={{ position: 'relative', padding: '6px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+          <div key={i} style={{ position: 'relative', padding: '6px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
             <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, background: 'rgba(34,197,94,0.07)', width: `${(parseFloat(b.size) / maxSize) * 100}%` }} />
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e', position: 'relative', zIndex: 1 }}>{b.price}¢</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textAlign: 'right', position: 'relative', zIndex: 1 }}>{b.size}</span>
@@ -271,14 +205,13 @@ function MarketDepth({ yesPool, noPool }: { yesPool: bigint; noPool: bigint }) {
         ))}
       </div>
       <div style={{ width: 1, background: '#1C1C1C' }} />
-      {/* NO asks */}
       <div style={{ flex: 1 }}>
-        <div style={{ padding: '6px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, borderBottom: '1px solid #1C1C1C' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase' }}>Price (NO)</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textAlign: 'right', textTransform: 'uppercase' }}>Size (AVAX)</span>
+        <div style={{ padding: '8px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid #111' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#555570', textTransform: 'uppercase' }}>Price (NO)</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#555570', textAlign: 'right', textTransform: 'uppercase' }}>Size</span>
         </div>
         {noAsks.map((a, i) => (
-          <div key={i} style={{ position: 'relative', padding: '6px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+          <div key={i} style={{ position: 'relative', padding: '6px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, background: 'rgba(239,68,68,0.07)', width: `${(parseFloat(a.size) / maxSize) * 100}%` }} />
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#EF4444', position: 'relative', zIndex: 1 }}>{a.price}¢</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA', textAlign: 'right', position: 'relative', zIndex: 1 }}>{a.size}</span>
@@ -289,710 +222,465 @@ function MarketDepth({ yesPool, noPool }: { yesPool: bigint; noPool: bigint }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function MarketDetail({ marketId }: { marketId: number }) {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
   const chainId = useChainId();
   const contracts = getAddresses(chainId);
 
-  const [tab, setTab] = useState<'chart' | 'depth' | 'activity'>('chart');
-  const [tradeTab, setTradeTab] = useState<'buy' | 'sell'>('buy');
-  const [side, setSide] = useState<'yes' | 'no'>('yes');
-  const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
-  const [amount, setAmount] = useState('0.001');
-  const [limitPrice, setLimitPrice] = useState('');
+  const [tab, setTab]             = useState<'chart' | 'depth' | 'activity' | 'holders'>('chart');
+  const [tradeTab, setTradeTab]   = useState<'buy' | 'sell'>('buy');
+  const [side, setSide]           = useState<'yes' | 'no'>('yes');
+  const [amount, setAmount]       = useState('0.01');
+  const [chartRange, setChartRange] = useState<'1D' | '1W' | '1M' | 'ALL'>('ALL');
+  const [now, setNow]             = useState(Date.now());
 
-  const { data: core, refetch: refetchCore } = useReadContract({
-    address: contracts.PredictionMarket, abi: MARKET_ABI,
-    functionName: 'getMarketCore', args: [BigInt(marketId)],
-  }) as { data: any; refetch: () => void };
+  useEffect(() => { const iv = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(iv); }, []);
 
-  const { data: meta, refetch: refetchMeta } = useReadContract({
-    address: contracts.PredictionMarket, abi: MARKET_ABI,
-    functionName: 'getMarketMeta', args: [BigInt(marketId)],
-  }) as { data: any; refetch: () => void };
-
+  const { data: core, refetch: refetchCore } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getMarketCore', args: [BigInt(marketId)] }) as { data: any; refetch: () => void };
+  const { data: meta, refetch: refetchMeta } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getMarketMeta', args: [BigInt(marketId)] }) as { data: any; refetch: () => void };
   const market = (core && meta) ? { ...core, ...meta, exists: meta.exists } : undefined;
   const refetch = () => { refetchCore(); refetchMeta(); };
 
-  const { data: probability } = useReadContract({
-    address: contracts.PredictionMarket, abi: MARKET_ABI,
-    functionName: 'getYesProbability', args: [BigInt(marketId)],
-  }) as { data: bigint | undefined };
+  const { data: probability } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getYesProbability', args: [BigInt(marketId)] }) as { data: bigint | undefined };
+  const { data: position }    = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getPosition', args: [BigInt(marketId), address ?? '0x0000000000000000000000000000000000000000'], query: { enabled: !!address } }) as { data: any };
 
-  const { data: position } = useReadContract({
-    address: contracts.PredictionMarket, abi: MARKET_ABI,
-    functionName: 'getPosition',
-    args: [BigInt(marketId), address ?? '0x0000000000000000000000000000000000000000'],
-    query: { enabled: !!address },
-  }) as { data: any };
-
-
-  // Chainlink live price — oracle markets only
   const isOracle = market?.marketType === 1;
-  const { data: oraclePrice, isError: clError } = useReadContract({
-    address: contracts.PredictionMarket,
-    abi: MARKET_ABI,
-    functionName: 'getCurrentPrice',
-    args: [market?.tokenPair ?? 0],
-    query: { enabled: !!market && isOracle, refetchInterval: 30_000, retry: 1 },
-  }) as { data: [bigint, number] | undefined; isError: boolean };
-
-  // CoinGecko fallback — activates only when Chainlink fails
-  const pairMeta       = TOKEN_PAIR_META[Number(market?.tokenPair ?? 0)];
-  const needsGecko     = isOracle && (!oraclePrice || clError);
-  const { price: geckoPrice, loading: geckoLoading } = useCoinGeckoPrice(
-    pairMeta?.coingeckoId ?? '', needsGecko
-  );
-
-  // Resolved price + source
+  const { data: oraclePrice, isError: clError } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getCurrentPrice', args: [market?.tokenPair ?? 0], query: { enabled: !!market && isOracle, refetchInterval: 30_000, retry: 1 } }) as { data: [bigint, number] | undefined; isError: boolean };
+  const pairMeta = TOKEN_PAIR_META[Number(market?.tokenPair ?? 0)];
+  const geckoPrice = useCoinGeckoPrice(pairMeta?.coingeckoId ?? '', isOracle && (!oraclePrice || clError));
   let livePrice: number | null = null;
-  let priceSource: 'chainlink' | 'coingecko' | null = null;
-  if (oraclePrice && !clError) {
-    const [rp, dec] = oraclePrice;
-    livePrice = Number(rp) / 10 ** dec;
-    priceSource = 'chainlink';
-  } else if (geckoPrice !== null) {
-    livePrice = geckoPrice;
-    priceSource = 'coingecko';
-  }
+  if (oraclePrice && !clError) livePrice = Number(oraclePrice[0]) / 10 ** oraclePrice[1];
+  else if (geckoPrice !== null) livePrice = geckoPrice;
 
   const { trades, loading: tradesLoading } = useMarketTrades(marketId);
-
-  // ── countdown — hook'lar conditional return'den ÖNCE olmali ──
-  const [now, setNow] = useState(Date.now());
-  const [chartRange, setChartRange] = useState<'1H'|'1D'|'1W'|'ALL'>('ALL');
-  useEffect(() => {
-    const iv = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(iv);
-  }, []);
+  const [nowT, setNowT] = useState(Date.now());
+  useEffect(() => { setNowT(Date.now()); }, []);
 
   const { writeContract, data: txHash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
-
   useEffect(() => { if (isSuccess) refetch(); }, [isSuccess]);
 
   if (!market?.exists) return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '60px 24px', textAlign: 'center' }}>
+    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
       <p style={{ color: '#8888AA', fontFamily: 'var(--font-display)', fontSize: 18 }}>Market not found.</p>
-      <Link href="/markets" style={{ color: '#FAFAFA', marginTop: 12, display: 'inline-block' }}>← Back to Markets</Link>
+      <Link href="/markets" style={{ color: '#FAFAFA', marginTop: 12, display: 'inline-block' }}>← Back</Link>
     </div>
   );
 
   const yesPercent = Number(probability ?? BigInt(50));
   const noPercent  = 100 - yesPercent;
-
-  const endDate2   = new Date(Number(market.endTime) * 1000);
-  const msLeft     = Math.max(0, endDate2.getTime() - now);
+  const endDate    = new Date(Number(market.endTime) * 1000);
+  const msLeft     = Math.max(0, endDate.getTime() - now);
   const cdDays     = Math.floor(msLeft / 86400000);
   const cdHours    = Math.floor((msLeft % 86400000) / 3600000);
   const cdMins     = Math.floor((msLeft % 3600000) / 60000);
   const cdSecs     = Math.floor((msLeft % 60000) / 1000);
-  const countdown  = msLeft === 0 ? 'Ended'
-    : cdDays > 0 ? `${cdDays}d ${cdHours}h ${cdMins}m`
-    : `${cdHours}h ${cdMins}m ${cdSecs}s`;
+  const countdown  = msLeft === 0 ? 'Ended' : cdDays > 0 ? `${cdDays}d ${cdHours}h ${cdMins}m` : `${cdHours}h ${cdMins}m ${cdSecs}s`;
   const yesPool    = market.yesPool ?? BigInt(0);
-  const noPool     = market.noPool ?? BigInt(0);
-  const totalPool  = yesPool + noPool;
-  const totalPoolF = parseFloat(formatEther(totalPool));
+  const noPool     = market.noPool  ?? BigInt(0);
+  const totalPoolF = parseFloat(formatEther(yesPool + noPool));
   const yesPoolF   = parseFloat(formatEther(yesPool));
   const noPoolF    = parseFloat(formatEther(noPool));
-  const endDate    = new Date(Number(market.endTime) * 1000);
   const txPending  = isPending || isConfirming;
 
-  const amountNum = Math.max(MIN_AMOUNT, Math.round((parseFloat(amount) || MIN_AMOUNT) * 1000) / 1000);
-
-  // AMM payout calculation (constant product: x*y=k)
-  const poolIn  = side === 'yes' ? yesPoolF : noPoolF;
-  const poolOut = side === 'yes' ? noPoolF  : yesPoolF;
-  const sharesOut = poolOut - (poolIn * poolOut) / (poolIn + amountNum);
-  const effectivePrice = amountNum / (sharesOut || 0.001);
-  const priceImpact = Math.abs(effectivePrice - (side === 'yes' ? yesPercent : noPercent) / 100) / ((side === 'yes' ? yesPercent : noPercent) / 100) * 100;
-  const potentialPayout = sharesOut;
-  const potentialProfit = sharesOut - amountNum;
-  const maxPayout = sharesOut; // if wins
-  const roi = amountNum > 0 ? ((potentialProfit / amountNum) * 100).toFixed(1) : '0';
+  // CPMM preview
+  const amt     = Math.max(MIN_AMOUNT, parseFloat(amount) || MIN_AMOUNT);
+  const pIn     = side === 'yes' ? yesPoolF + 0.1 : noPoolF + 0.1;
+  const pOut    = side === 'yes' ? noPoolF  + 0.1 : yesPoolF + 0.1;
+  const sharesOut     = Math.max(0, pOut - (pIn * pOut) / (pIn + amt));
+  const effectivePrice = amt / (sharesOut || 0.001);
+  const spotPrice      = side === 'yes' ? yesPercent / 100 : noPercent / 100;
+  const priceImpact    = Math.abs(effectivePrice - spotPrice) / spotPrice * 100;
+  const potentialProfit = sharesOut - amt;
+  const roi            = amt > 0 ? ((potentialProfit / amt) * 100).toFixed(1) : '0';
 
   const yesShares = position?.yesShares ?? BigInt(0);
-  const noShares  = position?.noShares ?? BigInt(0);
+  const noShares  = position?.noShares  ?? BigInt(0);
   const hasYes = yesShares > BigInt(0);
   const hasNo  = noShares  > BigInt(0);
   const myYesF = parseFloat(formatEther(yesShares));
   const myNoF  = parseFloat(formatEther(noShares));
-
-  // Estimated position value
-  const posValue = hasYes ? myYesF * (yesPercent / 100) : hasNo ? myNoF * (noPercent / 100) : 0;
+  const canClaim = market.resolved && !position?.claimed && ((market.outcome === 1 && hasYes) || (market.outcome === 2 && hasNo));
 
   const handleBuy = () => {
     if (!isConnected) return;
-    const amt = Math.round((parseFloat(amount) || MIN_AMOUNT) * 1000) / 1000;
-    if (amt < MIN_AMOUNT) { alert(`Min ${MIN_AMOUNT} AVAX`); return; }
-    // minShares: %2 slippage toleransı — 0 göndermek de çalışır ama koruma sağlamaz
-    const minShares = BigInt(0); // UI getSharesOut preview eklenince burası dolacak
-    writeContract({
-      address: contracts.PredictionMarket, abi: MARKET_ABI,
-      functionName: side === 'yes' ? 'buyYes' : 'buyNo',
-      args: [BigInt(marketId), minShares],
-      value: parseEther(amt.toFixed(3)),
-    });
+    writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: side === 'yes' ? 'buyYes' : 'buyNo', args: [BigInt(marketId), BigInt(0)], value: parseEther(Math.max(MIN_AMOUNT, amt).toFixed(6)) });
   };
-
   const handleSell = (isYes: boolean, sharesAmt: number) => {
     if (!isConnected || sharesAmt <= 0) return;
-    const sharesWei = BigInt(Math.floor(sharesAmt * 1e18));
-    writeContract({
-      address: contracts.PredictionMarket, abi: MARKET_ABI,
-      functionName: 'sellShares',
-      args: [BigInt(marketId), isYes, sharesWei, BigInt(0)], // minOut=0 şimdilik
-    });
+    writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'sellShares', args: [BigInt(marketId), isYes, BigInt(Math.floor(sharesAmt * 1e18)), BigInt(0)] });
   };
-
   const handleClaim = () => {
     writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'claimReward', args: [BigInt(marketId)] });
   };
 
-  const canClaim = market.resolved && !position?.claimed &&
-    ((market.outcome === 1 && hasYes) || (market.outcome === 2 && hasNo));
+  // 24h stats
+  const nowSec = Math.floor(Date.now() / 1000);
+  const last24h = trades.filter(t => t.timestamp && (nowSec - t.timestamp) < 86400);
+  const vol24 = last24h.reduce((s, t) => s + t.amount, 0);
+  const probs24 = last24h.map(t => t.yesProb);
+  const high24 = probs24.length ? Math.max(...probs24) : yesPercent;
+  const low24  = probs24.length ? Math.min(...probs24) : yesPercent;
 
-  const handleAmountChange = (val: string) => {
-    const parts = val.split('.');
-    if (parts[1]?.length > 3) return;
-    setAmount(val);
-  };
-
-  const handleAmountBlur = () => {
-    const n = parseFloat(amount);
-    if (isNaN(n) || n < MIN_AMOUNT) setAmount(MIN_AMOUNT.toFixed(3));
-    else setAmount((Math.round(n * 1000) / 1000).toFixed(3));
-  };
+  const { imageData } = (() => {
+    const raw = market.imageURI ?? '';
+    const idx = raw.indexOf('|||');
+    return idx >= 0 ? { imageData: raw.slice(idx + 3) || null } : { imageData: raw.startsWith('data:') ? raw : null };
+  })();
 
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 24px 80px' }}>
-      {/* Back */}
-      <Link href="/markets" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#8888AA', textDecoration: 'none', fontFamily: 'var(--font-display)', fontSize: 14, marginBottom: 24, transition: 'color 0.2s' }}
-        onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#FAFAFA'}
-        onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#8888AA'}>
-        <ArrowLeft size={16} /> All Markets
-      </Link>
+    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 20px 80px' }}>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 360px', gap: 24, alignItems: 'start' }}>
-        {/* LEFT COLUMN */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Market header */}
-          <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 20, padding: '28px 28px 24px' }}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', color: '#FAFAFA', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{market.category}</span>
-              {market.resolved ? (
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
-                  ✓ Resolved — {market.outcome === 1 ? 'YES' : 'NO'} Won
-                </span>
-              ) : (
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(245,158,11,0.12)', color: '#F59E0B' }}>
-                  ● Active · {cdDays > 0 ? `${cdDays}d` : `${cdHours}h`} left
-                </span>
-              )}
-            </div>
+      {/* ── TOP NAV ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+        <Link href="/markets" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#555570', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontSize: 12, padding: '6px 12px', background: '#111', border: '1px solid #1C1C1C', borderRadius: 8 }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#FAFAFA'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#555570'}>
+          <ArrowLeft size={13} /> Markets
+        </Link>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#333' }}>/</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', textTransform: 'uppercase' }}>{market.category}</span>
+      </div>
 
-            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(20px,3vw,28px)', color: '#FAFAFA', lineHeight: 1.3, marginBottom: 20 }}>{market.question}</h1>
+      {/* ── MAIN GRID ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 340px', gap: 20, alignItems: 'start' }}>
 
-            {/* Big probability */}
-            <div style={{ display: 'flex', gap: 24, marginBottom: 20, flexWrap: 'wrap' }}>
+        {/* ════ LEFT COLUMN ════ */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* ── Market Header Card ── */}
+          <div style={{ background: '#0D0D0D', border: '1px solid #1C1C1C', borderRadius: 16, overflow: 'hidden' }}>
+            {/* Cover image */}
+            {imageData && (
+              <div style={{ height: 160, overflow: 'hidden', position: 'relative' }}>
+                <img src={imageData} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.7)' }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, #0D0D0D)' }} />
+              </div>
+            )}
+            <div style={{ padding: '20px 24px 20px' }}>
+              {/* Badges row */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: '#1C1C1C', color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{market.category}</span>
+                {market.resolved ? (
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>✓ Resolved — {market.outcome === 1 ? 'YES' : 'NO'} Won</span>
+                ) : (
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: 'rgba(245,158,11,0.12)', color: '#F59E0B' }}>● Active · {countdown}</span>
+                )}
+                {isOracle && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: 'rgba(99,102,241,0.12)', color: '#6366F1' }}>⚡ Oracle</span>}
+              </div>
+
+              <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(18px,2.5vw,26px)', color: '#FAFAFA', lineHeight: 1.3, marginBottom: 20 }}>{market.question}</h1>
+
+              {/* YES / NO big numbers + stats */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 0, marginBottom: 16 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>YES</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 44, color: '#22c55e', lineHeight: 1 }}>{yesPercent}<span style={{ fontSize: 22 }}>¢</span></div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 3 }}>probability</div>
+                </div>
+                <div style={{ width: 1, background: '#1C1C1C', alignSelf: 'stretch', margin: '0 20px' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>NO</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 44, color: '#EF4444', lineHeight: 1 }}>{noPercent}<span style={{ fontSize: 22 }}>¢</span></div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 3 }}>probability</div>
+                </div>
+                <div style={{ width: 1, background: '#1C1C1C', alignSelf: 'stretch', margin: '0 20px' }} />
+                {/* Stats grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 20px' }}>
+                  {[
+                    { label: 'Volume', value: `${totalPoolF.toFixed(3)} AVAX` },
+                    { label: '24h Vol', value: `${vol24.toFixed(3)} AVAX` },
+                    { label: '24h High', value: `${high24}¢` },
+                    { label: '24h Low', value: `${low24}¢` },
+                  ].map(({ label, value }) => (
+                    <div key={label}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase', marginBottom: 2 }}>{label}</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', fontWeight: 600 }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pool bar */}
               <div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginBottom: 4, textTransform: 'uppercase' }}>YES</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 48, color: '#22c55e', lineHeight: 1 }}>{yesPercent}¢</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', marginTop: 2 }}>probability</div>
-              </div>
-              <div style={{ width: 1, background: '#1C1C1C', alignSelf: 'stretch' }} />
-              <div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginBottom: 4, textTransform: 'uppercase' }}>NO</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 48, color: '#EF4444', lineHeight: 1 }}>{noPercent}¢</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', marginTop: 2 }}>probability</div>
-              </div>
-              <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 10 }}>
-                {[
-                  { icon: BarChart3, label: 'Volume', value: `${totalPoolF.toFixed(3)} AVAX` },
-                  { icon: Users, label: 'Traders', value: `${Math.round(totalPoolF * 8 + 2)}` },
-                  { icon: Clock, label: market.resolved ? 'Ended' : (msLeft === 0 ? 'Ended' : 'Ends in'), value: market.resolved ? endDate.toLocaleDateString() : countdown },
-                ].map(({ icon: Icon, label, value }) => (
-                  <div key={label} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <Icon size={13} color="#555570" />
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA' }}>{label}:</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA' }}>{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Pool bar */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#22c55e' }}>YES pool: {yesPoolF.toFixed(3)} AVAX</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#EF4444' }}>NO pool: {noPoolF.toFixed(3)} AVAX</span>
-              </div>
-              <div style={{ background: '#1C1C1C', borderRadius: 6, height: 10, overflow: 'hidden', display: 'flex' }}>
-                <div style={{ width: `${yesPercent}%`, background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: '6px 0 0 6px', transition: 'width 0.6s ease' }} />
-                <div style={{ flex: 1, background: 'linear-gradient(90deg, #dc2626, #7C3AED)', borderRadius: '0 6px 6px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#22c55e' }}>YES {yesPoolF.toFixed(3)} AVAX</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#EF4444' }}>NO {noPoolF.toFixed(3)} AVAX</span>
+                </div>
+                <div style={{ background: '#1C1C1C', borderRadius: 6, height: 8, overflow: 'hidden', display: 'flex' }}>
+                  <div style={{ width: `${yesPercent}%`, background: 'linear-gradient(90deg,#22c55e,#16a34a)', transition: 'width 0.6s ease' }} />
+                  <div style={{ flex: 1, background: 'linear-gradient(90deg,#dc2626,#991b1b)' }} />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* 🔴 LIVE PRICE PANEL — oracle markets only */}
-          {isOracle && !market.resolved && oraclePrice && (() => {
-            const TOKEN_META: Record<number, { symbol: string; color: string; bg: string }> = {
-              0: { symbol: 'AVAX/USD', color: '#FAFAFA', bg: 'rgba(255,255,255,0.04)' },
-              1: { symbol: 'BTC/USD',  color: '#F59E0B', bg: 'rgba(245,158,11,0.08)' },
-              2: { symbol: 'ETH/USD',  color: '#6366F1', bg: 'rgba(99,102,241,0.08)' },
-              3: { symbol: 'LINK/USD', color: '#888888', bg: 'rgba(59,130,246,0.08)' },
-            };
-            const meta       = TOKEN_META[Number(market.tokenPair)] ?? TOKEN_META[0];
-            const [rawP, dec] = oraclePrice;
-            const current    = Number(rawP) / 10 ** dec;
-            const target     = Number(market.targetPrice) / 1e8;
-            const winning    = market.targetAbove ? current >= target : current <= target;
-            const diff       = ((current - target) / target) * 100;
-            const progress   = market.targetAbove
-              ? Math.min(100, Math.max(0, (current / target) * 100))
-              : Math.min(100, Math.max(0, (target / current) * 100));
-
+          {/* ── Oracle Live Price ── */}
+          {isOracle && !market.resolved && livePrice !== null && (() => {
+            const target = Number(market.targetPrice) / 1e8;
+            const winning = market.targetAbove ? livePrice! >= target : livePrice! <= target;
+            const diff = ((livePrice! - target) / target) * 100;
             return (
-              <div style={{
-                background: winning ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.06)',
-                border: `1px solid ${winning ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.25)'}`,
-                borderRadius: 14, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12,
-              }}>
-                {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Zap size={13} color={meta.color} />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    {priceSource === 'chainlink' ? '⚡ Chainlink' : '🦎 CoinGecko'} · {meta.symbol} · Live
-                  </span>
-                  <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 6, background: winning ? 'rgba(34,197,94,0.15)' : '#1C1C1C', color: winning ? '#22c55e' : '#FAFAFA', fontWeight: 700 }}>
-                    {winning ? '✓ In YES zone' : '✗ In NO zone'}
+              <div style={{ background: winning ? 'rgba(34,197,94,0.05)' : '#0D0D0D', border: `1px solid ${winning ? 'rgba(34,197,94,0.2)' : '#1C1C1C'}`, borderRadius: 14, padding: '16px 20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Zap size={12} color={pairMeta.color} />
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: pairMeta.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{pairMeta.symbol} · Live Price</span>
+                  <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 6, background: winning ? 'rgba(34,197,94,0.15)' : '#1C1C1C', color: winning ? '#22c55e' : '#EF4444', fontWeight: 700 }}>
+                    {winning ? '✓ YES zone' : '✗ NO zone'}
                   </span>
                 </div>
-
-                {/* Price grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr', gap: 0 }}>
-                  {/* Live price */}
-                  <div style={{ paddingRight: 16 }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4 }}>Live Price</div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26, color: meta.color, lineHeight: 1 }}>
-                      {current !== null
-                        ? `$${current.toLocaleString('en-US', { maximumFractionDigits: current > 1000 ? 0 : 2 })}`
-                        : geckoLoading ? 'Loading...' : 'Unavailable'}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                  {[
+                    { label: 'Current', value: `$${livePrice!.toLocaleString('en-US', { maximumFractionDigits: livePrice! > 1000 ? 0 : 2 })}`, color: pairMeta.color },
+                    { label: 'Target', value: `$${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}`, color: '#FAFAFA' },
+                    { label: 'Distance', value: `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%`, color: winning ? '#22c55e' : '#EF4444' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color }}>{value}</div>
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 3 }}>
-                      {priceSource === 'chainlink' ? 'Updates every 30s' : priceSource === 'coingecko' ? 'Via CoinGecko · 60s' : '—'}
-                    </div>
-                  </div>
-                  <div style={{ background: '#1C1C1C' }} />
-                  {/* Target price */}
-                  <div style={{ padding: '0 16px' }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Target size={9} /> Target
-                    </div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, color: '#FAFAFA', lineHeight: 1 }}>
-                      ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                    </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#8888AA', marginTop: 3 }}>
-                      {market.targetAbove ? 'price ≥ target → YES' : 'price ≤ target → YES'}
-                    </div>
-                  </div>
-                  <div style={{ background: '#1C1C1C' }} />
-                  {/* Fark */}
-                  <div style={{ paddingLeft: 16 }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 4 }}>Distance to Target</div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, lineHeight: 1, color: current === null ? '#555570' : winning ? '#22c55e' : '#FAFAFA' }}>
-                      {current !== null ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%` : '—'}
-                    </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 3 }}>
-                      {current === null ? 'fetching...' : winning ? 'target reached' : Math.abs(diff).toFixed(1) + '% away'}
-                    </div>
-                  </div>
+                  ))}
                 </div>
-
-                {/* Progress bar — proximity to target */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570' }}>$0</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#8888AA' }}>Proximity to target</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: meta.color }}>
-                      ${target.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                    </span>
-                  </div>
-                  <div style={{ background: '#1C1C1C', borderRadius: 8, height: 8, overflow: 'hidden', position: 'relative' }}>
-                    <div style={{
-                      height: '100%', borderRadius: 8,
-                      width: `${Math.min(progress, 100)}%`,
-                      background: winning
-                        ? 'linear-gradient(90deg, #16a34a, #22c55e)'
-                        : `linear-gradient(90deg, ${meta.color}88, ${meta.color})`,
-                      transition: 'width 0.8s ease',
-                    }} />
-                  </div>
+                <div style={{ marginTop: 12, background: '#111', borderRadius: 6, height: 6, overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(100, Math.max(0, (livePrice! / target) * 100))}%`, height: '100%', background: winning ? 'linear-gradient(90deg,#16a34a,#22c55e)' : `linear-gradient(90deg,${pairMeta.color}88,${pairMeta.color})`, transition: 'width 0.8s' }} />
                 </div>
               </div>
             );
           })()}
 
-
-          {/* Chart / Depth / Activity tabs */}
-          <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 20, overflow: 'hidden' }}>
+          {/* ── Chart / Depth / Activity / Holders tabs ── */}
+          <div style={{ background: '#0D0D0D', border: '1px solid #1C1C1C', borderRadius: 16, overflow: 'hidden' }}>
+            {/* Tab bar */}
             <div style={{ display: 'flex', borderBottom: '1px solid #1C1C1C' }}>
-              {([
-                { key: 'chart', label: 'Price History' },
-                { key: 'depth', label: 'Market Depth' },
-                { key: 'activity', label: 'Activity' },
-              ] as const).map(t => (
-                <button key={t.key} onClick={() => setTab(t.key)} style={{
-                  flex: 1, padding: '14px 0', background: 'none', border: 'none', cursor: 'pointer',
-                  fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 13,
-                  color: tab === t.key ? '#FAFAFA' : '#555570',
-                  borderBottom: tab === t.key ? '2px solid #FAFAFA' : '2px solid transparent',
-                  transition: 'all 0.2s',
-                }}>{t.label}</button>
+              {(['chart', 'depth', 'activity', 'holders'] as const).map(t => (
+                <button key={t} onClick={() => setTab(t)} style={{
+                  flex: 1, padding: '13px 0', background: 'none', border: 'none', cursor: 'pointer',
+                  fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 12,
+                  color: tab === t ? '#FAFAFA' : '#444',
+                  borderBottom: tab === t ? '2px solid #FAFAFA' : '2px solid transparent',
+                  textTransform: 'capitalize', transition: 'color 0.2s',
+                }}>{t === 'holders' ? 'Top Holders' : t === 'depth' ? 'Depth' : t === 'chart' ? 'Price Chart' : 'Activity'}</button>
               ))}
             </div>
 
-            <div style={{ display: tab === 'chart' ? 'block' : 'none', padding: '20px 20px 16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', textTransform: 'uppercase' }}>YES probability over time</span>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {(['1H', '1D', '1W', 'ALL'] as const).map(p => (
-                      <button key={p} onClick={() => setChartRange(p)} style={{ background: chartRange === p ? '#1C1C1C' : 'none', border: chartRange === p ? '1px solid #333' : '1px solid transparent', color: chartRange === p ? '#FAFAFA' : '#555570', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer', padding: '3px 8px', borderRadius: 4, transition: 'all 0.2s' }}>{p}</button>
-                    ))}
-                  </div>
-                </div>
-                {(() => {
-                    const now2 = Date.now() / 1000;
-                    const rangeMap: Record<string, number> = { '1H': 3600, '1D': 86400, '1W': 604800, 'ALL': Infinity };
-                    const cutoff = rangeMap[chartRange];
-                    const filtered = chartRange === 'ALL' ? trades : trades.filter(t => t.timestamp && (now2 - t.timestamp) <= cutoff);
-                    return <PriceChart trades={filtered} yesPercent={yesPercent} loading={tradesLoading} />;
-                  })()}
-                <div style={{ display: 'flex', gap: 24, marginTop: 14, paddingTop: 14, borderTop: '1px solid #1C1C1C' }}>
-                  {(() => {
-                    const now = Math.floor(Date.now() / 1000);
-                    const last24h = trades.filter(t => t.timestamp && (now - t.timestamp) < 86400);
-                    const probs24h = last24h.map(t => t.isYes ? t.yesProb : 100 - t.yesProb);
-                    const high24 = probs24h.length ? Math.max(...probs24h) : yesPercent;
-                    const low24  = probs24h.length ? Math.min(...probs24h) : yesPercent;
-                    const vol24  = last24h.reduce((s, t) => s + t.amount, 0);
-                    const allHigh = trades.length ? Math.max(...trades.map(t => t.isYes ? t.yesProb : 100 - t.yesProb)) : yesPercent;
-                    return [
-                      { label: '24h High', value: `${high24}¢`, color: '#22c55e' },
-                      { label: '24h Low',  value: `${low24}¢`,  color: '#FAFAFA' },
-                      { label: '24h Vol',  value: `${vol24.toFixed(3)} AVAX`, color: '#8888AA' },
-                      { label: 'All-time High', value: `${allHigh}¢`, color: '#8888AA' },
-                    ];
-                  })().map(({ label, value, color }) => (
-                    <div key={label}>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginBottom: 3, textTransform: 'uppercase' }}>{label}</div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color, fontWeight: 600 }}>{value}</div>
-                    </div>
+            {/* Chart */}
+            <div style={{ display: tab === 'chart' ? 'block' : 'none', padding: '16px 20px 12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', letterSpacing: '0.06em' }}>YES probability</span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {(['1D', '1W', '1M', 'ALL'] as const).map(p => (
+                    <button key={p} onClick={() => setChartRange(p)} style={{ background: chartRange === p ? '#1C1C1C' : 'none', border: chartRange === p ? '1px solid #333' : '1px solid transparent', color: chartRange === p ? '#FAFAFA' : '#444', fontFamily: 'var(--font-mono)', fontSize: 10, cursor: 'pointer', padding: '3px 8px', borderRadius: 4, transition: 'all 0.2s' }}>{p}</button>
                   ))}
                 </div>
+              </div>
+              <PriceChart trades={trades} yesPercent={yesPercent} loading={tradesLoading} range={chartRange} />
             </div>
 
-            <div style={{ display: tab === 'depth' ? 'block' : 'none' }}>
-                <div style={{ padding: '14px 14px 4px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Info size={12} color="#555570" />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>AMM pool depth — estimated from liquidity</span>
-                </div>
-                <MarketDepth yesPool={yesPool} noPool={noPool} />
+            {/* Depth */}
+            <div style={{ display: tab === 'depth' ? 'block' : 'none', paddingTop: 4 }}>
+              <div style={{ padding: '10px 16px 6px', display: 'flex', gap: 6, alignItems: 'center' }}>
+                <Info size={11} color="#444" />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>CPMM pool depth</span>
+              </div>
+              <MarketDepth yesPool={yesPool} noPool={noPool} />
             </div>
 
+            {/* Activity */}
             <div style={{ display: tab === 'activity' ? 'block' : 'none' }}>
-                <div style={{ padding: '14px 14px 4px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Activity size={12} color="#555570" />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Recent trades in this market</span>
+              <div style={{ padding: '10px 16px 6px', display: 'flex', gap: 6, alignItems: 'center', borderBottom: '1px solid #111' }}>
+                <Activity size={11} color="#444" />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>Recent trades · {trades.length} total</span>
+              </div>
+              {tradesLoading ? (
+                <div style={{ padding: 24, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 11, color: '#444' }}>Fetching on-chain data...</div>
+              ) : trades.length === 0 ? (
+                <div style={{ padding: 24, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 11, color: '#444' }}>No trades yet — be the first!</div>
+              ) : (
+                <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+                  {trades.slice(0, 30).map((t, i) => (
+                    <a key={i} href={`https://testnet.snowtrace.io/tx/${t.hash}`} target="_blank" rel="noreferrer"
+                      style={{ display: 'grid', gridTemplateColumns: '40px 1fr 70px 70px 60px', alignItems: 'center', gap: 8, padding: '8px 16px', borderBottom: '1px solid #0A0A0A', textDecoration: 'none', transition: 'background 0.15s' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 6px', borderRadius: 4, background: t.isYes ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)', color: t.isYes ? '#22c55e' : '#EF4444', fontWeight: 700, textAlign: 'center' }}>{t.isYes ? 'YES' : 'NO'}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888' }}>{shortAddr(t.trader)}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#FAFAFA', textAlign: 'right' }}>{t.amount.toFixed(3)}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555', textAlign: 'right' }}>@ {t.yesProb}¢</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444', textAlign: 'right' }}>{t.timestamp ? timeAgo(t.timestamp) : `#${t.blockNumber}`}</span>
+                    </a>
+                  ))}
                 </div>
-                <ActivityFeed trades={trades} loading={tradesLoading} />
+              )}
+            </div>
+
+            {/* Top Holders */}
+            <div style={{ display: tab === 'holders' ? 'block' : 'none' }}>
+              <div style={{ padding: '10px 16px 6px', display: 'grid', gridTemplateColumns: '18px 1fr auto 60px', gap: 10, borderBottom: '1px solid #111' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase' }}>#</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase' }}>Address</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase' }}>Position</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase', textAlign: 'right' }}>Value</span>
+              </div>
+              <TopHolders trades={trades} yesPercent={yesPercent} />
             </div>
           </div>
 
-          {/* ── Resolve buttons — admin only, after endTime ── */}
+          {/* ── Resolve banner ── */}
           {!market.resolved && Date.now() / 1000 > Number(market.endTime) && (
-            <div style={{ background: '#111111', border: '1px solid #333', borderRadius: 14, padding: '16px 20px' }}>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#FAFAFA', marginBottom: 4 }}>
-                  Market ended — resolve required
-                </div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>
-                  {market.marketType === 1 ? 'Oracle market — use Chainlink price feed to resolve.' : 'Manual market — set outcome via Snowtrace admin panel or admin wallet.'}
-                </div>
+            <div style={{ background: '#0D0D0D', border: '1px solid #333', borderRadius: 12, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+              <div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: '#FAFAFA', marginBottom: 3 }}>Market ended — resolve required</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>{market.marketType === 1 ? 'Oracle market — Chainlink auto-resolution' : 'Manual market — admin resolves via Snowtrace'}</div>
               </div>
               {market.marketType === 1 && (
-                <button
-                  onClick={() => writeContract({
-                    address: contracts.PredictionMarket,
-                    abi: MARKET_ABI,
-                    functionName: 'resolveWithOracle',
-                    args: [BigInt(marketId)],
-                  })}
-                  disabled={txPending}
-                  style={{
-                    padding: '10px 22px', background: txPending ? '#1C1C1C' : '#FAFAFA',
-                    color: txPending ? '#555' : '#0A0A0A',
-                    border: 'none', borderRadius: 10, cursor: txPending ? 'not-allowed' : 'pointer',
-                    fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
-                    transition: 'all 0.2s', whiteSpace: 'nowrap' as const,
-                  }}
-                >
+                <button onClick={() => writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'resolveWithOracle', args: [BigInt(marketId)] })} disabled={txPending} style={{ padding: '9px 20px', background: txPending ? '#1C1C1C' : '#FAFAFA', color: txPending ? '#555' : '#0A0A0A', border: 'none', borderRadius: 8, cursor: txPending ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap' as const }}>
                   {txPending ? 'Resolving...' : 'Resolve with Oracle'}
                 </button>
               )}
             </div>
           )}
-
-
         </div>
 
-        {/* RIGHT COLUMN — Trade Panel */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 80 }}>
-          {/* My Position */}
+        {/* ════ RIGHT COLUMN — Trade Panel ════ */}
+        <div style={{ position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+          {/* Position card */}
           {(hasYes || hasNo) && (
-            <div style={{ background: '#111111', border: '1px solid #222222', borderRadius: 16, padding: '16px 20px' }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', textTransform: 'uppercase', marginBottom: 12 }}>Your Position</div>
-              <div style={{ display: 'flex', gap: 16, marginBottom: 10, flexWrap: 'wrap' }}>
-                {hasYes && (
-                  <div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', marginBottom: 2 }}>YES shares</div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#22c55e' }}>{myYesF.toFixed(3)}</div>
-                  </div>
-                )}
-                {hasNo && (
-                  <div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', marginBottom: 2 }}>NO shares</div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#FAFAFA' }}>{myNoF.toFixed(3)}</div>
-                  </div>
-                )}
-                <div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', marginBottom: 2 }}>Est. Value</div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#FAFAFA' }}>{posValue.toFixed(3)} <span style={{ fontSize: 12, color: '#8888AA' }}>AVAX</span></div>
+            <div style={{ background: '#0D0D0D', border: '1px solid #1C1C1C', borderRadius: 14, padding: '14px 18px' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Your Position</div>
+              <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+                {hasYes && <div><div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#22c55e', marginBottom: 2 }}>YES Shares</div><div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#22c55e' }}>{myYesF.toFixed(3)}</div></div>}
+                {hasNo  && <div><div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#EF4444', marginBottom: 2 }}>NO Shares</div><div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#EF4444' }}>{myNoF.toFixed(3)}</div></div>}
+                <div style={{ marginLeft: 'auto' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555', marginBottom: 2 }}>Est. Value</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#FAFAFA' }}>{(myYesF * (yesPercent / 100) + myNoF * (noPercent / 100)).toFixed(3)} <span style={{ fontSize: 10, color: '#555' }}>AVAX</span></div>
                 </div>
               </div>
-
-              {/* Sell notice */}
-              {!market.resolved && (
-                <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <AlertCircle size={13} color="#F59E0B" style={{ flexShrink: 0, marginTop: 1 }} />
-                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#F59E0B', lineHeight: 1.5, margin: 0 }}>
-                    AMM model — positions settle at resolution. Buy more to increase exposure, or wait for outcome.
-                  </p>
-                </div>
-              )}
-
               {canClaim && (
-                <button onClick={handleClaim} style={{ width: '100%', marginTop: 12, padding: '11px', background: '#22c55e', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
-                  🎉 Claim Winnings
+                <button onClick={handleClaim} style={{ width: '100%', padding: '11px', background: '#22c55e', border: 'none', borderRadius: 10, color: 'white', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 0 20px rgba(34,197,94,0.3)' }}>
+                  Claim Winnings
                 </button>
               )}
             </div>
           )}
 
-          {/* Trade panel */}
-          <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 20, overflow: 'hidden' }}>
+          {/* Trade Panel */}
+          <div style={{ background: '#0D0D0D', border: '1px solid #1C1C1C', borderRadius: 16, overflow: 'hidden' }}>
             {/* Buy / Sell tabs */}
-            <div style={{ display: 'flex' }}>
-              {[
-                { key: 'buy', label: 'Buy', color: '#22c55e' },
-                { key: 'sell', label: 'Sell', color: '#FAFAFA' },
-              ].map(t => (
+            <div style={{ display: 'flex', borderBottom: '1px solid #1C1C1C' }}>
+              {[{ key: 'buy', label: 'Buy' }, { key: 'sell', label: 'Sell' }].map(t => (
                 <button key={t.key} onClick={() => setTradeTab(t.key as 'buy' | 'sell')} style={{
-                  flex: 1, padding: '14px 0', background: tradeTab === t.key ? (t.key === 'buy' ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.04)') : 'transparent',
-                  border: 'none', cursor: 'pointer',
+                  flex: 1, padding: '13px 0', background: tradeTab === t.key ? 'rgba(255,255,255,0.03)' : 'transparent', border: 'none', cursor: 'pointer',
                   fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14,
-                  color: tradeTab === t.key ? t.color : '#555570',
-                  borderBottom: tradeTab === t.key ? `2px solid ${t.color}` : '2px solid transparent',
+                  color: tradeTab === t.key ? '#FAFAFA' : '#444',
+                  borderBottom: tradeTab === t.key ? '2px solid #FAFAFA' : '2px solid transparent',
                   transition: 'all 0.2s',
                 }}>{t.label}</button>
               ))}
             </div>
 
-            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ padding: '16px' }}>
               {tradeTab === 'sell' ? (
-                /* Sell panel — CPMM ile gerçek satış */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #222', borderRadius: 10, padding: '10px 14px' }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 6 }}>CPMM — Market bitmeden çıkış</div>
-                    <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: '#8888AA', lineHeight: 1.6 }}>
-                      Shares'ini havuza iade ederek AVAX alırsın. Büyük satışlar slippage yaratır — önizleme için küçük tutarlarla test et.
-                    </div>
-                  </div>
-
-                  {!hasYes && !hasNo && (
-                    <div style={{ textAlign: 'center', padding: '20px 0', color: '#555570', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-                      No position to sell
-                    </div>
+                /* ── Sell Panel ── */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {!hasYes && !hasNo ? (
+                    <div style={{ textAlign: 'center', padding: '28px 0', color: '#444', fontFamily: 'var(--font-mono)', fontSize: 12 }}>No position to sell</div>
+                  ) : (
+                    <>
+                      {hasYes && (
+                        <div style={{ background: '#111', borderRadius: 12, padding: '12px 14px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#22c55e' }}>YES · {myYesF.toFixed(4)} shares</span>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>~{(myYesF * (yesPercent / 100)).toFixed(4)} AVAX</span>
+                          </div>
+                          <button onClick={() => handleSell(true, myYesF)} disabled={txPending} style={{ width: '100%', padding: '9px', background: txPending ? '#1C1C1C' : 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, cursor: txPending ? 'not-allowed' : 'pointer' }}>
+                            {txPending ? 'Processing...' : 'Sell YES shares'}
+                          </button>
+                        </div>
+                      )}
+                      {hasNo && (
+                        <div style={{ background: '#111', borderRadius: 12, padding: '12px 14px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#EF4444' }}>NO · {myNoF.toFixed(4)} shares</span>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>~{(myNoF * (noPercent / 100)).toFixed(4)} AVAX</span>
+                          </div>
+                          <button onClick={() => handleSell(false, myNoF)} disabled={txPending} style={{ width: '100%', padding: '9px', background: txPending ? '#1C1C1C' : 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, color: '#EF4444', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, cursor: txPending ? 'not-allowed' : 'pointer' }}>
+                            {txPending ? 'Processing...' : 'Sell NO shares'}
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
-
-                  {hasYes && (
-                    <div style={{ background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 12, padding: 14 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>YES shares</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#FAFAFA', fontWeight: 600 }}>{myYesF.toFixed(4)}</span>
-                      </div>
-                      <button
-                        onClick={() => handleSell(true, myYesF)}
-                        disabled={txPending}
-                        style={{
-                          width: '100%', padding: '10px', background: txPending ? '#1C1C1C' : 'rgba(34,197,94,0.1)',
-                          border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8,
-                          color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
-                          cursor: txPending ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        {txPending ? 'Processing...' : `Sell all YES shares`}
-                      </button>
-                    </div>
-                  )}
-
-                  {hasNo && (
-                    <div style={{ background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 12, padding: 14 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#EF4444' }}>NO shares</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#FAFAFA', fontWeight: 600 }}>{myNoF.toFixed(4)}</span>
-                      </div>
-                      <button
-                        onClick={() => handleSell(false, myNoF)}
-                        disabled={txPending}
-                        style={{
-                          width: '100%', padding: '10px', background: txPending ? '#1C1C1C' : 'rgba(239,68,68,0.1)',
-                          border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8,
-                          color: '#EF4444', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
-                          cursor: txPending ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        {txPending ? 'Processing...' : `Sell all NO shares`}
-                      </button>
-                    </div>
-                  )}
-
-                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444', textAlign: 'center' }}>
-                    Satış fiyatı CPMM havuz oranına göre belirlenir · Fee uygulanır
-                  </p>
+                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333', textAlign: 'center' }}>CPMM slippage applies</p>
                 </div>
               ) : (
-                /* Buy panel */
+                /* ── Buy Panel ── */
                 <>
                   {/* YES / NO buttons */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    {[
-                      { key: 'yes', label: 'YES', pct: yesPercent, color: '#22c55e', bg: 'rgba(34,197,94,' },
-                    ].map(s => null)}
-                    <button onClick={() => setSide('yes')} style={{
-                      padding: '12px 0', borderRadius: 10, cursor: 'pointer',
-                      fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16,
-                      background: side === 'yes' ? 'rgba(34,197,94,0.15)' : '#0A0A0A',
-                      border: `2px solid ${side === 'yes' ? 'rgba(34,197,94,0.5)' : '#1C1C1C'}`,
-                      color: '#22c55e', transition: 'all 0.2s',
-                    }}>
-                      YES <span style={{ fontSize: 13, fontWeight: 500 }}>{yesPercent}¢</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+                    <button onClick={() => setSide('yes')} style={{ padding: '12px 0', borderRadius: 10, cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, background: side === 'yes' ? 'rgba(34,197,94,0.15)' : '#111', border: `1.5px solid ${side === 'yes' ? 'rgba(34,197,94,0.4)' : '#1C1C1C'}`, color: '#22c55e', transition: 'all 0.2s' }}>
+                      YES <span style={{ fontSize: 12, fontWeight: 500 }}>{yesPercent}¢</span>
                     </button>
-                    <button onClick={() => setSide('no')} style={{
-                      padding: '12px 0', borderRadius: 10, cursor: 'pointer',
-                      fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16,
-                      background: side === 'no' ? 'rgba(239,68,68,0.15)' : '#0A0A0A',
-                      border: `2px solid ${side === 'no' ? 'rgba(239,68,68,0.5)' : '#1C1C1C'}`,
-                      color: '#EF4444', transition: 'all 0.2s',
-                    }}>
-                      NO <span style={{ fontSize: 13, fontWeight: 500 }}>{noPercent}¢</span>
+                    <button onClick={() => setSide('no')} style={{ padding: '12px 0', borderRadius: 10, cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, background: side === 'no' ? 'rgba(239,68,68,0.15)' : '#111', border: `1.5px solid ${side === 'no' ? 'rgba(239,68,68,0.4)' : '#1C1C1C'}`, color: '#EF4444', transition: 'all 0.2s' }}>
+                      NO <span style={{ fontSize: 12, fontWeight: 500 }}>{noPercent}¢</span>
                     </button>
                   </div>
-
-                  {/* Order type */}
-                  <div style={{ display: 'flex', background: '#0A0A0A', borderRadius: 8, padding: 3 }}>
-                    {(['market', 'limit'] as const).map(t => (
-                      <button key={t} onClick={() => setOrderType(t)} style={{
-                        flex: 1, padding: '6px 0', borderRadius: 6, border: 'none', cursor: 'pointer',
-                        fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 12, textTransform: 'capitalize',
-                        background: orderType === t ? '#1C1C1C' : 'transparent',
-                        color: orderType === t ? '#FAFAFA' : '#555570', transition: 'all 0.2s',
-                      }}>{t === 'market' ? '⚡ Market' : '📋 Limit'}</button>
-                    ))}
-                  </div>
-
-                  {orderType === 'limit' && (
-                    <div>
-                      <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Limit Price (¢)</label>
-                      <div style={{ background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
-                        <input type="number" min="1" max="99" step="1" placeholder={String(side === 'yes' ? yesPercent : noPercent)} value={limitPrice} onChange={e => setLimitPrice(e.target.value)} style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#FAFAFA', fontFamily: 'var(--font-mono)', fontSize: 13, padding: '10px 0' }} />
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA' }}>¢</span>
-                      </div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 4 }}>Limit orders route as market orders on this AMM</div>
-                    </div>
-                  )}
 
                   {/* Amount */}
-                  <div>
+                  <div style={{ marginBottom: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', textTransform: 'uppercase' }}>Amount (AVAX)</label>
-                      {balance && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>Balance: {parseFloat(balance.formatted).toFixed(3)}</span>}
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555', textTransform: 'uppercase' }}>Amount</span>
+                      {balance && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>Bal: {parseFloat(balance.formatted).toFixed(3)} AVAX</span>}
                     </div>
-                    {/* Quick amounts */}
                     <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
                       {['0.001', '0.01', '0.1', '1'].map(a => (
-                        <button key={a} onClick={() => setAmount(a)} style={{ flex: 1, padding: '5px 0', background: amount === a ? '#1C1C1C' : '#0A0A0A', border: `1px solid ${amount === a ? 'rgba(255,255,255,0.3)' : '#1C1C1C'}`, borderRadius: 6, color: amount === a ? '#FAFAFA' : '#555570', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer' }}>{a}</button>
+                        <button key={a} onClick={() => setAmount(a)} style={{ flex: 1, padding: '5px 0', background: amount === a ? '#1C1C1C' : '#111', border: `1px solid ${amount === a ? '#333' : '#1A1A1A'}`, borderRadius: 6, color: amount === a ? '#FAFAFA' : '#444', fontFamily: 'var(--font-mono)', fontSize: 10, cursor: 'pointer', transition: 'all 0.2s' }}>{a}</button>
                       ))}
                     </div>
-                    <div style={{ background: '#0A0A0A', border: `1px solid ${side === 'yes' ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.3)'}`, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA', marginRight: 6 }}>AVAX</span>
-                      <input type="number" step="0.001" min={MIN_AMOUNT} value={amount} onChange={e => handleAmountChange(e.target.value)} onBlur={handleAmountBlur} style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#FAFAFA', fontFamily: 'var(--font-mono)', fontSize: 14, padding: '10px 0' }} />
-                      {balance && <button onClick={() => { const b = Math.floor(parseFloat(balance.formatted) * 1000) / 1000; setAmount(b.toFixed(3)); }} style={{ background: 'none', border: 'none', color: '#FAFAFA', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer' }}>MAX</button>}
+                    <div style={{ background: '#111', border: `1px solid ${side === 'yes' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`, borderRadius: 10, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#444', marginRight: 6 }}>AVAX</span>
+                      <input type="number" step="0.001" min={MIN_AMOUNT} value={amount} onChange={e => setAmount(e.target.value)} style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#FAFAFA', fontFamily: 'var(--font-mono)', fontSize: 14, padding: '10px 0' }} />
+                      {balance && <button onClick={() => setAmount((Math.floor(parseFloat(balance.formatted) * 1000) / 1000).toFixed(3))} style={{ background: 'none', border: 'none', color: side === 'yes' ? '#22c55e' : '#EF4444', fontFamily: 'var(--font-mono)', fontSize: 10, cursor: 'pointer', fontWeight: 700 }}>MAX</button>}
                     </div>
                   </div>
 
-                  {/* Payout breakdown */}
-                  <div style={{ background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Order Summary</div>
+                  {/* Order summary */}
+                  <div style={{ background: '#111', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Order Summary</div>
                     {[
                       { label: 'Avg price', value: `${(effectivePrice * 100).toFixed(1)}¢` },
-                      { label: 'Shares out', value: `${potentialPayout.toFixed(3)} ${side.toUpperCase()}` },
-                      { label: 'Price impact', value: `${priceImpact.toFixed(1)}%`, color: priceImpact > 5 ? '#F59E0B' : '#8888AA' },
-                      { label: 'Max payout', value: `${maxPayout.toFixed(3)} AVAX`, color: '#FAFAFA' },
-                      { label: 'Potential profit', value: `${potentialProfit > 0 ? '+' : ''}${potentialProfit.toFixed(3)} AVAX`, color: potentialProfit > 0 ? '#22c55e' : '#FAFAFA' },
-                      { label: 'ROI if win', value: `${roi}%`, color: parseFloat(roi) > 0 ? '#22c55e' : '#FAFAFA' },
+                      { label: 'Shares', value: `${sharesOut.toFixed(4)} ${side.toUpperCase()}`, color: side === 'yes' ? '#22c55e' : '#EF4444' },
+                      { label: 'Price impact', value: `${priceImpact.toFixed(1)}%`, color: priceImpact > 5 ? '#F59E0B' : '#555' },
+                      { label: 'Max payout', value: `${sharesOut.toFixed(4)} AVAX`, color: '#FAFAFA' },
+                      { label: 'Potential profit', value: `${potentialProfit > 0 ? '+' : ''}${potentialProfit.toFixed(4)} AVAX`, color: potentialProfit > 0 ? '#22c55e' : '#EF4444' },
+                      { label: 'ROI if win', value: `${roi}%`, color: parseFloat(roi) > 0 ? '#22c55e' : '#EF4444' },
                     ].map(({ label, value, color }) => (
-                      <div key={label} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570' }}>{label}</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: color ?? '#8888AA', fontWeight: 600 }}>{value}</span>
+                      <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#444' }}>{label}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: color ?? '#888', fontWeight: 600 }}>{value}</span>
                       </div>
                     ))}
                     {priceImpact > 5 && (
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '6px 8px', background: 'rgba(245,158,11,0.08)', borderRadius: 6, marginTop: 2 }}>
-                        <AlertCircle size={11} color="#F59E0B" />
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#F59E0B' }}>High price impact — consider smaller trades</span>
+                      <div style={{ display: 'flex', gap: 5, alignItems: 'center', padding: '5px 8px', background: 'rgba(245,158,11,0.06)', borderRadius: 6, marginTop: 4 }}>
+                        <AlertCircle size={10} color="#F59E0B" />
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#F59E0B' }}>High price impact — try smaller amount</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Status messages */}
-                  {txPending && (
-                    <div style={{ padding: '10px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, color: '#F59E0B', fontSize: 12, fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
-                      ⏳ {isPending ? 'Awaiting wallet confirmation...' : 'Confirming on Avalanche...'}
-                    </div>
-                  )}
-                  {isSuccess && (
-                    <div style={{ padding: '10px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 8, color: '#22c55e', fontSize: 12, fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
-                      ✓ Trade confirmed on-chain!
-                    </div>
-                  )}
+                  {/* Status */}
+                  {txPending && <div style={{ padding: '9px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 8, color: '#F59E0B', fontSize: 11, fontFamily: 'var(--font-mono)', textAlign: 'center', marginBottom: 10 }}>{isPending ? 'Awaiting wallet...' : 'Confirming on Avalanche...'}</div>}
+                  {isSuccess && <div style={{ padding: '9px', background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 8, color: '#22c55e', fontSize: 11, fontFamily: 'var(--font-mono)', textAlign: 'center', marginBottom: 10 }}>Trade confirmed!</div>}
 
                   {/* Buy button */}
                   {!isConnected ? (
                     <div style={{ textAlign: 'center' }}><ConnectButton /></div>
                   ) : market.resolved ? (
-                    <div style={{ padding: '12px', background: '#1C1C1C', borderRadius: 10, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570' }}>Market resolved — trading closed</div>
+                    <div style={{ padding: '12px', background: '#111', borderRadius: 10, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 11, color: '#444' }}>Market resolved — trading closed</div>
                   ) : (
-                    <button onClick={handleBuy} disabled={txPending} style={{
-                      width: '100%', padding: '14px', border: 'none', borderRadius: 10,
-                      background: side === 'yes' ? '#22c55e' : '#EF4444',
-                      color: 'white', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
-                      cursor: txPending ? 'wait' : 'pointer', opacity: txPending ? 0.7 : 1,
-                      boxShadow: `0 0 20px ${side === 'yes' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
-                    }}>
+                    <button onClick={handleBuy} disabled={txPending} style={{ width: '100%', padding: '14px', border: 'none', borderRadius: 12, background: side === 'yes' ? '#22c55e' : '#EF4444', color: 'white', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, cursor: txPending ? 'wait' : 'pointer', opacity: txPending ? 0.7 : 1, transition: 'all 0.2s' }}>
                       {isPending ? 'Awaiting wallet...' : isConfirming ? 'Confirming...' : `Buy ${side.toUpperCase()} — ${amount} AVAX`}
                     </button>
                   )}
@@ -1000,14 +688,15 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
               )}
             </div>
           </div>
+
+          {/* Snowtrace link */}
+          <a href={`https://testnet.snowtrace.io/address/${contracts.PredictionMarket}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', background: '#0D0D0D', border: '1px solid #1C1C1C', borderRadius: 10, color: '#444', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontSize: 10, transition: 'color 0.2s' }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#FAFAFA'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#444'}>
+            <ExternalLink size={11} /> View contract on Snowtrace
+          </a>
         </div>
       </div>
-
-      <style>{`
-        @media (max-width: 900px) {
-          .market-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
     </div>
   );
 }
