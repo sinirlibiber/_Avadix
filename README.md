@@ -41,23 +41,40 @@ Avadix is a fully decentralized prediction market and community governance platf
 
 > *"Don't just watch the future unfold — bet on it."*
 
+- **CLOB (Central Limit Order Book)** — Currently in **active development** 🔨
+- **Professional-grade trading** — Limit orders, market depth, maker rebates
+- **Institutional liquidity** — Designed for high-volume traders and market makers
+- **Hybrid model** — Will combine CLOB efficiency with AMM liquidity guarantees
+
+> *"Don't just watch the future unfold — bet on it."*
+
 Three smart contracts handle all core platform logic without any centralized intermediary:
-- **AvadixPredictionMarket** — AMM-based YES/NO trading and reward distribution
+
+- **AvadixPredictionMarket** — AMM-based YES/NO trading (v3.1) with CLOB upgrade in development (v4.0)
 - **AvadixDAO** — On-chain governance, proposal creation and community voting
 - **AvadixDonations** — AVAX fundraising campaigns with transparent on-chain tracking
-
 ---
 
 ##  Features
 
 ###  Prediction Markets
-- Binary YES/NO markets with live AMM pricing
+- Binary YES/NO markets with **Constant Product AMM (CPMM)** — `x × y = k`
+- **Buy and sell** positions anytime before market resolution
+- Slippage protection on all trades (`minSharesOut` / `minAmountOut`)
+- Real-time price discovery via pool ratios
+- Virtual liquidity for instant 50/50 pricing at market creation
 - Filter by category: **Crypto · AVAX · Politics · Sports · Tech**
 - Sort by volume, trending, or recency
-- Real-time price discovery via constant-product AMM (x × y = k)
-- Market suggestion flow — community proposes, team publishes on-chain
 - Claim rewards after market resolution
 
+### **Coming Soon: CLOB (v4.0)**
+- **Central Limit Order Book** — Professional-grade trading infrastructure
+- **Limit orders** — Set your own price and wait for fills
+- **Market depth visualization** — See all bids and asks in real-time
+- **Maker rebates** — Earn fees for providing liquidity
+- **Reduced slippage** — Better pricing for large trades
+- **Professional API access** — For algorithmic traders and market makers
+  
 ###  Portfolio Dashboard
 - Track all open positions sourced from on-chain contract state
 - Real-time PnL, win rate, and total trade stats
