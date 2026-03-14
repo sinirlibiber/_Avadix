@@ -6,7 +6,7 @@ import DAOABI from './AvadixDAO.json'
 import DonationsABI from './AvadixDonations.json'
 
 export const FUJI_ADDRESSES = {
-  PredictionMarket: '0xc6dcF18054b8cAC46F242e87b0758325DCC8B853' as `0x${string}`,
+  PredictionMarket: '0x8c2436412BF7f42b1AbC906e0b5F880773B9C69F' as `0x${string}`,
   AvadixDAO:        '0xa70770942ECba3aBCEB0096a824e94b2FB01fA27' as `0x${string}`,
   AvadixDonations:  '0xC7f1D448570f052aA879326ec3BA60C20005Fcd2' as `0x${string}`,
 }

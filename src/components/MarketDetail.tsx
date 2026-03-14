@@ -428,11 +428,23 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
     if (!isConnected) return;
     const amt = Math.round((parseFloat(amount) || MIN_AMOUNT) * 1000) / 1000;
     if (amt < MIN_AMOUNT) { alert(`Min ${MIN_AMOUNT} AVAX`); return; }
+    // minShares: %2 slippage toleransı — 0 göndermek de çalışır ama koruma sağlamaz
+    const minShares = BigInt(0); // UI getSharesOut preview eklenince burası dolacak
     writeContract({
       address: contracts.PredictionMarket, abi: MARKET_ABI,
       functionName: side === 'yes' ? 'buyYes' : 'buyNo',
-      args: [BigInt(marketId)],
+      args: [BigInt(marketId), minShares],
       value: parseEther(amt.toFixed(3)),
+    });
+  };
+
+  const handleSell = (isYes: boolean, sharesAmt: number) => {
+    if (!isConnected || sharesAmt <= 0) return;
+    const sharesWei = BigInt(Math.floor(sharesAmt * 1e18));
+    writeContract({
+      address: contracts.PredictionMarket, abi: MARKET_ABI,
+      functionName: 'sellShares',
+      args: [BigInt(marketId), isYes, sharesWei, BigInt(0)], // minOut=0 şimdilik
     });
   };
 
@@ -786,7 +798,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
             <div style={{ display: 'flex' }}>
               {[
                 { key: 'buy', label: 'Buy', color: '#22c55e' },
-                { key: 'sell', label: 'Sell (at resolution)', color: '#FAFAFA' },
+                { key: 'sell', label: 'Sell', color: '#FAFAFA' },
               ].map(t => (
                 <button key={t.key} onClick={() => setTradeTab(t.key as 'buy' | 'sell')} style={{
                   flex: 1, padding: '14px 0', background: tradeTab === t.key ? (t.key === 'buy' ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.04)') : 'transparent',
@@ -801,44 +813,66 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
 
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
               {tradeTab === 'sell' ? (
-                /* Sell panel - explain AMM model */
-                <div>
-                  <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: 12, padding: '16px', marginBottom: 14 }}>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                      <Info size={14} color="#F59E0B" style={{ flexShrink: 0, marginTop: 1 }} />
-                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: '#F59E0B' }}>AMM Pool Model</span>
+                /* Sell panel — CPMM ile gerçek satış */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #222', borderRadius: 10, padding: '10px 14px' }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', marginBottom: 6 }}>CPMM — Market bitmeden çıkış</div>
+                    <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: '#8888AA', lineHeight: 1.6 }}>
+                      Shares'ini havuza iade ederek AVAX alırsın. Büyük satışlar slippage yaratır — önizleme için küçük tutarlarla test et.
                     </div>
-                    <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: '#8888AA', lineHeight: 1.6, margin: 0 }}>
-                      Avadix uses an <strong style={{ color: '#FAFAFA' }}>AMM (Automated Market Maker)</strong> model. Unlike Polymarket's orderbook, your shares are locked in the liquidity pool until the market resolves.
-                    </p>
-                    <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: '#8888AA', lineHeight: 1.6, margin: '8px 0 0' }}>
-                      When the outcome is decided, winning shares are redeemed 1:1 against the pool. You earn a portion of the total pool proportional to your shares.
-                    </p>
                   </div>
-
-                  {(hasYes || hasNo) && (
-                    <div style={{ background: '#0A0A0A', borderRadius: 12, padding: '14px' }}>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', textTransform: 'uppercase', marginBottom: 10 }}>Your expected payout if you win</div>
-                      {hasYes && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA' }}>{myYesF.toFixed(3)} YES shares</span>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#22c55e', fontWeight: 600 }}>~{(myYesF * (totalPoolF / (parseFloat(formatEther(yesPool)) || 1))).toFixed(3)} AVAX</span>
-                        </div>
-                      )}
-                      {hasNo && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8888AA' }}>{myNoF.toFixed(3)} NO shares</span>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#FAFAFA', fontWeight: 600 }}>~{(myNoF * (totalPoolF / (parseFloat(formatEther(noPool)) || 1))).toFixed(3)} AVAX</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
 
                   {!hasYes && !hasNo && (
                     <div style={{ textAlign: 'center', padding: '20px 0', color: '#555570', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-                      You have no position in this market
+                      No position to sell
                     </div>
                   )}
+
+                  {hasYes && (
+                    <div style={{ background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 12, padding: 14 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e' }}>YES shares</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#FAFAFA', fontWeight: 600 }}>{myYesF.toFixed(4)}</span>
+                      </div>
+                      <button
+                        onClick={() => handleSell(true, myYesF)}
+                        disabled={txPending}
+                        style={{
+                          width: '100%', padding: '10px', background: txPending ? '#1C1C1C' : 'rgba(34,197,94,0.1)',
+                          border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8,
+                          color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
+                          cursor: txPending ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {txPending ? 'Processing...' : `Sell all YES shares`}
+                      </button>
+                    </div>
+                  )}
+
+                  {hasNo && (
+                    <div style={{ background: '#0A0A0A', border: '1px solid #1C1C1C', borderRadius: 12, padding: 14 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#EF4444' }}>NO shares</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#FAFAFA', fontWeight: 600 }}>{myNoF.toFixed(4)}</span>
+                      </div>
+                      <button
+                        onClick={() => handleSell(false, myNoF)}
+                        disabled={txPending}
+                        style={{
+                          width: '100%', padding: '10px', background: txPending ? '#1C1C1C' : 'rgba(239,68,68,0.1)',
+                          border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8,
+                          color: '#EF4444', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
+                          cursor: txPending ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {txPending ? 'Processing...' : `Sell all NO shares`}
+                      </button>
+                    </div>
+                  )}
+
+                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444', textAlign: 'center' }}>
+                    Satış fiyatı CPMM havuz oranına göre belirlenir · Fee uygulanır
+                  </p>
                 </div>
               ) : (
                 /* Buy panel */
