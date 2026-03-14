@@ -255,8 +255,6 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
   else if (geckoPrice !== null) livePrice = geckoPrice;
 
   const { trades, loading: tradesLoading } = useMarketTrades(marketId);
-  const [nowT, setNowT] = useState(Date.now());
-  useEffect(() => { setNowT(Date.now()); }, []);
 
   const { writeContract, data: txHash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -310,7 +308,9 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
   };
   const handleSell = (isYes: boolean, sharesAmt: number) => {
     if (!isConnected || sharesAmt <= 0) return;
-    writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'sellShares', args: [BigInt(marketId), isYes, BigInt(Math.floor(sharesAmt * 1e18)), BigInt(0)] });
+    // position'dan doğrudan BigInt olarak al — float hatası yok
+    const sharesWei = isYes ? yesShares : noShares;
+    writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'sellShares', args: [BigInt(marketId), isYes, sharesWei, BigInt(0)] });
   };
   const handleClaim = () => {
     writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'claimReward', args: [BigInt(marketId)] });
@@ -466,7 +466,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
             </div>
 
             {/* Chart */}
-            <div style={{ display: tab === 'chart' ? 'block' : 'none', padding: '16px 20px 12px' }}>
+            {tab === 'chart' && <div style={{ padding: '16px 20px 12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', textTransform: 'uppercase', letterSpacing: '0.06em' }}>YES probability</span>
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -476,10 +476,10 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                 </div>
               </div>
               <PriceChart trades={trades} yesPercent={yesPercent} loading={tradesLoading} range={chartRange} />
-            </div>
+            </div>}
 
             {/* Depth */}
-            <div style={{ display: tab === 'depth' ? 'block' : 'none', paddingTop: 4 }}>
+            {tab === 'depth' && <div style={{ paddingTop: 4 }}>
               <div style={{ padding: '10px 16px 6px', display: 'flex', gap: 6, alignItems: 'center' }}>
                 <Info size={11} color="#444" />
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>CPMM pool depth</span>
@@ -488,7 +488,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
             </div>
 
             {/* Activity */}
-            <div style={{ display: tab === 'activity' ? 'block' : 'none' }}>
+            {tab === 'activity' && <div>
               <div style={{ padding: '10px 16px 6px', display: 'flex', gap: 6, alignItems: 'center', borderBottom: '1px solid #111' }}>
                 <Activity size={11} color="#444" />
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>Recent trades · {trades.length} total</span>
@@ -513,10 +513,10 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                   ))}
                 </div>
               )}
-            </div>
+            </div>}
 
             {/* Top Holders */}
-            <div style={{ display: tab === 'holders' ? 'block' : 'none' }}>
+            {tab === 'holders' && <div>
               <div style={{ padding: '10px 16px 6px', display: 'grid', gridTemplateColumns: '18px 1fr auto 60px', gap: 10, borderBottom: '1px solid #111' }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase' }}>#</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase' }}>Address</span>
@@ -524,7 +524,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase', textAlign: 'right' }}>Value</span>
               </div>
               <TopHolders trades={trades} yesPercent={yesPercent} />
-            </div>
+            </div>}
           </div>
 
           {/* ── Resolve banner ── */}
