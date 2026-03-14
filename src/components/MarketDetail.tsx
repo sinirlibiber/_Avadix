@@ -45,7 +45,7 @@ interface TradeEvent {
   blockNumber: number; timestamp: number; yesProb: number;
 }
 
-function useMarketTrades(marketId: number) {
+function useMarketTrades(marketId: number, refreshKey = 0) {
   const [trades, setTrades] = useState<TradeEvent[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -62,10 +62,12 @@ function useMarketTrades(marketId: number) {
         for (const log of json.result) {
           try {
             const trader = '0x' + log.topics[2].slice(26);
-            const isYes = log.topics[3].endsWith('1');
+            // isYes, amount, shares indexed değil — data içinde
             const data = log.data.replace('0x', '');
-            const amountF = Number(BigInt('0x' + data.slice(0, 64))) / 1e18;
-            const sharesF = Number(BigInt('0x' + data.slice(64, 128))) / 1e18;
+            // data layout: isYes(bool,32bytes) + amount(uint256,32bytes) + shares(uint256,32bytes)
+            const isYes = data.slice(62, 64) === '01';
+            const amountF = Number(BigInt('0x' + data.slice(64, 128))) / 1e18;
+            const sharesF = Number(BigInt('0x' + data.slice(128, 192))) / 1e18;
             const rawProb = sharesF > 0 ? Math.min(99, Math.max(1, Math.round((amountF / sharesF) * 100))) : 50;
             parsed.push({ hash: log.transactionHash, trader, isYes, amount: amountF, shares: sharesF, blockNumber: parseInt(log.blockNumber, 16), timestamp: parseInt(log.timeStamp, 16), yesProb: isYes ? rawProb : 100 - rawProb });
           } catch { /**/ }
@@ -77,7 +79,7 @@ function useMarketTrades(marketId: number) {
     }
     load();
     return () => { c = true; };
-  }, [marketId]);
+  }, [marketId, refreshKey]);
   return { trades, loading };
 }
 
@@ -235,6 +237,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
   const [amount, setAmount]       = useState('0.01');
   const [chartRange, setChartRange] = useState<'1D' | '1W' | '1M' | 'ALL'>('ALL');
   const [now, setNow]             = useState(Date.now());
+  const [tradesKey, setTradesKey] = useState(0);
 
   useEffect(() => { const iv = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(iv); }, []);
 
@@ -254,11 +257,24 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
   if (oraclePrice && !clError) livePrice = Number(oraclePrice[0]) / 10 ** oraclePrice[1];
   else if (geckoPrice !== null) livePrice = geckoPrice;
 
-  const { trades, loading: tradesLoading } = useMarketTrades(marketId);
+  const { trades, loading: tradesLoading } = useMarketTrades(marketId, tradesKey);
+
+  // Kontrat view ile gerçek getSharesOut önizlemesi
+  const amtWei = (() => { try { return parseEther(String(Math.max(MIN_AMOUNT, parseFloat(amount) || MIN_AMOUNT))); } catch { return parseEther('0.001'); } })();
+  const { data: sharesOutData } = useReadContract({
+    address: contracts.PredictionMarket, abi: MARKET_ABI,
+    functionName: 'getSharesOut',
+    args: [BigInt(marketId), side === 'yes', amtWei],
+    query: { enabled: !!market && !market.resolved },
+  }) as { data: [bigint, bigint, bigint] | undefined };
+
+  const realSharesOut   = sharesOutData ? Number(sharesOutData[0]) / 1e18 : null;
+  const realEffPrice    = sharesOutData ? Number(sharesOutData[1]) / 1e18 : null;
+  const realPriceImpact = sharesOutData ? Number(sharesOutData[2]) / 1e18 * 100 : null;
 
   const { writeContract, data: txHash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
-  useEffect(() => { if (isSuccess) refetch(); }, [isSuccess]);
+  useEffect(() => { if (isSuccess) { refetch(); setTimeout(() => setTradesKey(k => k + 1), 2000); } }, [isSuccess]);
 
   if (!market?.exists) return (
     <div style={{ maxWidth: 1280, margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
@@ -308,13 +324,15 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
   };
   const handleSell = (isYes: boolean, sharesAmt: number) => {
     if (!isConnected || sharesAmt <= 0) return;
-    // sharesAmt float — BigInt dönüşümü için string üzerinden parseEther kullan
-    // Tam satış durumunda (tüm shares) doğrudan position BigInt'ini kullan
-    const allShares = isYes ? myYesF : myNoF;
-    const isFullSell = Math.abs(sharesAmt - allShares) < 0.000001;
-    const sharesWei = isFullSell
-      ? (isYes ? yesShares : noShares)
-      : BigInt(Math.floor(sharesAmt * 1e15)) * BigInt(1000); // 1e18 için güvenli
+    // CPMM sınırı: sharesIn < counterPool + VIRTUAL_LIQUIDITY
+    // counterPool = isYes satışta noPool, NO satışta yesPool
+    const counterVirtual = (isYes ? noPoolF : yesPoolF) + 0.1;
+    // Güvenli maksimum: counterVirtual'ın %99'u
+    const safeMax = counterVirtual * 0.99;
+    const safeSell = Math.min(sharesAmt, safeMax);
+    if (safeSell <= 0) return;
+    // Float → BigInt: 1e15 * 1000 = 1e18, overflow yok
+    const sharesWei = BigInt(Math.floor(safeSell * 1e15)) * BigInt(1000);
     writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'sellShares', args: [BigInt(marketId), isYes, sharesWei, BigInt(0)] });
   };
   const handleClaim = () => {
@@ -675,37 +693,61 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                     </div>
                   </div>
 
-                  {/* To Win + Order summary */}
-                  <div style={{ background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 10, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#555', textTransform: 'uppercase', marginBottom: 3 }}>To Win</div>
-                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: side === 'yes' ? '#22c55e' : '#EF4444' }}>{sharesOut.toFixed(4)} <span style={{ fontSize: 12, fontWeight: 500, color: '#666' }}>AVAX</span></div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#555', textTransform: 'uppercase', marginBottom: 3 }}>ROI</div>
-                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: parseFloat(roi) > 0 ? '#22c55e' : '#EF4444' }}>{roi}%</div>
-                    </div>
-                  </div>
-                  <div style={{ background: '#111', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
-                    {[
-                      { label: 'Avg price', value: `${(effectivePrice * 100).toFixed(1)}¢` },
-                      { label: 'Shares out', value: `${sharesOut.toFixed(4)} ${side.toUpperCase()}`, color: side === 'yes' ? '#22c55e' : '#EF4444' },
-                      { label: 'Price impact', value: `${priceImpact.toFixed(1)}%`, color: priceImpact > 5 ? '#F59E0B' : '#555' },
-                      { label: 'Est. fee', value: `~${(amt * 0.002).toFixed(5)} AVAX`, color: '#555' },
-                      { label: 'Potential profit', value: `${potentialProfit > 0 ? '+' : ''}${potentialProfit.toFixed(4)} AVAX`, color: potentialProfit > 0 ? '#22c55e' : '#EF4444' },
-                    ].map(({ label, value, color }) => (
-                      <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#444' }}>{label}</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: color ?? '#888', fontWeight: 600 }}>{value}</span>
-                      </div>
-                    ))}
-                    {priceImpact > 5 && (
-                      <div style={{ display: 'flex', gap: 5, alignItems: 'center', padding: '5px 8px', background: 'rgba(245,158,11,0.06)', borderRadius: 6, marginTop: 4 }}>
-                        <AlertCircle size={10} color="#F59E0B" />
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#F59E0B' }}>High price impact — try smaller amount</span>
-                      </div>
-                    )}
-                  </div>
+                  {/* To Win + Order summary — kontrat view'dan gerçek hesap */}
+                  {(() => {
+                    const displayShares = realSharesOut ?? sharesOut;
+                    const displayImpact = realPriceImpact ?? priceImpact;
+                    const displayPrice  = realEffPrice !== null ? realEffPrice * 100 : effectivePrice * 100;
+                    const displayProfit = displayShares - amt;
+                    const displayRoi    = amt > 0 ? ((displayProfit / amt) * 100).toFixed(1) : '0';
+                    const sideColor     = side === 'yes' ? '#22c55e' : '#EF4444';
+                    return (
+                      <>
+                        {/* Big To Win card */}
+                        <div style={{ background: side === 'yes' ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${side === 'yes' ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)'}`, borderRadius: 12, padding: '14px 16px', marginBottom: 10 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                            <div>
+                              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>To Win if {side.toUpperCase()}</div>
+                              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26, color: sideColor, lineHeight: 1 }}>
+                                {displayShares.toFixed(4)} <span style={{ fontSize: 13, fontWeight: 500, color: '#666' }}>AVAX</span>
+                              </div>
+                              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555', marginTop: 3 }}>
+                                {displayShares.toFixed(4)} shares · {(displayShares / (side === 'yes' ? (parseFloat(formatEther(market.totalYesShares || BigInt(1))) + displayShares) : (parseFloat(formatEther(market.totalNoShares || BigInt(1))) + displayShares)) * 100).toFixed(1)}% of pool
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#555', textTransform: 'uppercase', marginBottom: 4 }}>ROI</div>
+                              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: parseFloat(displayRoi) > 0 ? '#22c55e' : '#EF4444' }}>{parseFloat(displayRoi) > 0 ? '+' : ''}{displayRoi}%</div>
+                              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555', marginTop: 3 }}>
+                                {displayProfit > 0 ? '+' : ''}{displayProfit.toFixed(4)} AVAX profit
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Detail rows */}
+                        <div style={{ background: '#111', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
+                          {[
+                            { label: 'Avg price', value: `${displayPrice.toFixed(1)}¢` },
+                            { label: 'Shares out', value: `${displayShares.toFixed(4)} ${side.toUpperCase()}`, color: sideColor },
+                            { label: 'Price impact', value: `${displayImpact.toFixed(1)}%`, color: displayImpact > 5 ? '#F59E0B' : '#555' },
+                            { label: 'Est. gas fee', value: '~0.0002 AVAX', color: '#444' },
+                          ].map(({ label, value, color }) => (
+                            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#444' }}>{label}</span>
+                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: color ?? '#888', fontWeight: 600 }}>{value}</span>
+                            </div>
+                          ))}
+                          {displayImpact > 5 && (
+                            <div style={{ display: 'flex', gap: 5, alignItems: 'center', padding: '5px 8px', background: 'rgba(245,158,11,0.06)', borderRadius: 6, marginTop: 4 }}>
+                              <AlertCircle size={10} color="#F59E0B" />
+                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#F59E0B' }}>High price impact — try smaller amount</span>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
 
                   {/* Status */}
                   {txPending && <div style={{ padding: '9px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 8, color: '#F59E0B', fontSize: 11, fontFamily: 'var(--font-mono)', textAlign: 'center', marginBottom: 10 }}>{isPending ? 'Awaiting wallet...' : 'Confirming on Avalanche...'}</div>}
