@@ -101,6 +101,48 @@ Three smart contracts handle all core platform logic without any centralized int
 
 ---
 
+##  Testing
+
+Avadix uses [Foundry](https://book.getfoundry.sh/) for comprehensive smart contract testing.
+
+### Test Coverage
+
+The test suite covers:
+- ✅ Market creation (success & failure cases)
+- ✅ YES/NO purchases with slippage protection
+- ✅ Share selling with liquidity validation
+- ✅ CPMM mathematical calculations
+- ✅ Market resolution (manual & oracle)
+- ✅ Reward distribution
+- ✅ Edge cases (zero amounts, overflow, virtual liquidity)
+
+### Running Tests
+
+```bash
+# Install Foundry (if not already installed)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Clone the repository
+git clone https://github.com/sinirlibiber/Avadix_.git
+cd Avadix_
+
+# Run tests
+forge test
+
+# Run tests with gas report
+forge test --gas-report
+
+# Run tests with verbosity
+forge test -vvv
+
+# Run specific test
+forge test --match-test test_BuyYes_Success
+
+test/
+├── AvadixPredictionMarket.t.sol  # Main prediction market tests (21 tests)
+
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -187,6 +229,10 @@ avadix/
 │           ├── AvadixPredictionMarket.json
 │           ├── AvadixDAO.json
 │           └── AvadixDonations.json
+├── test/
+│   └── AvadixPredictionMarket.t.sol  # 21 comprehensive tests
+├── script/                           # Deployment scripts
+├── lib/                              # Dependencies
 ├── next.config.js
 ├── tailwind.config.ts
 └── package.json
