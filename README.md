@@ -268,7 +268,7 @@ Currency:   AVAX
 |---|---|
 | **Q1-2 2026 ✅** | Deploy 3 smart contracts on Fuji Testnet, launch avadix.xyz |
 | **Q3 2026** | Security audit, Chainlink oracle integration, community beta |
-| **Q3-4 2026** | **CLOB (Central Limit Order Book) development** |  **In Development** |
+| **Q3-4 2026** | **CLOB (Central Limit Order Book) In Development** |  **In Development** |
 | **Q4 2026** | Avalanche Mainnet deployment, TOKEN governance token launch |
 | **Q1 2026** | Leaderboard, DAO treasury, liquidity mining rewards |
 
