@@ -308,8 +308,13 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
   };
   const handleSell = (isYes: boolean, sharesAmt: number) => {
     if (!isConnected || sharesAmt <= 0) return;
-    // position'dan doğrudan BigInt olarak al — float hatası yok
-    const sharesWei = isYes ? yesShares : noShares;
+    // sharesAmt float — BigInt dönüşümü için string üzerinden parseEther kullan
+    // Tam satış durumunda (tüm shares) doğrudan position BigInt'ini kullan
+    const allShares = isYes ? myYesF : myNoF;
+    const isFullSell = Math.abs(sharesAmt - allShares) < 0.000001;
+    const sharesWei = isFullSell
+      ? (isYes ? yesShares : noShares)
+      : BigInt(Math.floor(sharesAmt * 1e15)) * BigInt(1000); // 1e18 için güvenli
     writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'sellShares', args: [BigInt(marketId), isYes, sharesWei, BigInt(0)] });
   };
   const handleClaim = () => {
@@ -589,28 +594,52 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                     <div style={{ textAlign: 'center', padding: '28px 0', color: '#444', fontFamily: 'var(--font-mono)', fontSize: 12 }}>No position to sell</div>
                   ) : (
                     <>
-                      {hasYes && (
-                        <div style={{ background: '#111', borderRadius: 12, padding: '12px 14px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#22c55e' }}>YES · {myYesF.toFixed(4)} shares</span>
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>~{(myYesF * (yesPercent / 100)).toFixed(4)} AVAX</span>
+                      {hasYes && (() => {
+                        // CPMM sınırı: sharesIn < noPool + VIRTUAL_LIQUIDITY
+                        const maxSellable = Math.max(0, noPoolF + 0.1 - 0.0001);
+                        const canSellAll = myYesF < maxSellable;
+                        const sellAmt = canSellAll ? myYesF : maxSellable * 0.99;
+                        // Estimated AVAX out
+                        const estOut = sellAmt > 0 ? Math.max(0, noPoolF + 0.1 - (yesPoolF + 0.1) * (noPoolF + 0.1) / (yesPoolF + 0.1 + sellAmt)) : 0;
+                        return (
+                          <div style={{ background: '#111', borderRadius: 12, padding: '12px 14px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#22c55e' }}>YES · {myYesF.toFixed(4)} shares</span>
+                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>~{estOut.toFixed(4)} AVAX</span>
+                            </div>
+                            {!canSellAll && (
+                              <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 6, padding: '5px 8px', marginBottom: 8 }}>
+                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#F59E0B' }}>⚠ Pool liquidity low — max sellable: {maxSellable.toFixed(4)}</span>
+                              </div>
+                            )}
+                            <button onClick={() => handleSell(true, sellAmt)} disabled={txPending || sellAmt <= 0} style={{ width: '100%', padding: '9px', background: txPending ? '#1C1C1C' : 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, cursor: (txPending || sellAmt <= 0) ? 'not-allowed' : 'pointer', opacity: sellAmt <= 0 ? 0.4 : 1 }}>
+                              {txPending ? 'Processing...' : canSellAll ? 'Sell all YES shares' : `Sell max (${sellAmt.toFixed(4)})`}
+                            </button>
                           </div>
-                          <button onClick={() => handleSell(true, myYesF)} disabled={txPending} style={{ width: '100%', padding: '9px', background: txPending ? '#1C1C1C' : 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, color: '#22c55e', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, cursor: txPending ? 'not-allowed' : 'pointer' }}>
-                            {txPending ? 'Processing...' : 'Sell YES shares'}
-                          </button>
-                        </div>
-                      )}
-                      {hasNo && (
-                        <div style={{ background: '#111', borderRadius: 12, padding: '12px 14px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#EF4444' }}>NO · {myNoF.toFixed(4)} shares</span>
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>~{(myNoF * (noPercent / 100)).toFixed(4)} AVAX</span>
+                        );
+                      })()}
+                      {hasNo && (() => {
+                        const maxSellable = Math.max(0, yesPoolF + 0.1 - 0.0001);
+                        const canSellAll = myNoF < maxSellable;
+                        const sellAmt = canSellAll ? myNoF : maxSellable * 0.99;
+                        const estOut = sellAmt > 0 ? Math.max(0, yesPoolF + 0.1 - (noPoolF + 0.1) * (yesPoolF + 0.1) / (noPoolF + 0.1 + sellAmt)) : 0;
+                        return (
+                          <div style={{ background: '#111', borderRadius: 12, padding: '12px 14px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#EF4444' }}>NO · {myNoF.toFixed(4)} shares</span>
+                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>~{estOut.toFixed(4)} AVAX</span>
+                            </div>
+                            {!canSellAll && (
+                              <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 6, padding: '5px 8px', marginBottom: 8 }}>
+                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#F59E0B' }}>⚠ Pool liquidity low — max sellable: {maxSellable.toFixed(4)}</span>
+                              </div>
+                            )}
+                            <button onClick={() => handleSell(false, sellAmt)} disabled={txPending || sellAmt <= 0} style={{ width: '100%', padding: '9px', background: txPending ? '#1C1C1C' : 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, color: '#EF4444', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, cursor: (txPending || sellAmt <= 0) ? 'not-allowed' : 'pointer', opacity: sellAmt <= 0 ? 0.4 : 1 }}>
+                              {txPending ? 'Processing...' : canSellAll ? 'Sell all NO shares' : `Sell max (${sellAmt.toFixed(4)})`}
+                            </button>
                           </div>
-                          <button onClick={() => handleSell(false, myNoF)} disabled={txPending} style={{ width: '100%', padding: '9px', background: txPending ? '#1C1C1C' : 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, color: '#EF4444', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, cursor: txPending ? 'not-allowed' : 'pointer' }}>
-                            {txPending ? 'Processing...' : 'Sell NO shares'}
-                          </button>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </>
                   )}
                   <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333', textAlign: 'center' }}>CPMM slippage applies</p>
@@ -646,18 +675,26 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
                     </div>
                   </div>
 
-                  {/* Order summary */}
-                  <div style={{ background: '#111', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Order Summary</div>
+                  {/* To Win + Order summary */}
+                  <div style={{ background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 10, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#555', textTransform: 'uppercase', marginBottom: 3 }}>To Win</div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: side === 'yes' ? '#22c55e' : '#EF4444' }}>{sharesOut.toFixed(4)} <span style={{ fontSize: 12, fontWeight: 500, color: '#666' }}>AVAX</span></div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#555', textTransform: 'uppercase', marginBottom: 3 }}>ROI</div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: parseFloat(roi) > 0 ? '#22c55e' : '#EF4444' }}>{roi}%</div>
+                    </div>
+                  </div>
+                  <div style={{ background: '#111', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
                     {[
                       { label: 'Avg price', value: `${(effectivePrice * 100).toFixed(1)}¢` },
-                      { label: 'Shares', value: `${sharesOut.toFixed(4)} ${side.toUpperCase()}`, color: side === 'yes' ? '#22c55e' : '#EF4444' },
+                      { label: 'Shares out', value: `${sharesOut.toFixed(4)} ${side.toUpperCase()}`, color: side === 'yes' ? '#22c55e' : '#EF4444' },
                       { label: 'Price impact', value: `${priceImpact.toFixed(1)}%`, color: priceImpact > 5 ? '#F59E0B' : '#555' },
-                      { label: 'Max payout', value: `${sharesOut.toFixed(4)} AVAX`, color: '#FAFAFA' },
+                      { label: 'Est. fee', value: `~${(amt * 0.002).toFixed(5)} AVAX`, color: '#555' },
                       { label: 'Potential profit', value: `${potentialProfit > 0 ? '+' : ''}${potentialProfit.toFixed(4)} AVAX`, color: potentialProfit > 0 ? '#22c55e' : '#EF4444' },
-                      { label: 'ROI if win', value: `${roi}%`, color: parseFloat(roi) > 0 ? '#22c55e' : '#EF4444' },
                     ].map(({ label, value, color }) => (
-                      <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#444' }}>{label}</span>
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: color ?? '#888', fontWeight: 600 }}>{value}</span>
                       </div>
