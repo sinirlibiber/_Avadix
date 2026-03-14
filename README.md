@@ -225,7 +225,7 @@ avadix/
 │       ├── wagmi.ts                # Wagmi + RainbowKit config
 │       ├── data.ts                 # Types + helpers
 │       └── contracts/
-│           ├── addresses.ts        # Contract addresses (Fuji + Mainnet)
+│           ├── addresses.ts        # Contract addresses 
 │           ├── AvadixPredictionMarket.json
 │           ├── AvadixDAO.json
 │           └── AvadixDonations.json
