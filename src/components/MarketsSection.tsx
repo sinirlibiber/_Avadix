@@ -52,7 +52,7 @@ function MarketGrid({ marketIds, search, category, sortBy, filterStatus }: {
   });
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {sorted.map(id => (
         // @ts-ignore
         <MarketCard

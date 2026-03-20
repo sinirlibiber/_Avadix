@@ -188,24 +188,23 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, fil
       <div
         style={{
           background: '#111111', border: '1px solid #1C1C1C',
-          borderRadius: 20, overflow: 'hidden', transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
-          display: 'flex', flexDirection: 'column', cursor: 'pointer', height: '100%',
+          borderRadius: 14, overflow: 'hidden', transition: 'all 0.25s',
+          display: 'flex', flexDirection: 'row', cursor: 'pointer', height: '100%',
+          padding: '14px 16px', gap: 14, alignItems: 'center',
         }}
         onMouseEnter={e => {
           const el = e.currentTarget as HTMLElement;
           el.style.borderColor = 'rgba(255,255,255,0.12)';
-          el.style.transform = 'translateY(-4px)';
-          el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.4), 0 0 30px #1C1C1C';
+          el.style.background = '#161616';
         }}
         onMouseLeave={e => {
           const el = e.currentTarget as HTMLElement;
           el.style.borderColor = '#1C1C1C';
-          el.style.transform = 'none';
-          el.style.boxShadow = 'none';
+          el.style.background = '#111111';
         }}
       >
-        {/* ── Görsel alanı ── */}
-        <div style={{ width: '100%', height: 120, position: 'relative', overflow: 'hidden', background: '#0F0F20', flexShrink: 0 }}>
+        {/* ── Görsel (kare, sol taraf) ── */}
+        <div style={{ width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#0A0A0A', border: '1px solid #1C1C1C' }}>
           {hasImage ? (
             <img
               src={imageURI}
@@ -215,78 +214,61 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, fil
             />
           ) : (
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg, ${catColor}15, rgba(59,130,246,0.08))` }}>
-              <div style={{ fontSize: 36, opacity: 0.4 }}>
-                {cat === 'crypto' ? '🔮' : cat === 'sports' ? '⚽' : cat === 'politics' ? '🗳️' : cat === 'tech' ? '💻' : cat === 'nba' ? '🏀' : cat === 'esports' ? '🎮' : '📊'}
-              </div>
-            </div>
-          )}
-          {/* Category overlay badge */}
-          <div style={{
-            position: 'absolute', top: 10, left: 10,
-            fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 500,
-            padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase',
-            background: `${catColor}CC`, color: 'white',
-            backdropFilter: 'blur(8px)',
-          }}>{cat}</div>
-          {/* Oracle badge */}
-          {isOracle && (
-            <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(59,130,246,0.85)', borderRadius: 20, padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 3, backdropFilter: 'blur(8px)' }}>
-              <Zap size={9} color="white" />
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'white' }}>Oracle</span>
-            </div>
-          )}
-          {/* Resolved badge */}
-          {market.resolved && (
-            <div style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(34,197,94,0.85)', borderRadius: 20, padding: '3px 10px', backdropFilter: 'blur(8px)' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'white' }}>
-                {market.outcome === 1 ? '✓ YES' : '✓ NO'}
+              <span style={{ fontSize: 24, opacity: 0.5 }}>
+                {cat === 'crypto' ? '🔮' : cat === 'sports' ? '⚽' : cat === 'politics' ? '🗳️' : cat === 'tech' ? '💻' : '📊'}
               </span>
             </div>
           )}
         </div>
 
-        {/* ── İçerik ── */}
-        <div style={{ padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-          {/* Market ID */}
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333333' }}>#{marketId}</span>
-
+        {/* ── İçerik (orta) ── */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {/* Soru */}
-          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: '#FAFAFA', lineHeight: 1.45, flex: 1, margin: 0 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: '#FAFAFA', lineHeight: 1.4, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
             {market.question}
           </h3>
 
-          {/* Oracle fiyat chip */}
-          {isOracle && !market.resolved && (
-            <LivePriceChip tokenPair={Number(market.tokenPair)} targetPrice={market.targetPrice} targetAbove={market.targetAbove} />
-          )}
-
-          {/* Probability bar */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#22c55e', fontWeight: 700 }}>{yesPercent}¢ YES</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#FAFAFA', fontWeight: 700 }}>{noPercent}¢ NO</span>
-            </div>
-            <div style={{ background: '#1C1C1C', borderRadius: 6, height: 6, overflow: 'hidden', display: 'flex' }}>
-              <div style={{ width: `${yesPercent}%`, background: 'linear-gradient(90deg, #22c55e, #4ade80)', borderRadius: '6px 0 0 6px', transition: 'width 0.6s ease' }} />
-              <div style={{ flex: 1, background: 'linear-gradient(90deg, #6D28D9, #7C3AED)', borderRadius: '0 6px 6px 0' }} />
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <TrendingUp size={11} color="#555555" />
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888' }}>{totalPoolF} AVAX</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Clock size={11} color="#555555" />
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888' }}>
-                {market.resolved ? 'Resolved' : `${daysLeft}d left`}
+          {/* Alt bilgi satırı */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase', background: `${catColor}20`, color: catColor, letterSpacing: '0.04em' }}>{cat}</span>
+            {isOracle && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 6px', borderRadius: 10, background: 'rgba(59,130,246,0.15)', color: '#3B82F6', display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Zap size={8} /> Oracle
               </span>
-            </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, color: '#FAFAFA', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-              Trade <ArrowRight size={11} />
-            </div>
+            )}
+            {market.resolved && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 8px', borderRadius: 10, background: market.outcome === 1 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: market.outcome === 1 ? '#22c55e' : '#ef4444' }}>
+                {market.outcome === 1 ? '✓ YES' : '✓ NO'}
+              </span>
+            )}
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>
+              <TrendingUp size={9} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />{totalPoolF} AVAX
+            </span>
+            {!market.resolved && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>
+                <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />{daysLeft}d
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* ── YES/NO butonları (sağ taraf) ── */}
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          <div style={{
+            padding: '8px 14px', borderRadius: 8, textAlign: 'center', minWidth: 52,
+            background: market.resolved && market.outcome === 1 ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.08)',
+            border: `1px solid ${market.resolved && market.outcome === 1 ? 'rgba(34,197,94,0.4)' : 'rgba(34,197,94,0.15)'}`,
+          }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: '#22c55e' }}>{yesPercent}¢</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#22c55e', opacity: 0.7 }}>YES</div>
+          </div>
+          <div style={{
+            padding: '8px 14px', borderRadius: 8, textAlign: 'center', minWidth: 52,
+            background: market.resolved && market.outcome === 2 ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.08)',
+            border: `1px solid ${market.resolved && market.outcome === 2 ? 'rgba(239,68,68,0.4)' : 'rgba(239,68,68,0.15)'}`,
+          }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: '#ef4444' }}>{noPercent}¢</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#ef4444', opacity: 0.7 }}>NO</div>
           </div>
         </div>
       </div>
