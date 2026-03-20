@@ -11,7 +11,7 @@ import MarketCard from './MarketCard';
 import { CATEGORIES, Category } from '@/lib/data';
 
 // ─── Resmi canvas ile küçült → base64 ────────────────────────────────────────
-function resizeImageToBase64(file: File, maxPx = 200): Promise<string> {
+function resizeImageToBase64(file: File, maxPx = 400): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -20,7 +20,14 @@ function resizeImageToBase64(file: File, maxPx = 200): Promise<string> {
       canvas.width  = Math.round(img.width  * scale);
       canvas.height = Math.round(img.height * scale);
       canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL('image/jpeg', 0.75));
+      // Try high quality first, reduce if too large for on-chain storage
+      let quality = 0.85;
+      let result = canvas.toDataURL('image/jpeg', quality);
+      while (result.length > 45000 && quality > 0.3) {
+        quality -= 0.1;
+        result = canvas.toDataURL('image/jpeg', quality);
+      }
+      resolve(result);
     };
     img.onerror = reject;
     img.src = URL.createObjectURL(file);
@@ -119,7 +126,7 @@ export default function MarketsSection() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const thumb = await resizeImageToBase64(file, 200);
+      const thumb = await resizeImageToBase64(file, 400);
       setImagePreview(thumb);
     } catch {
       const reader = new FileReader();
@@ -337,7 +344,7 @@ export default function MarketsSection() {
                           <X size={12} />
                         </button>
                         <div style={{ padding: '6px 12px', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555555' }}>
-                          ✓ Image compressed (200px) — ready to submit
+                          ✓ Image compressed — ready to submit
                         </div>
                       </>
                     ) : (
@@ -347,7 +354,7 @@ export default function MarketsSection() {
                           Click or drag to upload
                         </p>
                         <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333333', marginTop: 4 }}>
-                          JPG, PNG, GIF — auto-resized to 200px
+                          JPG, PNG, GIF — auto-optimized for on-chain
                         </p>
                       </div>
                     )}

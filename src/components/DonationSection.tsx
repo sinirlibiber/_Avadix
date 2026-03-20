@@ -16,19 +16,26 @@ const MIN_AMOUNT = 0.001;
 const IMG_SEPARATOR = '|||';
 
 // ─── Resmi canvas ile küçült → base64 thumbnail ───────────────────────────────
-function resizeImageToBase64(file: File, maxPx = 160): Promise<string> {
+function resizeImageToBase64(file: File, maxPx = 400): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const ratio = Math.min(maxPx / img.width, maxPx / img.height);
+        const ratio = Math.min(maxPx / img.width, maxPx / img.height, 1);
         canvas.width  = Math.round(img.width  * ratio);
         canvas.height = Math.round(img.height * ratio);
         const ctx = canvas.getContext('2d')!;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
+        // Try high quality first, reduce if too large for on-chain storage
+        let quality = 0.85;
+        let result = canvas.toDataURL('image/jpeg', quality);
+        while (result.length > 45000 && quality > 0.3) {
+          quality -= 0.1;
+          result = canvas.toDataURL('image/jpeg', quality);
+        }
+        resolve(result);
       };
       img.onerror = reject;
       img.src = e.target?.result as string;
@@ -349,7 +356,7 @@ export default function DonationSection() {
     if (!file) return;
     setImageFile(file);
     try {
-      const thumb = await resizeImageToBase64(file, 160);
+      const thumb = await resizeImageToBase64(file, 400);
       setImagePreview(thumb);
     } catch {
       // Fallback: full base64
