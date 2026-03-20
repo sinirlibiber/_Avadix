@@ -125,6 +125,7 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
     abi: MARKET_ABI,
     functionName: 'getMarketCore',
     args: [BigInt(marketId)],
+    query: { refetchInterval: 15_000 },
   }) as { data: any };
 
   const { data: meta } = useReadContract({
@@ -132,6 +133,7 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
     abi: MARKET_ABI,
     functionName: 'getMarketMeta',
     args: [BigInt(marketId)],
+    query: { refetchInterval: 15_000 },
   }) as { data: any };
 
   // core + meta'yı tek objeye birleştir

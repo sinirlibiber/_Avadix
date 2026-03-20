@@ -236,13 +236,13 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
 
   useEffect(() => { const iv = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(iv); }, []);
 
-  const { data: core, refetch: refetchCore } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getMarketCore', args: [BigInt(marketId)] }) as { data: any; refetch: () => void };
-  const { data: meta, refetch: refetchMeta } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getMarketMeta', args: [BigInt(marketId)] }) as { data: any; refetch: () => void };
+  const { data: core, refetch: refetchCore } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getMarketCore', args: [BigInt(marketId)], query: { refetchInterval: 10_000 } }) as { data: any; refetch: () => void };
+  const { data: meta, refetch: refetchMeta } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getMarketMeta', args: [BigInt(marketId)], query: { refetchInterval: 10_000 } }) as { data: any; refetch: () => void };
   const market = (core && meta) ? { ...core, ...meta, exists: meta.exists } : undefined;
-  const refetch = () => { refetchCore(); refetchMeta(); };
+  const refetch = () => { refetchCore(); refetchMeta(); refetchPosition?.(); };
 
   const { data: probability } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getYesProbability', args: [BigInt(marketId)] }) as { data: bigint | undefined };
-  const { data: position }    = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getPosition', args: [BigInt(marketId), address ?? '0x0000000000000000000000000000000000000000'], query: { enabled: !!address } }) as { data: any };
+  const { data: position, refetch: refetchPosition } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getPosition', args: [BigInt(marketId), address ?? '0x0000000000000000000000000000000000000000'], query: { enabled: !!address, refetchInterval: 10_000 } }) as { data: any; refetch: () => void };
 
   const isOracle = market?.marketType === 1;
   const { data: oraclePrice, isError: clError } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getCurrentPrice', args: [market?.tokenPair ?? 0], query: { enabled: !!market && isOracle, refetchInterval: 30_000, retry: 1 } }) as { data: [bigint, number] | undefined; isError: boolean };
@@ -547,16 +547,24 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
 
           {/* ── Resolve banner ── */}
           {!market.resolved && Date.now() / 1000 > Number(market.endTime) && (
-            <div style={{ background: '#0D0D0D', border: '1px solid #333', borderRadius: 12, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div style={{ background: '#0D0D0D', border: '1px solid #333', borderRadius: 12, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' as const }}>
               <div>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: '#FAFAFA', marginBottom: 3 }}>Market ended — resolve required</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>{market.marketType === 1 ? 'Oracle market — Chainlink auto-resolution' : 'Manual market — admin resolves via Snowtrace'}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>{market.marketType === 1 ? 'Oracle market — try auto-resolve or manual resolve' : 'Manual market — admin resolves outcome'}</div>
               </div>
-              {market.marketType === 1 && (
-                <button onClick={() => writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'resolveWithOracle', args: [BigInt(marketId)] })} disabled={txPending} style={{ padding: '9px 20px', background: txPending ? '#1C1C1C' : '#FAFAFA', color: txPending ? '#555' : '#0A0A0A', border: 'none', borderRadius: 8, cursor: txPending ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap' as const }}>
-                  {txPending ? 'Resolving...' : 'Resolve with Oracle'}
+              <div style={{ display: 'flex', gap: 8 }}>
+                {market.marketType === 1 && (
+                  <button onClick={() => writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'resolveWithOracle', args: [BigInt(marketId)] })} disabled={txPending} style={{ padding: '9px 16px', background: txPending ? '#1C1C1C' : '#3B82F6', color: '#FAFAFA', border: 'none', borderRadius: 8, cursor: txPending ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 11, whiteSpace: 'nowrap' as const }}>
+                    {txPending ? 'Resolving...' : '⚡ Oracle Resolve'}
+                  </button>
+                )}
+                <button onClick={() => writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'resolveMarket', args: [BigInt(marketId), 1] })} disabled={txPending} style={{ padding: '9px 16px', background: txPending ? '#1C1C1C' : '#22c55e', color: '#FAFAFA', border: 'none', borderRadius: 8, cursor: txPending ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 11, whiteSpace: 'nowrap' as const }}>
+                  {txPending ? '...' : '✓ YES Won'}
                 </button>
-              )}
+                <button onClick={() => writeContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'resolveMarket', args: [BigInt(marketId), 2] })} disabled={txPending} style={{ padding: '9px 16px', background: txPending ? '#1C1C1C' : '#E84142', color: '#FAFAFA', border: 'none', borderRadius: 8, cursor: txPending ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 11, whiteSpace: 'nowrap' as const }}>
+                  {txPending ? '...' : '✗ NO Won'}
+                </button>
+              </div>
             </div>
           )}
         </div>

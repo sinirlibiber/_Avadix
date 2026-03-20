@@ -29,17 +29,19 @@ function PositionDetailModal({ marketId, contracts, onClose }: { marketId: numbe
   const { data: core } = useReadContract({
     address: contracts.PredictionMarket, abi: MARKET_ABI,
     functionName: 'getMarketCore', args: [BigInt(marketId)],
+    query: { refetchInterval: 10_000 },
   }) as { data: any };
   const { data: meta } = useReadContract({
     address: contracts.PredictionMarket, abi: MARKET_ABI,
     functionName: 'getMarketMeta', args: [BigInt(marketId)],
+    query: { refetchInterval: 10_000 },
   }) as { data: any };
   const market = (core && meta) ? { ...core, ...meta, exists: meta.exists } : undefined;
 
   const { data: position } = useReadContract({
     address: contracts.PredictionMarket, abi: MARKET_ABI,
     functionName: 'getPosition', args: [BigInt(marketId), address ?? '0x0000000000000000000000000000000000000000'],
-    query: { enabled: !!address },
+    query: { enabled: !!address, refetchInterval: 10_000 },
   }) as { data: any };
 
   const { data: probability } = useReadContract({
@@ -335,17 +337,19 @@ function PositionRow({ marketId, contracts, onClick }: { marketId: number; contr
   const { data: core } = useReadContract({
     address: contracts.PredictionMarket, abi: MARKET_ABI,
     functionName: 'getMarketCore', args: [BigInt(marketId)],
+    query: { refetchInterval: 10_000 },
   }) as { data: any };
   const { data: meta } = useReadContract({
     address: contracts.PredictionMarket, abi: MARKET_ABI,
     functionName: 'getMarketMeta', args: [BigInt(marketId)],
+    query: { refetchInterval: 10_000 },
   }) as { data: any };
   const market = (core && meta) ? { ...core, ...meta, exists: meta.exists } : undefined;
 
   const { data: position } = useReadContract({
     address: contracts.PredictionMarket, abi: MARKET_ABI,
     functionName: 'getPosition', args: [BigInt(marketId), address ?? '0x0000000000000000000000000000000000000000'],
-    query: { enabled: !!address },
+    query: { enabled: !!address, refetchInterval: 10_000 },
   }) as { data: any };
 
   const { data: probability } = useReadContract({
