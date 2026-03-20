@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const CONTRACT = '0x8c2436412BF7f42b1AbC906e0b5F880773B9C69F';
-const TOPIC0   = '0x482ba39b8e8f0be2dcea6fdf1f91e8c3e3af9ee5a5f55f5d1cdab8e9a88c46fe';
+const TOPIC0   = '0x4c767d565621c8286048e7a308a6f13ff38ac2cf7908e2d5035b353a60789cc3';
 
 export async function GET(req: NextRequest) {
   const marketId = req.nextUrl.searchParams.get('marketId');
