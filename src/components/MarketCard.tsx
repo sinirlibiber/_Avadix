@@ -183,10 +183,6 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, fil
   const imageURI: string = market.imageURI ?? '';
   const hasImage = imageURI.length > 0 && !imgError;
 
-  // YES/NO butonuna tıklama — doğrudan market detay sayfasına yönlendir
-  const { writeContract: writeYes } = useWriteContract();
-  const { writeContract: writeNo } = useWriteContract();
-
   return (
     <div
       style={{
