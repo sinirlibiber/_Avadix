@@ -108,34 +108,29 @@ function CampaignCard({
       style={{
         background: isSelected ? 'rgba(255,255,255,0.06)' : '#111111',
         border: `1px solid ${isSelected ? 'rgba(255,255,255,0.10)' : '#1C1C1C'}`,
-        borderRadius: 14, padding: 16, cursor: 'pointer', transition: 'all 0.2s',
+        borderRadius: 14, padding: 14, cursor: 'pointer', transition: 'all 0.2s',
+        display: 'flex', flexDirection: 'column', height: '100%',
       }}
     >
-      {/* Fotoğraf — blockchain'den */}
-      {imageData && (
-        <div style={{ borderRadius: 10, overflow: 'hidden', height: 110, marginBottom: 12 }}>
-          <img src={imageData} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        </div>
-      )}
-
-      {/* Tamamlandı banner */}
-      {isComplete && (
-        <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '7px 12px', marginBottom: 10, textAlign: 'center' }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, color: '#22c55e' }}>
-            Donation goal reached — No more donations accepted
-          </span>
-        </div>
-      )}
-
+      {/* Üst: Görsel + İsim + Açıklama */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#FAFAFA' }}>{campaign.name}</div>
-          <div style={{ fontSize: 12, color: '#8888AA', marginTop: 2, lineHeight: 1.4 }}>{campaign.description}</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570', marginTop: 4 }}>by {shortAddr(campaign.creator)}</div>
+        {/* Kare görsel */}
+        <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#0A0A0A', border: '1px solid #1C1C1C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {imageData ? (
+            <img src={imageData} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          ) : (
+            <span style={{ fontSize: 22 }}>{emoji}</span>
+          )}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: '#FAFAFA', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as any }}>{campaign.name}</div>
+          <div style={{ fontSize: 11, color: '#666', marginTop: 2, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>{campaign.description}</div>
         </div>
       </div>
 
-      <div style={{ background: '#1C1C1C', borderRadius: 4, height: 6, overflow: 'hidden', marginBottom: 8 }}>
+      {/* Progress bar */}
+      <div style={{ background: '#1C1C1C', borderRadius: 4, height: 5, overflow: 'hidden', marginBottom: 8 }}>
         <div style={{
           width: `${Math.min(100, pct)}%`, height: '100%',
           background: isComplete ? 'linear-gradient(90deg,#22c55e,#16a34a)' : 'linear-gradient(90deg,#7C3AED,#ff6b6b)',
@@ -143,35 +138,37 @@ function CampaignCard({
         }} />
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: isComplete ? '#22c55e' : '#FAFAFA', fontWeight: 600 }}>{pct}%</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{donors} donors</span>
-          {!isComplete && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555570' }}>{daysLeft}d left</span>}
+      {/* Alt: Stats */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: isComplete ? '#22c55e' : '#FAFAFA', fontWeight: 700 }}>{pct}%</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>{donors} donors</span>
+          {!isComplete && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>{daysLeft}d</span>}
+          {isComplete && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '1px 6px', borderRadius: 8, background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>✓ Complete</span>}
         </div>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8888AA' }}>{raised.toFixed(3)}/{goal.toFixed(3)} AVAX</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#888' }}>{raised.toFixed(3)}/{goal.toFixed(1)}</span>
       </div>
 
-      {/* Withdraw butonu — sadece kampanya sahibine, kampanya bitince */}
+      {/* Withdraw butonu */}
       {cardCanWithdraw && (
-        <div onClick={e => e.stopPropagation()} style={{ marginTop: 12 }}>
+        <div onClick={e => e.stopPropagation()} style={{ marginTop: 10 }}>
           {wdSuccess ? (
-            <div style={{ padding: '8px 12px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-              Withdrawn to your wallet!
+            <div style={{ padding: '7px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, textAlign: 'center', color: '#22c55e', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+              Withdrawn!
             </div>
           ) : (
             <button
               onClick={() => writeWd({ address: contractAddr, abi: DONATIONS_ABI, functionName: 'withdrawFunds', args: [BigInt(campaignId)] })}
               disabled={isWdPending || isWdConfirming}
               style={{
-                width: '100%', padding: '9px', background: (isWdPending || isWdConfirming) ? '#1C1C1C' : '#22c55e',
+                width: '100%', padding: '8px', background: (isWdPending || isWdConfirming) ? '#1C1C1C' : '#22c55e',
                 border: 'none', borderRadius: 8, color: 'white',
-                fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
+                fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12,
                 cursor: (isWdPending || isWdConfirming) ? 'wait' : 'pointer',
                 opacity: (isWdPending || isWdConfirming) ? 0.7 : 1,
               }}
             >
-              {isWdPending ? 'Awaiting wallet...' : isWdConfirming ? 'Confirming...' : `Withdraw ${raised.toFixed(3)} AVAX`}
+              {isWdPending ? 'Awaiting...' : isWdConfirming ? 'Confirming...' : `Withdraw ${raised.toFixed(3)} AVAX`}
             </button>
           )}
         </div>
@@ -454,7 +451,7 @@ export default function DonationSection() {
               ))}
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
             {count === 0 && <div style={{ textAlign: 'center', padding: '40px 0', color: '#8888AA', fontSize: 14 }}>No campaigns yet. Create the first one!</div>}
             {campaignIds.map(id => (
               // @ts-ignore

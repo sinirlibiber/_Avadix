@@ -183,95 +183,104 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, fil
   const imageURI: string = market.imageURI ?? '';
   const hasImage = imageURI.length > 0 && !imgError;
 
+  // YES/NO butonuna tıklama — doğrudan market detay sayfasına yönlendir
+  const { writeContract: writeYes } = useWriteContract();
+  const { writeContract: writeNo } = useWriteContract();
+
   return (
-    <Link href={`/markets/${marketId}`} style={{ textDecoration: 'none' }}>
-      <div
-        style={{
-          background: '#111111', border: '1px solid #1C1C1C',
-          borderRadius: 14, overflow: 'hidden', transition: 'all 0.25s',
-          display: 'flex', flexDirection: 'row', cursor: 'pointer', height: '100%',
-          padding: '14px 16px', gap: 14, alignItems: 'center',
-        }}
-        onMouseEnter={e => {
-          const el = e.currentTarget as HTMLElement;
-          el.style.borderColor = 'rgba(255,255,255,0.12)';
-          el.style.background = '#161616';
-        }}
-        onMouseLeave={e => {
-          const el = e.currentTarget as HTMLElement;
-          el.style.borderColor = '#1C1C1C';
-          el.style.background = '#111111';
-        }}
-      >
-        {/* ── Görsel (kare, sol taraf) ── */}
-        <div style={{ width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#0A0A0A', border: '1px solid #1C1C1C' }}>
-          {hasImage ? (
-            <img
-              src={imageURI}
-              alt=""
-              onError={() => setImgError(true)}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-          ) : (
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg, ${catColor}15, rgba(59,130,246,0.08))` }}>
-              <span style={{ fontSize: 24, opacity: 0.5 }}>
-                {cat === 'crypto' ? '🔮' : cat === 'sports' ? '⚽' : cat === 'politics' ? '🗳️' : cat === 'tech' ? '💻' : '📊'}
-              </span>
+    <div
+      style={{
+        background: '#111111', border: '1px solid #1C1C1C',
+        borderRadius: 14, overflow: 'hidden', transition: 'all 0.25s',
+        display: 'flex', flexDirection: 'column', cursor: 'pointer', height: '100%',
+      }}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.borderColor = 'rgba(255,255,255,0.1)';
+        el.style.background = '#141414';
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.borderColor = '#1C1C1C';
+        el.style.background = '#111111';
+      }}
+    >
+      {/* ── Üst kısım: Görsel + Badges (tıklanabilir → market detay) ── */}
+      <Link href={`/markets/${marketId}`} style={{ textDecoration: 'none' }}>
+        <div style={{ display: 'flex', gap: 12, padding: '14px 14px 0' }}>
+          {/* Kare görsel */}
+          <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#0A0A0A', border: '1px solid #1C1C1C' }}>
+            {hasImage ? (
+              <img src={imageURI} alt="" onError={() => setImgError(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg, ${catColor}15, rgba(59,130,246,0.08))` }}>
+                <span style={{ fontSize: 20, opacity: 0.5 }}>
+                  {cat === 'crypto' ? '🔮' : cat === 'sports' ? '⚽' : cat === 'politics' ? '🗳️' : cat === 'tech' ? '💻' : '📊'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Soru + badges */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: '#FAFAFA', lineHeight: 1.4, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
+              {market.question}
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, padding: '1px 6px', borderRadius: 8, textTransform: 'uppercase', background: `${catColor}20`, color: catColor }}>{cat}</span>
+              {isOracle && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, padding: '1px 5px', borderRadius: 8, background: 'rgba(59,130,246,0.15)', color: '#3B82F6' }}>⚡Oracle</span>}
+              {market.resolved && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, padding: '1px 6px', borderRadius: 8, background: market.outcome === 1 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: market.outcome === 1 ? '#22c55e' : '#ef4444' }}>{market.outcome === 1 ? '✓YES' : '✓NO'}</span>}
             </div>
+          </div>
+        </div>
+      </Link>
+
+      {/* ── Alt kısım: YES/NO butonları + volume ── */}
+      <div style={{ padding: '10px 14px 14px', marginTop: 'auto' }}>
+        {/* Volume + Time */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>
+            <TrendingUp size={9} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 2 }} />{totalPoolF} AVAX
+          </span>
+          {!market.resolved && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>
+              <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 2 }} />{daysLeft}d
+            </span>
           )}
         </div>
 
-        {/* ── İçerik (orta) ── */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {/* Soru */}
-          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: '#FAFAFA', lineHeight: 1.4, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
-            {market.question}
-          </h3>
-
-          {/* Alt bilgi satırı */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase', background: `${catColor}20`, color: catColor, letterSpacing: '0.04em' }}>{cat}</span>
-            {isOracle && (
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 6px', borderRadius: 10, background: 'rgba(59,130,246,0.15)', color: '#3B82F6', display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Zap size={8} /> Oracle
-              </span>
-            )}
-            {market.resolved && (
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 8px', borderRadius: 10, background: market.outcome === 1 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: market.outcome === 1 ? '#22c55e' : '#ef4444' }}>
-                {market.outcome === 1 ? '✓ YES' : '✓ NO'}
-              </span>
-            )}
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>
-              <TrendingUp size={9} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />{totalPoolF} AVAX
-            </span>
-            {!market.resolved && (
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555' }}>
-                <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />{daysLeft}d
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* ── YES/NO butonları (sağ taraf) ── */}
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-          <div style={{
-            padding: '8px 14px', borderRadius: 8, textAlign: 'center', minWidth: 52,
-            background: market.resolved && market.outcome === 1 ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.08)',
-            border: `1px solid ${market.resolved && market.outcome === 1 ? 'rgba(34,197,94,0.4)' : 'rgba(34,197,94,0.15)'}`,
-          }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: '#22c55e' }}>{yesPercent}¢</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#22c55e', opacity: 0.7 }}>YES</div>
-          </div>
-          <div style={{
-            padding: '8px 14px', borderRadius: 8, textAlign: 'center', minWidth: 52,
-            background: market.resolved && market.outcome === 2 ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.08)',
-            border: `1px solid ${market.resolved && market.outcome === 2 ? 'rgba(239,68,68,0.4)' : 'rgba(239,68,68,0.15)'}`,
-          }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: '#ef4444' }}>{noPercent}¢</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#ef4444', opacity: 0.7 }}>NO</div>
-          </div>
+        {/* YES / NO butonları */}
+        <div style={{ display: 'flex', gap: 6 }}>
+          <Link href={`/markets/${marketId}`} style={{ flex: 1, textDecoration: 'none' }}>
+            <div style={{
+              padding: '8px 0', borderRadius: 8, textAlign: 'center',
+              background: market.resolved && market.outcome === 1 ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.06)',
+              border: `1px solid ${market.resolved && market.outcome === 1 ? 'rgba(34,197,94,0.4)' : 'rgba(34,197,94,0.12)'}`,
+              transition: 'all 0.2s',
+            }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(34,197,94,0.15)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = market.resolved && market.outcome === 1 ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.06)'; }}
+            >
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: '#22c55e' }}>{yesPercent}¢</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#22c55e', opacity: 0.6, marginLeft: 4 }}>YES</span>
+            </div>
+          </Link>
+          <Link href={`/markets/${marketId}`} style={{ flex: 1, textDecoration: 'none' }}>
+            <div style={{
+              padding: '8px 0', borderRadius: 8, textAlign: 'center',
+              background: market.resolved && market.outcome === 2 ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.06)',
+              border: `1px solid ${market.resolved && market.outcome === 2 ? 'rgba(239,68,68,0.4)' : 'rgba(239,68,68,0.12)'}`,
+              transition: 'all 0.2s',
+            }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.15)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = market.resolved && market.outcome === 2 ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.06)'; }}
+            >
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: '#ef4444' }}>{noPercent}¢</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#ef4444', opacity: 0.6, marginLeft: 4 }}>NO</span>
+            </div>
+          </Link>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
