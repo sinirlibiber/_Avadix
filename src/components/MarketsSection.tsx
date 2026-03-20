@@ -28,11 +28,12 @@ function resizeImageToBase64(file: File, maxPx = 200): Promise<string> {
 }
 
 // ─── MarketGrid — sıralama burada ────────────────────────────────────────────
-function MarketGrid({ marketIds, search, category, sortBy }: {
+function MarketGrid({ marketIds, search, category, sortBy, filterStatus }: {
   marketIds: number[];
   search: string;
   category: Category;
   sortBy: 'volume' | 'recent' | 'hot';
+  filterStatus: 'active' | 'resolved' | 'all';
 }) {
   // sortBy'a göre marketId listesini sırala
   // recent → en yüksek ID önce, volume & hot → MarketCard içinde pool bilgisi var
@@ -52,6 +53,7 @@ function MarketGrid({ marketIds, search, category, sortBy }: {
           marketId={id}
           filterCategory={category}
           filterSearch={search}
+          filterStatus={filterStatus}
           sortBy={sortBy}
         />
       ))}
@@ -69,6 +71,7 @@ export default function MarketsSection() {
   const [search,       setSearch]       = useState('');
   const [category,     setCategory]     = useState<Category>('all');
   const [sortBy,       setSortBy]       = useState<'volume' | 'recent' | 'hot'>('recent');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'resolved' | 'all'>('active');
   const [showCreate,   setShowCreate]   = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [createError,  setCreateError]  = useState('');
@@ -174,7 +177,7 @@ export default function MarketsSection() {
             Prediction Markets
           </h2>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: '#888888' }}>
-            {count > 0 ? `${count} active market${count !== 1 ? 's' : ''}` : 'No markets yet — create the first one!'}
+            {count > 0 ? `${count} market${count !== 1 ? 's' : ''}` : 'No markets yet — create the first one!'}
           </p>
         </div>
         <button
@@ -211,6 +214,20 @@ export default function MarketsSection() {
               fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none',
             }}
           />
+        </div>
+
+        {/* Status filter */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          {([['active', 'Active'], ['resolved', 'Resolved'], ['all', 'All']] as const).map(([key, label]) => (
+            <button key={key} onClick={() => setStatusFilter(key)} style={{
+              padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
+              fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12,
+              background: statusFilter === key ? (key === 'active' ? 'rgba(34,197,94,0.2)' : key === 'resolved' ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.15)') : 'rgba(255,255,255,0.04)',
+              color: statusFilter === key ? (key === 'active' ? '#22c55e' : key === 'resolved' ? '#8B5CF6' : '#FAFAFA') : '#888888',
+              border: statusFilter === key ? `1px solid ${key === 'active' ? 'rgba(34,197,94,0.3)' : key === 'resolved' ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.12)'}` : '1px solid transparent',
+              transition: 'all 0.2s',
+            }}>{label}</button>
+          ))}
         </div>
 
         {/* Sort */}
@@ -252,7 +269,7 @@ export default function MarketsSection() {
           <p style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>No markets yet. Be the first to create one!</p>
         </div>
       ) : (
-        <MarketGrid marketIds={marketIds} search={search} category={category} sortBy={sortBy} />
+        <MarketGrid marketIds={marketIds} search={search} category={category} sortBy={sortBy} filterStatus={statusFilter} />
       )}
 
       {/* ── Create Market Modal ── */}

@@ -44,6 +44,7 @@ interface Props {
   marketId: number;
   filterCategory?: string;
   filterSearch?: string;
+  filterStatus?: 'active' | 'resolved' | 'all';
   sortBy?: 'volume' | 'recent' | 'hot';
   onVolumeReady?: (id: number, vol: number, createdAt: number) => void;
 }
@@ -115,7 +116,7 @@ function LivePriceChip({ tokenPair, targetPrice, targetAbove }: { tokenPair: num
   );
 }
 
-export default function MarketCard({ marketId, filterCategory, filterSearch, sortBy, onVolumeReady }: Props) {
+export default function MarketCard({ marketId, filterCategory, filterSearch, filterStatus = 'active', sortBy, onVolumeReady }: Props) {
   const chainId   = useChainId();
   const contracts = getAddresses(chainId);
   const [imgError, setImgError] = useState(false);
@@ -166,6 +167,8 @@ export default function MarketCard({ marketId, filterCategory, filterSearch, sor
   const question = market.question?.toLowerCase()  ?? '';
   if (filterCategory && filterCategory !== 'all' && cat !== filterCategory.toLowerCase()) return null;
   if (filterSearch && filterSearch.trim() && !question.includes(filterSearch.toLowerCase())) return null;
+  if (filterStatus === 'active' && market.resolved) return null;
+  if (filterStatus === 'resolved' && !market.resolved) return null;
 
   const isOracle   = market.marketType === 1;
   const yesPercent = Number(probability ?? BigInt(50));
