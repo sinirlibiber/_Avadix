@@ -80,25 +80,38 @@ function PriceChart({ trades, yesPercent, loading, range }: { trades: TradeEvent
   const filtered = range === 'ALL' ? trades : trades.filter(t => t.timestamp && (now2 - t.timestamp) <= rangeMap[range]);
 
   const data = filtered.length >= 2
-    ? [...filtered].reverse().map((tr, i) => ({ t: i, yes: tr.yesProb }))
-    : [{ t: 0, yes: yesPercent }];
-  if (data[data.length - 1].yes !== yesPercent) data.push({ t: data.length, yes: yesPercent });
+    ? [...filtered].reverse().map((tr) => ({ t: tr.timestamp || 0, yes: tr.yesProb }))
+    : [{ t: Math.floor(now2) - 3600, yes: yesPercent }];
+  if (data.length === 1 || data[data.length - 1].yes !== yesPercent) data.push({ t: Math.floor(now2), yes: yesPercent });
 
-  const w = 600, h = 140, pad = { top: 12, right: 16, bottom: 24, left: 36 };
+  const w = 700, h = 200, pad = { top: 16, right: 16, bottom: 32, left: 40 };
   const minY = Math.max(0, Math.min(...data.map(d => d.yes)) - 5);
   const maxY = Math.min(100, Math.max(...data.map(d => d.yes)) + 5);
   const range2 = maxY - minY || 10;
-  const sx = (i: number) => pad.left + (i / Math.max(1, data.length - 1)) * (w - pad.left - pad.right);
+  const minT = Math.min(...data.map(d => d.t));
+  const maxT = Math.max(...data.map(d => d.t));
+  const rangeT = maxT - minT || 3600;
+  const sx = (t: number) => pad.left + ((t - minT) / rangeT) * (w - pad.left - pad.right);
   const sy = (v: number) => pad.top + (1 - (v - minY) / range2) * (h - pad.top - pad.bottom);
-  const pts = data.map((d, i) => `${sx(i)},${sy(d.yes)}`).join(' ');
-  const areaBottom = `${sx(data.length - 1)},${h - pad.bottom} ${sx(0)},${h - pad.bottom}`;
+  const pts = data.map(d => `${sx(d.t)},${sy(d.yes)}`).join(' ');
+  const areaBottom = `${sx(data[data.length - 1].t)},${h - pad.bottom} ${sx(data[0].t)},${h - pad.bottom}`;
   const isUp = data.length > 1 ? data[data.length - 1].yes >= data[0].yes : true;
   const color = isUp ? '#22c55e' : '#EF4444';
   const gridVals = [0, 25, 50, 75, 100].filter(v => v >= minY - 2 && v <= maxY + 2);
   const noTradesYet = filtered.length < 2;
 
+  // Date labels for x-axis
+  const dateLabels: { t: number; label: string }[] = [];
+  const numLabels = 5;
+  for (let i = 0; i < numLabels; i++) {
+    const ts = minT + (rangeT / (numLabels - 1)) * i;
+    const d = new Date(ts * 1000);
+    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    dateLabels.push({ t: ts, label });
+  }
+
   if (loading) return (
-    <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 6 }}>
+    <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 6 }}>
       <div style={{ width: 20, height: 20, border: '2px solid #22c55e', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#444' }}>Fetching on-chain data...</span>
     </div>
@@ -111,25 +124,32 @@ function PriceChart({ trades, yesPercent, loading, range }: { trades: TradeEvent
         No trade history yet — showing current probability
       </div>
     )}
-    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 140 }}>
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 200 }}>
       <defs>
         <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.18" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
+      {/* Y-axis grid */}
       {gridVals.map(v => (
         <g key={v}>
           <line x1={pad.left} y1={sy(v)} x2={w - pad.right} y2={sy(v)} stroke="#1C1C1C" strokeWidth="1" strokeDasharray="3,3" />
-          <text x={pad.left - 4} y={sy(v) + 4} fill="#555570" fontSize="9" textAnchor="end" fontFamily="monospace">{v}%</text>
+          <text x={pad.left - 6} y={sy(v) + 4} fill="#555570" fontSize="9" textAnchor="end" fontFamily="monospace">{v}%</text>
         </g>
       ))}
+      {/* X-axis date labels */}
+      {dateLabels.map((dl, i) => (
+        <text key={i} x={sx(dl.t)} y={h - 8} fill="#555570" fontSize="9" textAnchor="middle" fontFamily="monospace">{dl.label}</text>
+      ))}
+      {/* Area + Line */}
       <polygon points={`${pts} ${areaBottom}`} fill="url(#cg)" />
       <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {/* Current price dot */}
       {data.length > 1 && (
         <g>
-          <circle cx={sx(data.length - 1)} cy={sy(data[data.length - 1].yes)} r="4" fill={color} />
-          <text x={sx(data.length - 1) + 6} y={sy(data[data.length - 1].yes) + 4} fill={color} fontSize="10" fontFamily="monospace" fontWeight="bold">{yesPercent}%</text>
+          <circle cx={sx(data[data.length - 1].t)} cy={sy(data[data.length - 1].yes)} r="4" fill={color} />
+          <text x={sx(data[data.length - 1].t) + 8} y={sy(data[data.length - 1].yes) + 4} fill={color} fontSize="11" fontFamily="monospace" fontWeight="bold">{yesPercent}%</text>
         </g>
       )}
     </svg>
@@ -370,54 +390,30 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
 
           {/* ── Market Header Card ── */}
           <div style={{ background: '#0D0D0D', border: '1px solid #1C1C1C', borderRadius: 16, overflow: 'hidden' }}>
-            {/* Cover image */}
-            {imageData && (
-              <div style={{ height: 160, overflow: 'hidden', position: 'relative' }}>
-                <img src={imageData} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.7)' }} />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, #0D0D0D)' }} />
-              </div>
-            )}
-            <div style={{ padding: '20px 24px 20px' }}>
-              {/* Badges row */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: '#1C1C1C', color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{market.category}</span>
-                {market.resolved ? (
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>✓ Resolved — {market.outcome === 1 ? 'YES' : 'NO'} Won</span>
-                ) : (
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: 'rgba(245,158,11,0.12)', color: '#F59E0B' }}>● Active · {countdown}</span>
-                )}
-                {isOracle && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 10px', borderRadius: 20, background: 'rgba(99,102,241,0.12)', color: '#6366F1' }}>⚡ Oracle</span>}
-              </div>
-
-              <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(18px,2.5vw,26px)', color: '#FAFAFA', lineHeight: 1.3, marginBottom: 20 }}>{market.question}</h1>
-
-              {/* YES / NO big numbers + stats */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 0, marginBottom: 16 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>YES</div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 44, color: '#22c55e', lineHeight: 1 }}>{yesPercent}<span style={{ fontSize: 22 }}>¢</span></div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 3 }}>probability</div>
+            <div style={{ padding: '20px 24px' }}>
+              {/* Top row: Image + Title + Vol */}
+              <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+                {/* Square thumbnail */}
+                <div style={{ width: 80, height: 80, borderRadius: 12, overflow: 'hidden', flexShrink: 0, background: '#1C1C1C', border: '1px solid #222' }}>
+                  {imageData ? (
+                    <img src={imageData} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, opacity: 0.4 }}>🔮</div>
+                  )}
                 </div>
-                <div style={{ width: 1, background: '#1C1C1C', alignSelf: 'stretch', margin: '0 20px' }} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>NO</div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 44, color: '#EF4444', lineHeight: 1 }}>{noPercent}<span style={{ fontSize: 22 }}>¢</span></div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginTop: 3 }}>probability</div>
-                </div>
-                <div style={{ width: 1, background: '#1C1C1C', alignSelf: 'stretch', margin: '0 20px' }} />
-                {/* Stats grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 20px' }}>
-                  {[
-                    { label: 'Volume', value: `${totalPoolF.toFixed(3)} AVAX` },
-                    { label: '24h Vol', value: `${vol24.toFixed(3)} AVAX` },
-                    { label: '24h High', value: `${high24}¢` },
-                    { label: '24h Low', value: `${low24}¢` },
-                  ].map(({ label, value }) => (
-                    <div key={label}>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#444', textTransform: 'uppercase', marginBottom: 2 }}>{label}</div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#FAFAFA', fontWeight: 600 }}>{value}</div>
-                    </div>
-                  ))}
+                  <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#FAFAFA', lineHeight: 1.3, margin: '0 0 8px' }}>{market.question}</h1>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#888' }}>Vol. {totalPoolF.toFixed(3)} AVAX</span>
+                    <span style={{ color: '#333' }}>·</span>
+                    {market.resolved ? (
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>✓ Resolved — {market.outcome === 1 ? 'YES' : 'NO'} Won</span>
+                    ) : (
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'rgba(245,158,11,0.12)', color: '#F59E0B' }}>● {countdown}</span>
+                    )}
+                    {isOracle && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'rgba(99,102,241,0.12)', color: '#6366F1' }}>⚡ Oracle</span>}
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 8px', borderRadius: 10, background: '#1C1C1C', color: '#888', textTransform: 'uppercase' }}>{market.category}</span>
+                  </div>
                 </div>
               </div>
 
