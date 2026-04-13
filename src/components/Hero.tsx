@@ -4,6 +4,7 @@ import React, { useState as useFAQState } from 'react';
 import { TrendingUp, Shield, Zap, BarChart3, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useReadContract, useChainId } from 'wagmi';
+import { AVAX_MAINNET_ID } from '@/lib/wagmi';
 import { formatEther } from 'viem';
 import { getAddresses } from '@/lib/contracts/addresses';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
@@ -49,6 +50,7 @@ function Orb({ color, size, top, left, delay, duration }: any) {
 
 export function Hero() {
   const chainId = useChainId();
+  const isMainnet = chainId === AVAX_MAINNET_ID;
   const contracts = getAddresses(chainId);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -151,7 +153,7 @@ export function Hero() {
         backdropFilter: 'blur(10px)', position: 'relative', zIndex: 10
       }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#C4F135', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-        Live on Avalanche Fuji • 0% Fees
+        {isMainnet ? 'Live on Avalanche Mainnet • 0% Fees' : 'Live on Avalanche Fuji • 0% Fees'}
       </div>
 
       <h1 style={{

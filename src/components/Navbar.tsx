@@ -2,9 +2,12 @@
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useChainId, useSwitchChain } from 'wagmi';
+import { avalanche, avalancheFuji } from 'wagmi/chains';
+import { AVAX_MAINNET_ID, AVAX_TESTNET_ID } from '@/lib/wagmi';
 
 const NAV_LINKS = [
   { label: 'Markets',   href: '/markets' },
@@ -13,9 +16,71 @@ const NAV_LINKS = [
   { label: 'Donate',    href: '/donate' },
 ];
 
+function NetworkToggle() {
+  const chainId = useChainId();
+  const { switchChain, isPending } = useSwitchChain();
+  const isMainnet = chainId === AVAX_MAINNET_ID;
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center',
+      background: '#111', border: '1px solid #222',
+      borderRadius: 10, padding: 3, gap: 2,
+    }}>
+      {/* Testnet */}
+      <button
+        onClick={() => switchChain({ chainId: avalancheFuji.id })}
+        disabled={isPending}
+        style={{
+          background: !isMainnet ? '#1C1C1C' : 'transparent',
+          border: !isMainnet ? '1px solid #333' : '1px solid transparent',
+          borderRadius: 7, padding: '4px 10px',
+          fontFamily: 'var(--font-mono)', fontSize: 10,
+          fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
+          color: !isMainnet ? '#FAFAFA' : '#444',
+          cursor: isPending ? 'wait' : 'pointer',
+          transition: 'all 0.2s ease',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Testnet
+      </button>
+
+      {/* Mainnet */}
+      <button
+        onClick={() => switchChain({ chainId: avalanche.id })}
+        disabled={isPending}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          background: isMainnet ? 'linear-gradient(135deg, #C4F135 0%, #a8d42a 100%)' : 'transparent',
+          border: isMainnet ? '1px solid #C4F135' : '1px solid transparent',
+          borderRadius: 7, padding: '4px 10px',
+          fontFamily: 'var(--font-mono)', fontSize: 10,
+          fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+          color: isMainnet ? '#0a0a0a' : '#444',
+          cursor: isPending ? 'wait' : 'pointer',
+          transition: 'all 0.2s ease',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {isMainnet && (
+          <span style={{
+            width: 5, height: 5, borderRadius: '50%',
+            background: '#0a0a0a', display: 'inline-block',
+            animation: 'pulse 2s infinite',
+          }} />
+        )}
+        Mainnet
+      </button>
+    </div>
+  );
+}
+
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled]     = useState(false);
+  const chainId = useChainId();
+  const isMainnet = chainId === AVAX_MAINNET_ID;
   const pathname = usePathname();
 
   useEffect(() => {
@@ -51,12 +116,16 @@ export default function Navbar() {
               AVADIX
             </span>
             <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 500,
-              color: '#555', background: '#161616',
-              border: '1px solid #222',
+              fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 600,
+              color: isMainnet ? '#0a0a0a' : '#555',
+              background: isMainnet ? '#C4F135' : '#161616',
+              border: `1px solid ${isMainnet ? '#C4F135' : '#222'}`,
               borderRadius: 5, padding: '2px 7px', letterSpacing: '0.08em',
               textTransform: 'uppercase',
-            }}>Testnet</span>
+              transition: 'all 0.3s ease',
+            }}>
+              {isMainnet ? 'Mainnet' : 'Testnet'}
+            </span>
           </Link>
 
           {/* Desktop nav */}
@@ -81,6 +150,7 @@ export default function Navbar() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <NetworkToggle />
             <ConnectButton showBalance={false} chainStatus="none" accountStatus="avatar" />
             <button onClick={() => setMobileOpen(!mobileOpen)} className="nav-mobile-btn"
               style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: 4, display: 'none' }}>
@@ -101,6 +171,9 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+            <div style={{ paddingTop: 10 }}>
+              <NetworkToggle />
+            </div>
           </div>
         )}
       </div>
