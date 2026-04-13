@@ -32,6 +32,7 @@ All three Avadix contracts are **live on Avalanche Fuji Testnet** — fully veri
 
 > **Network:** Avalanche Mainnet (Chain ID: 43114)  
 
+| Contract | Address | Explorer |
 |---|---|---|
 | **AvadixPredictionMarket** | `0x8c2436412BF7f42b1AbC906e0b5F880773B9C69F` | [View](https://testnet.snowtrace.io/address/0x8c2436412BF7f42b1AbC906e0b5F880773B9C69F) |
 | **AvadixDAO** | `0xa70770942ECba3aBCEB0096a824e94b2FB01fA27` | [View](https://testnet.snowtrace.io/address/0xa70770942ECba3aBCEB0096a824e94b2FB01fA27) |
