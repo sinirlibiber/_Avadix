@@ -1,5 +1,8 @@
 'use client';
 
+import { useChainId } from 'wagmi';
+import { AVAX_MAINNET_ID } from '@/lib/wagmi';
+
 const XIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
@@ -13,6 +16,8 @@ const DiscordIcon = () => (
 );
 
 export default function Footer() {
+  const chainId = useChainId();
+  const isMainnet = chainId === AVAX_MAINNET_ID;
   return (
     <footer style={{
       borderTop: '1px solid #1A1A1A',
@@ -44,7 +49,7 @@ export default function Footer() {
               fontFamily: 'var(--font-mono)', fontSize: 10,
               color: '#22C55E', letterSpacing: '0.06em',
               textTransform: 'uppercase',
-            }}>Live on Fuji Testnet</span>
+            }}>Live on {isMainnet ? 'Avalanche Mainnet' : 'Fuji Testnet'}</span>
           </span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333' }}>
             Avadix 2026

@@ -7,6 +7,7 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { parseEther, formatEther } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { getAddresses } from '@/lib/contracts/addresses';
+import { AVAX_MAINNET_ID } from '@/lib/wagmi';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
 
 const TOKEN_PAIR_META: Record<number, { symbol: string; color: string; coingeckoId: string }> = {
@@ -244,6 +245,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
   const chainId = useChainId();
+  const isMainnet = chainId === AVAX_MAINNET_ID;
   const contracts = getAddresses(chainId);
 
   const [tab, setTab]             = useState<'chart' | 'depth' | 'activity' | 'holders'>('chart');
@@ -514,7 +516,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
               ) : (
                 <div style={{ maxHeight: 280, overflowY: 'auto' }}>
                   {trades.slice(0, 30).map((t, i) => (
-                    <a key={i} href={`https://testnet.snowtrace.io/tx/${t.hash}`} target="_blank" rel="noreferrer"
+                    <a key={i} href={`https://${isMainnet ? '' : 'testnet.'}snowtrace.io/tx/${t.hash}`} target="_blank" rel="noreferrer"
                       style={{ display: 'grid', gridTemplateColumns: '40px 1fr 70px 70px 60px', alignItems: 'center', gap: 8, padding: '8px 16px', borderBottom: '1px solid #0A0A0A', textDecoration: 'none', transition: 'background 0.15s' }}
                       onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'}
                       onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
@@ -768,7 +770,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
           </div>
 
           {/* Snowtrace link */}
-          <a href={`https://testnet.snowtrace.io/address/${contracts.PredictionMarket}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', background: '#0D0D0D', border: '1px solid #1C1C1C', borderRadius: 10, color: '#444', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontSize: 10, transition: 'color 0.2s' }}
+          <a href={`https://${isMainnet ? '' : 'testnet.'}snowtrace.io/address/${contracts.PredictionMarket}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', background: '#0D0D0D', border: '1px solid #1C1C1C', borderRadius: 10, color: '#444', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontSize: 10, transition: 'color 0.2s' }}
             onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#FAFAFA'}
             onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#444'}>
             <ExternalLink size={11} /> View contract on Snowtrace

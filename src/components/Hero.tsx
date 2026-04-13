@@ -128,7 +128,7 @@ export function Hero() {
     { label: 'Total Volume', value: count === 0 ? '—' : `${formatVolume(totalVolume)} AVAX` },
     { label: 'Active Markets', value: count > 0 ? `${count}` : '—' },
     { label: 'Traders',      value: traderCount > 0 ? `${traderCount}+` : '—' },
-    { label: 'Network',      value: 'Fuji' },
+    { label: 'Network',      value: isMainnet ? 'Mainnet' : 'Fuji' },
   ];
 
   return (
@@ -153,7 +153,7 @@ export function Hero() {
         backdropFilter: 'blur(10px)', position: 'relative', zIndex: 10
       }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#C4F135', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-        {isMainnet ? 'Live on Avalanche Mainnet • 0% Fees' : 'Live on Avalanche Fuji • 0% Fees'}
+        {isMainnet ? 'Live on Avalanche Mainnet' : 'Live on Avalanche Fuji Testnet'}
       </div>
 
       <h1 style={{
@@ -163,7 +163,7 @@ export function Hero() {
         position: 'relative', zIndex: 10
       }}>
         <span style={{ color: '#FAFAFA', display: 'block' }}>Predict Govern Donate</span>
-        <span style={{ color: '#444', display: 'block', fontSize: 'clamp(28px, 4vw, 42px)', marginTop: '8px' }}>All with 0% Fees.</span>
+
       </h1>
 
       <p style={{
@@ -171,7 +171,7 @@ export function Hero() {
         fontSize: 'clamp(16px, 2vw, 19px)', color: '#888888',
         maxWidth: 580, lineHeight: 1.6, marginBottom: 48, position: 'relative', zIndex: 10
       }}>
-        A decentralized evolution on Avalanche. Your trades are fee-free, 
+        A decentralized evolution on Avalanche. Trade binary outcomes,
         your voice matters in the DAO, and your support reaches others directly.
       </p>
 
@@ -248,7 +248,7 @@ function FAQItem({ q, a, isLast }: { q: string; a: string; isLast: boolean }) {
 const FAQS = [
   {
     q: 'What is Avadix?',
-    a: 'Avadix is a decentralized prediction market protocol built on Avalanche Fuji. You can trade binary YES/NO outcomes on real-world events — crypto prices, politics, sports and more — and earn AVAX if your prediction is correct.',
+    a: 'Avadix is a decentralized prediction market protocol built on Avalanche. You can trade binary YES/NO outcomes on real-world events — crypto prices, politics, sports and more — and earn AVAX if your prediction is correct.',
   },
   {
     q: 'How do I make a prediction?',

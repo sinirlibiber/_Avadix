@@ -5,6 +5,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { Vote, Plus, X, CheckCircle, XCircle, Clock, Users } from 'lucide-react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi';
+import { AVAX_MAINNET_ID } from '@/lib/wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { getAddresses } from '@/lib/contracts/addresses';
 import DAO_ABI from '@/lib/contracts/AvadixDAO.json';
@@ -228,7 +229,7 @@ export default function DAOSection() {
         {[
           { label: 'Total Proposals', value: count.toString(), icon: Vote },
           { label: 'On-Chain', value: '✓', icon: Clock },
-          { label: 'Network', value: chainId === 43113 ? 'Fuji' : 'Mainnet', icon: CheckCircle },
+          { label: 'Network', value: chainId === AVAX_MAINNET_ID ? 'Mainnet' : 'Fuji', icon: CheckCircle },
           { label: 'Contract', value: `${contracts.AvadixDAO.slice(0, 6)}...`, icon: Users },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 12, padding: '16px 18px' }}>

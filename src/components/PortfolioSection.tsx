@@ -6,6 +6,7 @@ import { useAccount, useBalance, useReadContract, useWriteContract, useWaitForTr
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { formatEther } from 'viem';
 import { getAddresses } from '@/lib/contracts/addresses';
+import { AVAX_MAINNET_ID } from '@/lib/wagmi';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
 import DAO_ABI from '@/lib/contracts/AvadixDAO.json';
 import DONATIONS_ABI from '@/lib/contracts/AvadixDonations.json';
@@ -19,8 +20,7 @@ function parseEmojiField(raw: string): { emoji: string; imageData: string | null
   return { emoji: raw.slice(0, idx), imageData: raw.slice(idx + IMG_SEP.length) || null };
 }
 
-// ─── Fuji Snowtrace explorer link ─────────────────────────────────────────────
-const EXPLORER = 'https://testnet.snowtrace.io';
+// ─── Explorer base URL (network-aware) ────────────────────────────────────────
 
 // ─── Market Position Detail Modal ────────────────────────────────────────────
 function PositionDetailModal({ marketId, contracts, onClose }: { marketId: number; contracts: any; onClose: () => void }) {
@@ -484,8 +484,8 @@ function TransactionHistory({ address, chainId }: { address: string; chainId: nu
   const [page, setPage] = useState(1);
   const PER_PAGE = 15;
 
-  const EXPLORER_BASE = 'https://testnet.snowtrace.io';
-  const API_BASE = 'https://api-testnet.snowtrace.io/api';
+  const EXPLORER_BASE = chainId === AVAX_MAINNET_ID ? 'https://snowtrace.io' : 'https://testnet.snowtrace.io';
+  const API_BASE = chainId === AVAX_MAINNET_ID ? 'https://api.snowtrace.io/api' : 'https://api-testnet.snowtrace.io/api';
 
   // Categorize tx based on input data / to address
   const KNOWN: Record<string, string> = {
@@ -808,7 +808,7 @@ export default function PortfolioSection() {
             { label: 'Total Markets', value: mCount.toString(), icon: BarChart3 },
             { label: 'DAO Proposals', value: pCount.toString(), icon: CheckCircle },
             { label: 'Campaigns', value: cCount.toString(), icon: Heart },
-            { label: 'Network', value: chainId === 43113 ? 'Fuji Testnet' : 'Mainnet', icon: Activity },
+            { label: 'Network', value: chainId === AVAX_MAINNET_ID ? 'Mainnet' : 'Fuji Testnet', icon: Activity },
             { label: 'Wallet', value: `${address?.slice(0, 6)}...${address?.slice(-4)}`, icon: Wallet },
             { label: 'Balance', value: `${parseFloat(balance?.formatted || '0').toFixed(3)} AVAX`, icon: TrendingUp },
           ].map(({ label, value, icon: Icon }) => (
