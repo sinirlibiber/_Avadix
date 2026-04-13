@@ -1,6 +1,6 @@
 <div align="center">
 
-#  AVADIX
+# ⚡ AVADIX
 
 ### Decentralized Prediction Markets on Avalanche
 
@@ -175,6 +175,40 @@ npm or yarn
 MetaMask or Core Wallet browser extension
 ```
 
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/sinirlibiber/Avadix_.git
+cd Avadix_
+
+# Install dependencies
+npm install --legacy-peer-deps
+
+# Set up environment variables
+cp .env.example .env.local
+# Add your WalletConnect Project ID to .env.local
+
+# Start development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```env
+# WalletConnect — get yours free at https://cloud.walletconnect.com
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
+
+# Avalanche Chain ID
+# 43114 = Mainnet | 43113 = Fuji Testnet
+NEXT_PUBLIC_CHAIN_ID=43113
+```
 
 ---
 
@@ -243,7 +277,7 @@ Currency:   AVAX
 | **Q1-2 2026 ✅** | Deploy 3 smart contracts on Fuji Testnet, launch avadix.xyz |
 | **Q3 2026** | Security audit, Chainlink oracle integration, community beta |
 | **Q3-4 2026** | **CLOB (Central Limit Order Book) In Development** |  **In Development** |
-| **Q4 2026** |✅ Avalanche Mainnet deployment, TOKEN governance token launch |
+| **Q4 2026** | Avalanche Mainnet deployment, TOKEN governance token launch |
 | **Q1 2026** | Leaderboard, DAO treasury, liquidity mining rewards |
 
 ---
@@ -280,7 +314,7 @@ Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 
 <div align="center">
 
-** Built with ❤️ on Avalanche · Avadix Labs · 2026**
+**⚡ Built with ❤️ on Avalanche · Avadix Labs · 2026**
 
 [![Avalanche](https://img.shields.io/badge/Powered_by-Avalanche-E84142?style=flat-square&logo=avalanche&logoColor=white)](https://avax.network)
 [![Twitter](https://img.shields.io/badge/Twitter-x.com/AvadixLabs-1DA1F2?style=flat-square&logo=twitter&logoColor=white)](https://x.com/AvadixLabs)
