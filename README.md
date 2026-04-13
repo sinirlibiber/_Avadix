@@ -25,7 +25,6 @@ Built natively on Avalanche C-Chain — fast, cheap, and fully on-chain.
 All three Avadix contracts are **live on Avalanche Fuji Testnet** — fully verified and operational.
 
 | Contract | Address | Explorer |
-
 |---|---|---|
 | **AvadixPredictionMarket** | `0xB344abF2e0993B75Afb0428479ff995C6D839CDe` | [View](https://snowtrace.io/address/0xB344abF2e0993B75Afb0428479ff995C6D839CDe) |
 | **AvadixDAO** | `0xCf603cd9873894D6c1d85CC6548F077690759a30` | [View](https://snowtrace.io/address/0xCf603cd9873894D6c1d85CC6548F077690759a30) |
