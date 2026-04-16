@@ -8,6 +8,7 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { getAddresses } from '@/lib/contracts/addresses';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
 import MarketCard from './MarketCard';
+import MultiMarketCard from './MultiMarketCard';
 import { CATEGORIES, Category } from '@/lib/data';
 
 // ── Admin wallet — sadece bu adres Create Market butonunu görür ──────────────
@@ -123,14 +124,22 @@ export default function MarketsSection() {
     functionName: 'marketCount',
   }) as { data: bigint | undefined; refetch: () => void };
 
+  const { data: multiMarketCount, refetch: refetchMultiCount } = useReadContract({
+    address: contracts.PredictionMarket,
+    abi: MARKET_ABI,
+    functionName: 'multiMarketCount',
+  }) as { data: bigint | undefined; refetch: () => void };
+
   const { data: creationFee } = useReadContract({
     address: contracts.PredictionMarket,
     abi: MARKET_ABI,
     functionName: 'MARKET_CREATION_FEE',
   }) as { data: bigint | undefined };
 
-  const count     = Number(marketCount ?? 0n);
-  const marketIds = Array.from({ length: count }, (_, i) => i + 1);
+  const count      = Number(marketCount ?? 0n);
+  const multiCount = Number(multiMarketCount ?? 0n);
+  const marketIds  = Array.from({ length: count },      (_, i) => i + 1);
+  const multiIds   = Array.from({ length: multiCount }, (_, i) => i + 1);
 
   const { writeContract, data: txHash, isPending: isCreating } = useWriteContract();
   const { isSuccess: createDone } = useWaitForTransactionReceipt({ hash: txHash });
@@ -138,6 +147,7 @@ export default function MarketsSection() {
   useEffect(() => {
     if (createDone) {
       refetchCount();
+      refetchMultiCount();
       setCreateSuccess(true);
       setForm({ title: '', category: 'crypto', durationDays: '7', marketType: '0', tokenPair: '0', targetPrice: '', targetAbove: 'true' });
       setMultiOptions(['', '', '']);
@@ -238,7 +248,7 @@ export default function MarketsSection() {
             Prediction Markets
           </h2>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: '#888888' }}>
-            {count > 0 ? `${count} market${count !== 1 ? 's' : ''}` : 'No markets yet'}
+            {(count + multiCount) > 0 ? `${count + multiCount} market${(count + multiCount) !== 1 ? 's' : ''}` : 'No markets yet'}
           </p>
         </div>
 
@@ -325,13 +335,36 @@ export default function MarketsSection() {
       </div>
 
       {/* ── Market grid ── */}
-      {count === 0 ? (
+      {(count + multiCount) === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: '#555555' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔮</div>
           <p style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>No markets yet.</p>
         </div>
       ) : (
-        <MarketGrid marketIds={marketIds} search={search} category={category} sortBy={sortBy} filterStatus={statusFilter} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+          {/* Binary markets — recent first */}
+          {[...marketIds].sort((a, b) => sortBy === 'recent' ? b - a : a - b).map(id => (
+            // @ts-ignore
+            <MarketCard
+              key={`bin-${id}`}
+              marketId={id}
+              filterCategory={category}
+              filterSearch={search}
+              filterStatus={statusFilter}
+              sortBy={sortBy}
+            />
+          ))}
+          {/* Multi-option markets — recent first */}
+          {[...multiIds].sort((a, b) => sortBy === 'recent' ? b - a : a - b).map(id => (
+            <MultiMarketCard
+              key={`multi-${id}`}
+              multiId={id}
+              filterCategory={category}
+              filterSearch={search}
+              filterStatus={statusFilter}
+            />
+          ))}
+        </div>
       )}
 
       {/* ── Create Market Modal (sadece admin açabilir) ── */}
