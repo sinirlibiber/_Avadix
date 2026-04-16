@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, TrendingUp, Clock, Users, BarChart3, Activity, AlertCircle, CheckCircle, Info, Zap, Target, ExternalLink } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Clock, Users, BarChart3, Activity, AlertCircle, CheckCircle, Info, Zap, Target } from 'lucide-react';
 import Link from 'next/link';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance, useChainId } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
@@ -769,12 +769,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
             </div>
           </div>
 
-          {/* Snowtrace link */}
-          <a href={`https://${isMainnet ? '' : 'testnet.'}snowtrace.io/address/${contracts.PredictionMarket}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', background: '#0D0D0D', border: '1px solid #1C1C1C', borderRadius: 10, color: '#444', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontSize: 10, transition: 'color 0.2s' }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#FAFAFA'}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#444'}>
-            <ExternalLink size={11} /> View contract on Snowtrace
-          </a>
+
         </div>
       </div>
     </div>

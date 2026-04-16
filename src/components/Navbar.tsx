@@ -49,12 +49,13 @@ function useNavCounts() {
   };
 }
 
-// Sıra: Markets 1, Donations 2, DAO 3, Portfolio 4
+// Sıra: Markets 1, Donations 2, DAO 3, Portfolio 4, Early User 5
 const NAV_LINKS = [
-  { label: 'Markets',   href: '/markets',   countKey: 'markets'   as const },
-  { label: 'Donations', href: '/donate',    countKey: 'donations' as const },
-  { label: 'DAO',       href: '/dao',       countKey: 'dao'       as const },
-  { label: 'Portfolio', href: '/portfolio', countKey: null },
+  { label: 'Markets',    href: '/markets',   countKey: 'markets'   as const },
+  { label: 'Donations',  href: '/donate',    countKey: 'donations' as const },
+  { label: 'DAO',        href: '/dao',       countKey: 'dao'       as const },
+  { label: 'Portfolio',  href: '/portfolio', countKey: null },
+  { label: 'Early User', href: '/early',     countKey: null, highlight: true },
 ];
 
 function NetworkToggle() {
@@ -175,17 +176,28 @@ export default function Navbar() {
             {NAV_LINKS.map(link => {
               const active = pathname === link.href || pathname?.startsWith(link.href + '/');
               const count = link.countKey ? counts[link.countKey] : null;
+              const isHighlight = (link as any).highlight;
               return (
                 <Link key={link.label} href={link.href} style={{
-                  color: active ? '#FAFAFA' : '#666',
+                  color: isHighlight ? (active ? '#0a0a0a' : '#C4F135') : (active ? '#FAFAFA' : '#666'),
                   textDecoration: 'none',
-                  fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 14,
-                  padding: '6px 14px', borderRadius: 8, transition: 'color 0.2s',
+                  fontFamily: 'var(--font-display)', fontWeight: isHighlight ? 700 : 500, fontSize: 14,
+                  padding: '6px 14px', borderRadius: 8, transition: 'all 0.2s',
                   letterSpacing: '-0.01em',
                   display: 'flex', alignItems: 'center', gap: 6,
+                  background: isHighlight ? (active ? '#C4F135' : 'rgba(196,241,53,0.08)') : 'transparent',
+                  border: isHighlight ? `1px solid rgba(196,241,53,${active ? '1' : '0.25'})` : '1px solid transparent',
                 }}
-                onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.color = '#AAAAAA'; }}
-                onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.color = '#666'; }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  if (isHighlight) { el.style.background = '#C4F135'; el.style.color = '#0a0a0a'; }
+                  else if (!active) el.style.color = '#AAAAAA';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  if (isHighlight) { el.style.background = active ? '#C4F135' : 'rgba(196,241,53,0.08)'; el.style.color = active ? '#0a0a0a' : '#C4F135'; }
+                  else if (!active) el.style.color = '#666';
+                }}
                 >
                   {link.label}
                   {count != null && (
@@ -230,12 +242,13 @@ export default function Navbar() {
             {NAV_LINKS.map(link => {
               const active = pathname === link.href;
               const count = link.countKey ? counts[link.countKey] : null;
+              const isHighlight = (link as any).highlight;
               return (
                 <Link key={link.label} href={link.href} onClick={() => setMobileOpen(false)} style={{
                   display: 'flex', alignItems: 'center', gap: 8,
-                  color: active ? '#FAFAFA' : '#666',
+                  color: isHighlight ? '#C4F135' : (active ? '#FAFAFA' : '#666'),
                   textDecoration: 'none', fontFamily: 'var(--font-display)',
-                  fontWeight: 500, padding: '10px 4px', fontSize: 14, borderRadius: 8,
+                  fontWeight: isHighlight ? 700 : 500, padding: '10px 4px', fontSize: 14, borderRadius: 8,
                 }}>
                   {link.label}
                   {count != null && (

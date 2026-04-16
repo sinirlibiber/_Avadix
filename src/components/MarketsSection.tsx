@@ -176,7 +176,7 @@ export default function MarketsSection() {
     if (!isAdmin)           { setCreateError('Only admin can create markets.'); return; }
     if (!form.title.trim()) { setCreateError('Market question is required.'); return; }
     const days = parseInt(form.durationDays);
-    if (!days || days < 1 || days > 90) { setCreateError('Duration must be between 1-90 days.'); return; }
+    if (!days || days < 1) { setCreateError('Duration must be at least 1 day.'); return; }
 
     const durationSecs = BigInt(days * 86400);
     const imageURI     = imagePreview ?? '';
@@ -502,7 +502,7 @@ export default function MarketsSection() {
                   <div>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Duration (days)</label>
                     <input
-                      type="number" min={1} max={90}
+                      type="number" min={1}
                       value={form.durationDays}
                       onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, durationDays: e.target.value }))}
                       style={inputStyle}

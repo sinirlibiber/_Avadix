@@ -1,17 +1,17 @@
 import Navbar from '@/components/Navbar';
-import Hero from '@/components/Hero';
-import { FAQ } from '@/components/Hero';
 import PageBackground from '@/components/PageBackground';
 import Footer from '@/components/Footer';
+import EarlyMintSection from '@/components/EarlyMintSection';
 
-export default function Home() {
+export default function EarlyPage() {
   return (
     <main style={{ position: 'relative' }}>
       <PageBackground opacity={0.4} />
       <div style={{ position: 'relative', zIndex: 1 }}>
         <Navbar />
-        <Hero />
-        <FAQ />
+        <div style={{ paddingTop: 64 }}>
+          <EarlyMintSection />
+        </div>
         <Footer />
       </div>
     </main>

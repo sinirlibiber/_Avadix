@@ -395,6 +395,88 @@ function PositionRow({ marketId, contracts, onClick }: { marketId: number; contr
   );
 }
 
+// ─── Multi Market Position Row ────────────────────────────────────────────────
+function MultiPositionRow({ multiId, contracts }: { multiId: number; contracts: any }) {
+  const { address } = useAccount();
+
+  const { data: raw } = useReadContract({
+    address: contracts.PredictionMarket, abi: MARKET_ABI,
+    functionName: 'getMultiMarket', args: [BigInt(multiId)],
+    query: { refetchInterval: 10_000 },
+  }) as { data: any };
+
+  const { data: posRaw } = useReadContract({
+    address: contracts.PredictionMarket, abi: MARKET_ABI,
+    functionName: 'getMultiPosition', args: [BigInt(multiId), address ?? '0x0000000000000000000000000000000000000000'],
+    query: { enabled: !!address, refetchInterval: 10_000 },
+  }) as { data: any };
+
+  if (!raw || !posRaw) return null;
+
+  const [, question, , , , resolved, winnerIndex, , options, pools] = raw as [
+    string, string, string, string, bigint, boolean, number, number, string[], bigint[], bigint[]
+  ];
+  if (!question) return null;
+
+  const shares: bigint[] = posRaw.shares ?? [];
+  const claimed: boolean = posRaw.claimed ?? false;
+  const sharesF = shares.map((s: bigint) => parseFloat(formatEther(s ?? 0n)));
+  const hasAny = sharesF.some(s => s > 0);
+  if (!hasAny) return null;
+
+  const totalPool = pools ? pools.reduce((a: bigint, p: bigint) => a + p, 0n) : 0n;
+  const winnerIdx = resolved && winnerIndex > 0 ? winnerIndex - 1 : null;
+  const canClaim = resolved && !claimed && winnerIdx !== null && (shares[winnerIdx] ?? 0n) > 0n;
+
+  const OPTION_COLORS = ['#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899', '#10B981', '#EF4444'];
+
+  return (
+    <div style={{ background: '#111111', border: '1px solid #1C1C1C', borderRadius: 14, padding: '16px 20px', transition: 'all 0.2s' }}
+      onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.background = '#14141E'; }}
+      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.borderColor = '#1C1C1C'; e.currentTarget.style.background = '#111111'; }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+        <div>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: '#FAFAFA', marginBottom: 4 }}>{question}</div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '1px 7px', borderRadius: 8, background: 'rgba(59,130,246,0.15)', color: '#93C5FD' }}>🎯 MULTI</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: resolved ? '#22c55e' : '#F59E0B' }}>{resolved ? 'Resolved' : 'Active'}</span>
+            {canClaim && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}>Claim Available</span>}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570', marginBottom: 2 }}>Pool</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#FAFAFA' }}>{parseFloat(formatEther(totalPool)).toFixed(3)} AVAX</div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {options?.map((opt: string, i: number) => {
+          const s = sharesF[i] ?? 0;
+          if (s === 0) return null;
+          const isWinner = winnerIdx === i;
+          const color = isWinner ? '#22c55e' : OPTION_COLORS[i % OPTION_COLORS.length];
+          const optPool = pools?.[i] ? parseFloat(formatEther(pools[i])) : 0;
+          const totPool = parseFloat(formatEther(totalPool));
+          const estPayout = optPool > 0 ? s * totPool / (optPool) : 0;
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: `${color}10`, border: `1px solid ${color}30`, borderRadius: 8, padding: '6px 10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {isWinner && <span style={{ fontSize: 10, color: '#22c55e' }}>✓</span>}
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color }}>
+                  {opt}
+                </span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555570' }}>{s.toFixed(4)} shares</span>
+              </div>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: isWinner ? '#22c55e' : '#8888AA' }}>
+                ~{estPayout.toFixed(4)} AVAX
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── DAO Vote Row (clickable) ─────────────────────────────────────────────────
 function VoteRow({ proposalId, contracts, onClick }: { proposalId: number; contracts: any; onClick: () => void }) {
   const { address } = useAccount();
@@ -690,14 +772,17 @@ export default function PortfolioSection() {
   const [selectedCampaign, setSelectedCampaign] = useState<number | null>(null);
 
   const { data: marketCount } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'marketCount' }) as { data: bigint | undefined };
+  const { data: multiMarketCount } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'multiMarketCount' }) as { data: bigint | undefined };
   const { data: proposalCount } = useReadContract({ address: contracts.AvadixDAO, abi: DAO_ABI, functionName: 'proposalCount' }) as { data: bigint | undefined };
   const { data: campaignCount } = useReadContract({ address: contracts.AvadixDonations, abi: DONATIONS_ABI, functionName: 'campaignCount' }) as { data: bigint | undefined };
 
   const mCount = Number(marketCount ?? 0n);
+  const mmCount = Number(multiMarketCount ?? 0n);
   const pCount = Number(proposalCount ?? 0n);
   const cCount = Number(campaignCount ?? 0n);
 
   const marketIds = Array.from({ length: mCount }, (_, i) => i + 1);
+  const multiMarketIds = Array.from({ length: mmCount }, (_, i) => i + 1);
   const proposalIds = Array.from({ length: pCount }, (_, i) => i + 1);
   const campaignIds = Array.from({ length: cCount }, (_, i) => i + 1);
 
@@ -778,7 +863,8 @@ export default function PortfolioSection() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#555570', marginBottom: 8 }}>Click a position to see full details:</p>
           {marketIds.map(id => /* @ts-ignore */ <PositionRow key={id} marketId={id} contracts={contracts} onClick={() => { setSelectedMarket(id); }} />)}
-          {mCount === 0 && <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No market positions yet. <a href="/markets" style={{ color: '#FAFAFA' }}>Explore Markets →</a></div>}
+          {multiMarketIds.map(id => /* @ts-ignore */ <MultiPositionRow key={`multi-${id}`} multiId={id} contracts={contracts} />)}
+          {mCount === 0 && mmCount === 0 && <div style={{ textAlign: 'center', padding: '60px 0', color: '#8888AA' }}>No market positions yet. <a href="/markets" style={{ color: '#FAFAFA' }}>Explore Markets →</a></div>}
         </div>
       )}
 

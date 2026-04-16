@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, TrendingUp, Clock, ExternalLink } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance, useChainId } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
@@ -63,6 +63,16 @@ export default function MultiMarketDetail({ multiId }: { multiId: number }) {
     abi: MARKET_ABI,
     functionName: 'MARKET_CREATION_FEE',
   }) as { data: bigint | undefined };
+
+  // ── Shares out estimate for ROI ───────────────────────────────────────────
+  const amountNum = Math.max(MIN_BET, parseFloat(amount) || MIN_BET);
+  const { data: sharesOutRaw } = useReadContract({
+    address: contracts.PredictionMarket,
+    abi: MARKET_ABI,
+    functionName: 'getMultiSharesOut',
+    args: [BigInt(multiId), selectedOption, parseEther(amountNum.toFixed(6))],
+    query: { enabled: !isNaN(amountNum) && amountNum > 0 },
+  }) as { data: [bigint, bigint, bigint] | undefined };
 
   // ── Tx ───────────────────────────────────────────────────────────────────
   const { writeContract, data: txHash, isPending } = useWriteContract();
@@ -359,6 +369,33 @@ export default function MultiMarketDetail({ multiId }: { multiId: number }) {
                     </div>
                   )}
 
+                  {/* ROI Preview */}
+                  {!resolved && (() => {
+                    const sharesOut = sharesOutRaw ? parseFloat(formatEther(sharesOutRaw[0])) : 0;
+                    const optPool = pools?.[selectedOption] ? parseFloat(formatEther(pools[selectedOption])) : 0;
+                    const totPool = parseFloat(formatEther(totalPool));
+                    const totShares = totalShares?.[selectedOption] ? parseFloat(formatEther(totalShares[selectedOption])) : 0;
+                    const newTotal = totPool + amountNum;
+                    const newTotShares = totShares + sharesOut;
+                    const payout = newTotShares > 0 && sharesOut > 0 ? sharesOut * newTotal / newTotShares : 0;
+                    const profit = payout - amountNum;
+                    const roi = amountNum > 0 ? (profit / amountNum) * 100 : 0;
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                        <div style={{ background: '#0D0D0D', border: '1px solid #1C1C1C', borderRadius: 10, padding: '10px 14px' }}>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#555', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>To Win if Yes</div>
+                          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: '#22c55e' }}>{payout.toFixed(4)}</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#555', marginTop: 2 }}>AVAX profit</div>
+                        </div>
+                        <div style={{ background: '#0D0D0D', border: '1px solid #1C1C1C', borderRadius: 10, padding: '10px 14px' }}>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#555', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>ROI</div>
+                          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: roi >= 0 ? '#22c55e' : '#EF4444' }}>{roi >= 0 ? '+' : ''}{roi.toFixed(1)}%</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: roi >= 0 ? '#22c55e' : '#EF4444', marginTop: 2 }}>{profit >= 0 ? '+' : ''}{profit.toFixed(4)} AVAX</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Buy button */}
                   {!isConnected ? (
                     <div style={{ textAlign: 'center' }}><ConnectButton /></div>
@@ -379,13 +416,7 @@ export default function MultiMarketDetail({ multiId }: { multiId: number }) {
             </div>
           </div>
 
-          {/* Snowtrace link */}
-          <a href={`https://${isMainnet ? '' : 'testnet.'}snowtrace.io/address/${contracts.PredictionMarket}`} target="_blank" rel="noreferrer"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', background: '#0D0D0D', border: '1px solid #1C1C1C', borderRadius: 10, color: '#444', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontSize: 10, transition: 'color 0.2s' }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#FAFAFA'}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#444'}>
-            <ExternalLink size={11} /> View contract on Snowtrace
-          </a>
+
         </div>
       </div>
     </div>
