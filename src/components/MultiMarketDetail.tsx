@@ -258,13 +258,6 @@ export default function MultiMarketDetail({ multiId }: { multiId: number }) {
               </div>
             </div>
           )}
-
-          {/* Admin resolve panel (market not ended yet) */}
-          {isAdmin && !resolved && msLeft > 0 && (
-            <div style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 14, padding: '14px 18px' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#F59E0B' }}>⚠ Admin resolve available after market ends</span>
-            </div>
-          )}
         </div>
 
         {/* ══ RIGHT: Trade panel ══ */}

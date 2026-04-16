@@ -20,6 +20,12 @@ function useNavCounts() {
     functionName: 'marketCount',
   });
 
+  const { data: multiMarketCount } = useReadContract({
+    address: contracts.PredictionMarket,
+    abi: ABIS.PredictionMarket,
+    functionName: 'multiMarketCount',
+  });
+
   const { data: proposalCount } = useReadContract({
     address: contracts.AvadixDAO,
     abi: ABIS.AvadixDAO,
@@ -32,8 +38,12 @@ function useNavCounts() {
     functionName: 'campaignCount',
   });
 
+  const totalMarkets = (marketCount != null || multiMarketCount != null)
+    ? (Number(marketCount ?? 0) + Number(multiMarketCount ?? 0))
+    : null;
+
   return {
-    markets:   marketCount   != null ? Number(marketCount)   : null,
+    markets:   totalMarkets,
     dao:       proposalCount != null ? Number(proposalCount) : null,
     donations: campaignCount != null ? Number(campaignCount) : null,
   };
