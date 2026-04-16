@@ -268,7 +268,7 @@ export default function MarketDetail({ marketId }: { marketId: number }) {
 
   const isOracle = market?.marketType === 1;
   const { data: oraclePrice, isError: clError } = useReadContract({ address: contracts.PredictionMarket, abi: MARKET_ABI, functionName: 'getCurrentPrice', args: [market?.tokenPair ?? 0], query: { enabled: !!market && isOracle, refetchInterval: 30_000, retry: 1 } }) as { data: [bigint, number] | undefined; isError: boolean };
-  const pairMeta = TOKEN_PAIR_META[Number(market?.tokenPair ?? 0)];
+  const pairMeta = TOKEN_PAIR_META[Number(market?.tokenPair ?? 0)] ?? { symbol: 'AVAX/USD', color: '#E84142', coingeckoId: 'avalanche-2' };
   const geckoPrice = useCoinGeckoPrice(pairMeta?.coingeckoId ?? '', isOracle && (!oraclePrice || clError));
   let livePrice: number | null = null;
   if (oraclePrice && !clError) livePrice = Number(oraclePrice[0]) / 10 ** oraclePrice[1];
