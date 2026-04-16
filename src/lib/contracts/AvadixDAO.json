@@ -81,9 +81,34 @@
 				"internalType": "uint256",
 				"name": "noVotes",
 				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "totalVotes",
+				"type": "uint256"
 			}
 		],
 		"name": "ProposalFinalized",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "oldQuorum",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newQuorum",
+				"type": "uint256"
+			}
+		],
+		"name": "QuorumUpdated",
 		"type": "event"
 	},
 	{
@@ -197,6 +222,19 @@
 			}
 		],
 		"name": "setDurationLimits",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "newQuorum",
+				"type": "uint256"
+			}
+		],
+		"name": "setQuorum",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -418,6 +456,25 @@
 		"type": "function"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "proposalId",
+				"type": "uint256"
+			}
+		],
+		"name": "meetsQuorum",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [],
 		"name": "minDuration",
 		"outputs": [
@@ -520,6 +577,19 @@
 				"internalType": "bool",
 				"name": "exists",
 				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "quorum",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",

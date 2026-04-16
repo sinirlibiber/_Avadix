@@ -7,7 +7,7 @@ import DonationsABI from './AvadixDonations.json'
 
 export const MAINNET_ADDRESSES = {
   PredictionMarket: '0xc2be6aF67EBba4c52A5216bE2351FD7F7551bcBF' as `0x${string}`,
-  AvadixDAO:        '0xCf603cd9873894D6c1d85CC6548F077690759a30' as `0x${string}`,
+  AvadixDAO:        '0x63b3B815a57B5003f2c5a65aF40e8a14032B4dca' as `0x${string}`,
   AvadixDonations:  '0xA6619F9F9F1ca5F4D03Dd7588f07622BE3A5b340' as `0x${string}`,
 }
 
