@@ -182,7 +182,7 @@ export default function EarlyMintSection() {
             <div className="bg-[#070d2a] border border-blue-900/50 rounded-xl p-5 space-y-3">
               {[
                 { icon: '🆓', label: 'Completely Free',     sub: 'No AVAX cost — gas fee only' },
-                { icon: '🔗', label: 'On-Chain Metadata',   sub: 'SVG fully stored on Avalanche' },
+                { icon: '🔗', label: 'On-Chain',            sub: 'On Avalanche' },
                 { icon: '🏅', label: 'Permanent Badge',     sub: 'Proof of early belief in Avadix' },
                 { icon: '🔒', label: '1 per Wallet',        sub: 'Fair distribution guaranteed' },
               ].map(({ icon, label, sub }) => (
