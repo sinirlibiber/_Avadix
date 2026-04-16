@@ -3,12 +3,31 @@
 import React from 'react';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, Plus, X, Upload, ImageIcon } from 'lucide-react';
+import { Search, Plus, X, Upload, ImageIcon, Trash2 } from 'lucide-react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi';
 import { getAddresses } from '@/lib/contracts/addresses';
 import MARKET_ABI from '@/lib/contracts/AvadixPredictionMarket.json';
 import MarketCard from './MarketCard';
 import { CATEGORIES, Category } from '@/lib/data';
+
+// ── Admin wallet — sadece bu adres Create Market butonunu görür ──────────────
+const ADMIN_WALLET = '0xBDe92Af0753d0d3b4bE1c7E1fdfe6C046aC3B8f9'.toLowerCase();
+
+// ── 12 Oracle pair listesi ────────────────────────────────────────────────────
+const TOKEN_PAIR_LABELS = [
+  'AVAX/USD',   // 0
+  'BTC/USD',    // 1
+  'ETH/USD',    // 2
+  'LINK/USD',   // 3
+  'SOL/USD',    // 4
+  'BNB/USD',    // 5
+  'MATIC/USD',  // 6
+  'DOT/USD',    // 7
+  'ADA/USD',    // 8
+  'ATOM/USD',   // 9
+  'UNI/USD',    // 10
+  'AAVE/USD',   // 11
+];
 
 // ─── Resmi canvas ile küçült → base64 ────────────────────────────────────────
 function resizeImageToBase64(file: File, maxPx = 400): Promise<string> {
@@ -20,7 +39,6 @@ function resizeImageToBase64(file: File, maxPx = 400): Promise<string> {
       canvas.width  = Math.round(img.width  * scale);
       canvas.height = Math.round(img.height * scale);
       canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-      // Try high quality first, reduce if too large for on-chain storage
       let quality = 0.85;
       let result = canvas.toDataURL('image/jpeg', quality);
       while (result.length > 45000 && quality > 0.3) {
@@ -34,7 +52,7 @@ function resizeImageToBase64(file: File, maxPx = 400): Promise<string> {
   });
 }
 
-// ─── MarketGrid — sıralama burada ────────────────────────────────────────────
+// ─── MarketGrid ───────────────────────────────────────────────────────────────
 function MarketGrid({ marketIds, search, category, sortBy, filterStatus }: {
   marketIds: number[];
   search: string;
@@ -42,10 +60,6 @@ function MarketGrid({ marketIds, search, category, sortBy, filterStatus }: {
   sortBy: 'volume' | 'recent' | 'hot';
   filterStatus: 'active' | 'resolved' | 'all';
 }) {
-  // sortBy'a göre marketId listesini sırala
-  // recent → en yüksek ID önce, volume & hot → MarketCard içinde pool bilgisi var
-  // Bu yüzden sıralamayı MarketCard'dan gelen data ile yapmak yerine
-  // basit yaklaşım: recent=ID desc, diğerleri ID asc (MarketCard kendi içinde filtreler)
   const sorted = [...marketIds].sort((a, b) => {
     if (sortBy === 'recent') return b - a;
     return a - b;
@@ -70,10 +84,13 @@ function MarketGrid({ marketIds, search, category, sortBy, filterStatus }: {
 
 // ─── Ana bileşen ──────────────────────────────────────────────────────────────
 export default function MarketsSection() {
-  const { isConnected } = useAccount();
-  const chainId         = useChainId();
-  const contracts       = getAddresses(chainId);
-  const fileRef         = useRef<HTMLInputElement>(null);
+  const { isConnected, address } = useAccount();
+  const chainId   = useChainId();
+  const contracts = getAddresses(chainId);
+  const fileRef   = useRef<HTMLInputElement>(null);
+
+  // Admin kontrolü
+  const isAdmin = isConnected && address?.toLowerCase() === ADMIN_WALLET;
 
   const [search,       setSearch]       = useState('');
   const [category,     setCategory]     = useState<Category>('all');
@@ -84,15 +101,21 @@ export default function MarketsSection() {
   const [createError,  setCreateError]  = useState('');
   const [createSuccess,setCreateSuccess]= useState(false);
 
+  // marketMode: 'binary' = YES/NO, 'multi' = çoklu seçenek
+  const [marketMode, setMarketMode] = useState<'binary' | 'multi'>('binary');
+
   const [form, setForm] = useState({
     title:        '',
     category:     'crypto',
     durationDays: '7',
-    marketType:   '0',
+    marketType:   '0',   // 0=Manual, 1=Oracle (sadece binary)
     tokenPair:    '0',
     targetPrice:  '',
     targetAbove:  'true',
   });
+
+  // Multi-option seçenekleri (min 3, max 8)
+  const [multiOptions, setMultiOptions] = useState<string[]>(['', '', '']);
 
   const { data: marketCount, refetch: refetchCount } = useReadContract({
     address: contracts.PredictionMarket,
@@ -117,7 +140,9 @@ export default function MarketsSection() {
       refetchCount();
       setCreateSuccess(true);
       setForm({ title: '', category: 'crypto', durationDays: '7', marketType: '0', tokenPair: '0', targetPrice: '', targetAbove: 'true' });
+      setMultiOptions(['', '', '']);
       setImagePreview(null);
+      setMarketMode('binary');
       setTimeout(() => { setCreateSuccess(false); setShowCreate(false); }, 2800);
     }
   }, [createDone, refetchCount]);
@@ -137,35 +162,57 @@ export default function MarketsSection() {
 
   const handleCreate = () => {
     setCreateError('');
-    if (!isConnected)        { setCreateError('Connect your wallet first.'); return; }
-    if (!form.title.trim())  { setCreateError('Market question is required.'); return; }
+    if (!isConnected)       { setCreateError('Connect your wallet first.'); return; }
+    if (!isAdmin)           { setCreateError('Only admin can create markets.'); return; }
+    if (!form.title.trim()) { setCreateError('Market question is required.'); return; }
     const days = parseInt(form.durationDays);
     if (!days || days < 1 || days > 90) { setCreateError('Duration must be between 1-90 days.'); return; }
-    const oracleMode = form.marketType === '1';
-    if (oracleMode && !form.targetPrice) { setCreateError('Target price is required for Oracle markets.'); return; }
 
     const durationSecs = BigInt(days * 86400);
     const imageURI     = imagePreview ?? '';
 
-    writeContract({
-      address: contracts.PredictionMarket,
-      abi: MARKET_ABI,
-      functionName: 'createMarket',
-      args: [{
-        question:    form.title,
-        category:    form.category,
-        imageURI:    imageURI,
-        duration:    durationSecs,
-        marketType:  oracleMode ? 1 : 0,
-        tokenPair:   oracleMode ? parseInt(form.tokenPair) : 0,
-        targetPrice: oracleMode && form.targetPrice ? BigInt(Math.round(parseFloat(form.targetPrice) * 1e8)) : BigInt(0),
-        targetAbove: form.targetAbove === 'true',
-      }],
-      value: creationFee ?? BigInt('10000000000000000'),
-    });
+    if (marketMode === 'multi') {
+      // Multi-option market
+      const validOptions = multiOptions.map(o => o.trim()).filter(o => o.length > 0);
+      if (validOptions.length < 3) { setCreateError('At least 3 options required.'); return; }
+
+      writeContract({
+        address: contracts.PredictionMarket,
+        abi: MARKET_ABI,
+        functionName: 'createMultiMarket',
+        args: [{
+          question: form.title,
+          category: form.category,
+          imageURI: imageURI,
+          duration: durationSecs,
+          options:  validOptions,
+        }],
+        value: creationFee ?? BigInt('10000000000000000'),
+      });
+    } else {
+      // Binary market
+      const oracleMode = form.marketType === '1';
+      if (oracleMode && !form.targetPrice) { setCreateError('Target price is required for Oracle markets.'); return; }
+
+      writeContract({
+        address: contracts.PredictionMarket,
+        abi: MARKET_ABI,
+        functionName: 'createMarket',
+        args: [{
+          question:    form.title,
+          category:    form.category,
+          imageURI:    imageURI,
+          duration:    durationSecs,
+          marketType:  oracleMode ? 1 : 0,
+          tokenPair:   oracleMode ? parseInt(form.tokenPair) : 0,
+          targetPrice: oracleMode && form.targetPrice ? BigInt(Math.round(parseFloat(form.targetPrice) * 1e8)) : BigInt(0),
+          targetAbove: form.targetAbove === 'true',
+        }],
+        value: creationFee ?? BigInt('10000000000000000'),
+      });
+    }
   };
 
-  const TOKEN_PAIR_LABELS = ['AVAX/USD', 'BTC/USD', 'ETH/USD', 'LINK/USD'];
   const SORT_OPTIONS: { key: 'volume' | 'recent' | 'hot'; label: string }[] = [
     { key: 'recent', label: 'Recent' },
     { key: 'volume', label: 'Volume' },
@@ -173,6 +220,13 @@ export default function MarketsSection() {
   ];
 
   const catList = CATEGORIES as readonly string[];
+
+  const inputStyle = {
+    width: '100%', background: 'rgba(255,255,255,0.04)',
+    border: '1px solid #222222', borderRadius: 10,
+    padding: '10px 12px', color: '#FAFAFA',
+    fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none',
+  };
 
   return (
     <section style={{ padding: '100px 24px 80px', maxWidth: 1280, margin: '0 auto' }}>
@@ -184,30 +238,33 @@ export default function MarketsSection() {
             Prediction Markets
           </h2>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: '#888888' }}>
-            {count > 0 ? `${count} market${count !== 1 ? 's' : ''}` : 'No markets yet — create the first one!'}
+            {count > 0 ? `${count} market${count !== 1 ? 's' : ''}` : 'No markets yet'}
           </p>
         </div>
-        <button
-          onClick={() => { setShowCreate(true); setCreateError(''); }}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: '#FFFFFF',
-            color: '#0A0A0A', border: 'none', borderRadius: 14,
-            padding: '12px 24px', fontFamily: 'var(--font-display)',
-            fontWeight: 700, fontSize: 15, cursor: 'pointer',
-            boxShadow: '0 4px 20px rgba(255,255,255,0.10)',
-            transition: 'all 0.25s',
-          }}
-          onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 30px rgba(255,255,255,0.15)'; }}
-          onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(255,255,255,0.10)'; }}
-        >
-          <Plus size={18} /> Create Market
-        </button>
+
+        {/* Create Market butonu — SADECE admin görür */}
+        {isAdmin && (
+          <button
+            onClick={() => { setShowCreate(true); setCreateError(''); }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: '#FFFFFF',
+              color: '#0A0A0A', border: 'none', borderRadius: 14,
+              padding: '12px 24px', fontFamily: 'var(--font-display)',
+              fontWeight: 700, fontSize: 15, cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(255,255,255,0.10)',
+              transition: 'all 0.25s',
+            }}
+            onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 30px rgba(255,255,255,0.15)'; }}
+            onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(255,255,255,0.10)'; }}
+          >
+            <Plus size={18} /> Create Market
+          </button>
+        )}
       </div>
 
       {/* ── Filters ── */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24, alignItems: 'center' }}>
-        {/* Search */}
         <div style={{ position: 'relative', flex: '1', minWidth: 220 }}>
           <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#555555' }} />
           <input
@@ -223,7 +280,6 @@ export default function MarketsSection() {
           />
         </div>
 
-        {/* Status filter */}
         <div style={{ display: 'flex', gap: 4 }}>
           {([['active', 'Active'], ['resolved', 'Resolved'], ['all', 'All']] as const).map(([key, label]) => (
             <button key={key} onClick={() => setStatusFilter(key)} style={{
@@ -237,7 +293,6 @@ export default function MarketsSection() {
           ))}
         </div>
 
-        {/* Sort */}
         <div style={{ display: 'flex', gap: 4 }}>
           {SORT_OPTIONS.map(opt => (
             <button key={opt.key} onClick={() => setSortBy(opt.key)} style={{
@@ -273,14 +328,14 @@ export default function MarketsSection() {
       {count === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: '#555555' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔮</div>
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>No markets yet. Be the first to create one!</p>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>No markets yet.</p>
         </div>
       ) : (
         <MarketGrid marketIds={marketIds} search={search} category={category} sortBy={sortBy} filterStatus={statusFilter} />
       )}
 
-      {/* ── Create Market Modal ── */}
-      {showCreate && (
+      {/* ── Create Market Modal (sadece admin açabilir) ── */}
+      {showCreate && isAdmin && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 200,
           background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
@@ -290,9 +345,9 @@ export default function MarketsSection() {
         >
           <div style={{
             background: '#111111', border: '1px solid rgba(255,255,255,0.25)',
-            borderRadius: 24, padding: 32, width: '100%', maxWidth: 520,
+            borderRadius: 24, padding: 32, width: '100%', maxWidth: 540,
             maxHeight: '90vh', overflowY: 'auto',
-            boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 60px #1C1C1C',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
           }}>
             {/* Modal header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -301,7 +356,7 @@ export default function MarketsSection() {
                   Create Market
                 </h3>
                 <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555555', marginTop: 2 }}>
-                  0.01 AVAX fee · Anyone can create · On-chain
+                  0.01 AVAX fee · Admin only · On-chain
                 </p>
               </div>
               <button onClick={() => setShowCreate(false)} style={{ background: '#1C1C1C', border: 'none', borderRadius: 10, padding: '8px 10px', color: '#888888', cursor: 'pointer' }}>
@@ -311,13 +366,34 @@ export default function MarketsSection() {
 
             {createSuccess ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                
                 <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#FAFAFA' }}>
-                  Market submitted successfully!
+                  ✅ Market submitted successfully!
                 </p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+                {/* ── Market Mode: Binary vs Multi ── */}
+                <div>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
+                    Market Format
+                  </label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[
+                      { v: 'binary', label: 'YES / NO', desc: 'Classic binary market' },
+                      { v: 'multi',  label: 'Multi-Option', desc: '3–8 choices' },
+                    ].map(opt => (
+                      <button key={opt.v} type="button" onClick={() => setMarketMode(opt.v as any)}
+                        style={{ flex: 1, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                          background: marketMode === opt.v ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.02)',
+                          border: `1px solid ${marketMode === opt.v ? 'rgba(59,130,246,0.4)' : '#222'}`,
+                          transition: 'all 0.2s' }}>
+                        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: marketMode === opt.v ? '#93C5FD' : '#FAFAFA' }}>{opt.label}</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#666', marginTop: 2 }}>{opt.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Image upload */}
                 <div>
@@ -344,18 +420,14 @@ export default function MarketsSection() {
                           <X size={12} />
                         </button>
                         <div style={{ padding: '6px 12px', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555555' }}>
-                          ✓ Image compressed — ready to submit
+                          ✓ Image compressed
                         </div>
                       </>
                     ) : (
                       <div style={{ padding: 24, textAlign: 'center' }}>
                         <ImageIcon size={28} color="#555555" style={{ margin: '0 auto 8px' }} />
-                        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555555' }}>
-                          Click or drag to upload
-                        </p>
-                        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333333', marginTop: 4 }}>
-                          JPG, PNG, GIF — auto-optimized for on-chain
-                        </p>
+                        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555555' }}>Click or drag to upload</p>
+                        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333333', marginTop: 4 }}>JPG, PNG, GIF — auto-optimized</p>
                       </div>
                     )}
                   </div>
@@ -370,7 +442,7 @@ export default function MarketsSection() {
                   <textarea
                     value={form.title}
                     onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, title: e.target.value }))}
-                    placeholder="e.g. Will BTC exceed $200,000 in 2026?"
+                    placeholder={marketMode === 'multi' ? 'e.g. Who will win the 2026 FIFA World Cup?' : 'e.g. Will BTC exceed $200,000 in 2026?'}
                     rows={3}
                     style={{
                       width: '100%', background: 'rgba(255,255,255,0.04)',
@@ -382,7 +454,7 @@ export default function MarketsSection() {
                   />
                 </div>
 
-                {/* Category + Duration row */}
+                {/* Category + Duration */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Category</label>
@@ -400,63 +472,109 @@ export default function MarketsSection() {
                       type="number" min={1} max={90}
                       value={form.durationDays}
                       onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, durationDays: e.target.value }))}
-                      style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid #222222', borderRadius: 10, padding: '10px 12px', color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}
+                      style={inputStyle}
                     />
                   </div>
                 </div>
 
-
-
-                {/* Market Type */}
-                <div>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Market Type</label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {[{ v: '0', label: 'Manual', desc: 'Admin resolves' }, { v: '1', label: 'Oracle', desc: 'Chainlink auto-resolves' }].map(opt => (
-                      <button key={opt.v} type="button" onClick={() => setForm((f: any) => ({ ...f, marketType: opt.v }))}
-                        style={{ flex: 1, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
-                          background: form.marketType === opt.v ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
-                          border: `1px solid ${form.marketType === opt.v ? 'rgba(255,255,255,0.2)' : '#222'}`,
-                          transition: 'all 0.2s' }}>
-                        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: '#FAFAFA' }}>{opt.label}</div>
-                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#666', marginTop: 2 }}>{opt.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Oracle options */}
-                {form.marketType === '1' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid #222', borderRadius: 12, padding: 14 }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Oracle Settings — Chainlink</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                      <div>
-                        <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Token Pair</label>
-                        <select value={form.tokenPair} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, tokenPair: e.target.value }))}
-                          style={{ width: '100%', background: '#161616', border: '1px solid #333', borderRadius: 10, padding: '10px 12px', color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}>
-                          {['AVAX/USD', 'BTC/USD', 'ETH/USD', 'LINK/USD'].map((p, i) => <option key={i} value={String(i)}>{p}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Target Price ($)</label>
-                        <input type="number" placeholder="e.g. 100000" value={form.targetPrice}
-                          onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, targetPrice: e.target.value }))}
-                          style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid #222', borderRadius: 10, padding: '10px 12px', color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }} />
-                      </div>
-                    </div>
+                {/* ── BINARY: Market Type + Oracle ── */}
+                {marketMode === 'binary' && (
+                  <>
                     <div>
-                      <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Condition</label>
+                      <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Resolution Type</label>
                       <div style={{ display: 'flex', gap: 8 }}>
-                        {[{ v: 'true', label: 'Price ≥ target → YES' }, { v: 'false', label: 'Price ≤ target → YES' }].map(opt => (
-                          <button key={opt.v} type="button" onClick={() => setForm((f: any) => ({ ...f, targetAbove: opt.v }))}
-                            style={{ flex: 1, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 11,
-                              background: form.targetAbove === opt.v ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
-                              border: `1px solid ${form.targetAbove === opt.v ? 'rgba(255,255,255,0.2)' : '#222'}`,
-                              color: form.targetAbove === opt.v ? '#FAFAFA' : '#666', transition: 'all 0.2s' }}>
-                            {opt.label}
+                        {[{ v: '0', label: 'Manual', desc: 'Admin resolves' }, { v: '1', label: 'Oracle', desc: 'Chainlink auto-resolves' }].map(opt => (
+                          <button key={opt.v} type="button" onClick={() => setForm((f: any) => ({ ...f, marketType: opt.v }))}
+                            style={{ flex: 1, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                              background: form.marketType === opt.v ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                              border: `1px solid ${form.marketType === opt.v ? 'rgba(255,255,255,0.2)' : '#222'}`,
+                              transition: 'all 0.2s' }}>
+                            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: '#FAFAFA' }}>{opt.label}</div>
+                            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#666', marginTop: 2 }}>{opt.desc}</div>
                           </button>
                         ))}
                       </div>
                     </div>
+
+                    {form.marketType === '1' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid #222', borderRadius: 12, padding: 14 }}>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Oracle Settings — Chainlink</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                          <div>
+                            <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Token Pair</label>
+                            <select value={form.tokenPair} onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, tokenPair: e.target.value }))}
+                              style={{ width: '100%', background: '#161616', border: '1px solid #333', borderRadius: 10, padding: '10px 12px', color: '#FAFAFA', fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none' }}>
+                              {TOKEN_PAIR_LABELS.map((p, i) => <option key={i} value={String(i)}>{p}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Target Price ($)</label>
+                            <input type="number" placeholder="e.g. 100000" value={form.targetPrice}
+                              onChange={(e: React.ChangeEvent<any>) => setForm((f: any) => ({ ...f, targetPrice: e.target.value }))}
+                              style={inputStyle} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Condition</label>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            {[{ v: 'true', label: 'Price ≥ target → YES' }, { v: 'false', label: 'Price ≤ target → YES' }].map(opt => (
+                              <button key={opt.v} type="button" onClick={() => setForm((f: any) => ({ ...f, targetAbove: opt.v }))}
+                                style={{ flex: 1, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 11,
+                                  background: form.targetAbove === opt.v ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                                  border: `1px solid ${form.targetAbove === opt.v ? 'rgba(255,255,255,0.2)' : '#222'}`,
+                                  color: form.targetAbove === opt.v ? '#FAFAFA' : '#666', transition: 'all 0.2s' }}>
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* ── MULTI: Option listesi ── */}
+                {marketMode === 'multi' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'rgba(59,130,246,0.04)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 12, padding: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#93C5FD', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Options ({multiOptions.length}/8)
+                      </div>
+                      {multiOptions.length < 8 && (
+                        <button type="button"
+                          onClick={() => setMultiOptions(o => [...o, ''])}
+                          style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, padding: '4px 12px', color: '#93C5FD', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer' }}>
+                          + Add Option
+                        </button>
+                      )}
+                    </div>
+
+                    {multiOptions.map((opt, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#555', minWidth: 20, textAlign: 'center' }}>{idx + 1}</div>
+                        <input
+                          type="text"
+                          placeholder={`Option ${idx + 1} (e.g. Team A)`}
+                          value={opt}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            const updated = [...multiOptions];
+                            updated[idx] = e.target.value;
+                            setMultiOptions(updated);
+                          }}
+                          style={{ ...inputStyle, flex: 1 }}
+                        />
+                        {multiOptions.length > 3 && (
+                          <button type="button"
+                            onClick={() => setMultiOptions(o => o.filter((_, i) => i !== idx))}
+                            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '8px', color: '#EF4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555', marginTop: 2 }}>
+                      Min 3 options required. Admin will manually resolve the winner.
+                    </p>
                   </div>
                 )}
 
@@ -480,8 +598,9 @@ export default function MarketsSection() {
                     boxShadow: isCreating ? 'none' : '0 4px 20px rgba(255,255,255,0.12)',
                   }}
                 >
-                  {isCreating ? 'Submitting...' : 'Create Market'}
+                  {isCreating ? 'Submitting...' : `Create ${marketMode === 'multi' ? 'Multi-Option' : 'Binary'} Market`}
                 </button>
+
                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #222', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888' }}>Creation fee</span>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#FAFAFA', fontWeight: 600 }}>
@@ -489,9 +608,6 @@ export default function MarketsSection() {
                   </span>
                 </div>
 
-                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#333333', textAlign: 'center' }}>
-                  
-                </p>
               </div>
             )}
           </div>
