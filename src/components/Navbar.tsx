@@ -2,18 +2,49 @@
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useState, useEffect } from 'react';
-import { Menu, X, Zap } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useChainId, useSwitchChain } from 'wagmi';
+import { useChainId, useSwitchChain, useReadContract } from 'wagmi';
 import { avalanche, avalancheFuji } from 'wagmi/chains';
-import { AVAX_MAINNET_ID, AVAX_TESTNET_ID } from '@/lib/wagmi';
+import { AVAX_MAINNET_ID } from '@/lib/wagmi';
+import { getAddresses, ABIS } from '@/lib/contracts/addresses';
 
+function useNavCounts() {
+  const chainId = useChainId();
+  const contracts = getAddresses(chainId);
+
+  const { data: marketCount } = useReadContract({
+    address: contracts.PredictionMarket,
+    abi: ABIS.PredictionMarket,
+    functionName: 'marketCount',
+  });
+
+  const { data: proposalCount } = useReadContract({
+    address: contracts.AvadixDAO,
+    abi: ABIS.AvadixDAO,
+    functionName: 'proposalCount',
+  });
+
+  const { data: campaignCount } = useReadContract({
+    address: contracts.AvadixDonations,
+    abi: ABIS.AvadixDonations,
+    functionName: 'campaignCount',
+  });
+
+  return {
+    markets:   marketCount   != null ? Number(marketCount)   : null,
+    dao:       proposalCount != null ? Number(proposalCount) : null,
+    donations: campaignCount != null ? Number(campaignCount) : null,
+  };
+}
+
+// Sıra: Markets 1, Donations 2, DAO 3, Portfolio 4
 const NAV_LINKS = [
-  { label: 'Markets',   href: '/markets' },
-  { label: 'Portfolio', href: '/portfolio' },
-  { label: 'DAO',       href: '/dao' },
-  { label: 'Donate',    href: '/donate' },
+  { label: 'Markets',   href: '/markets',   countKey: 'markets'   as const },
+  { label: 'Donations', href: '/donate',    countKey: 'donations' as const },
+  { label: 'DAO',       href: '/dao',       countKey: 'dao'       as const },
+  { label: 'Portfolio', href: '/portfolio', countKey: null },
 ];
 
 function NetworkToggle() {
@@ -82,6 +113,7 @@ export default function Navbar() {
   const chainId = useChainId();
   const isMainnet = chainId === AVAX_MAINNET_ID;
   const pathname = usePathname();
+  const counts = useNavCounts();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -132,6 +164,7 @@ export default function Navbar() {
           <div style={{ display: 'flex', gap: 0, alignItems: 'center' }} className="nav-desktop">
             {NAV_LINKS.map(link => {
               const active = pathname === link.href || pathname?.startsWith(link.href + '/');
+              const count = link.countKey ? counts[link.countKey] : null;
               return (
                 <Link key={link.label} href={link.href} style={{
                   color: active ? '#FAFAFA' : '#666',
@@ -139,11 +172,34 @@ export default function Navbar() {
                   fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 14,
                   padding: '6px 14px', borderRadius: 8, transition: 'color 0.2s',
                   letterSpacing: '-0.01em',
+                  display: 'flex', alignItems: 'center', gap: 6,
                 }}
                 onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.color = '#AAAAAA'; }}
                 onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.color = '#666'; }}
                 >
                   {link.label}
+                  {count != null && (
+                    <span style={{
+                      fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700,
+                      background: active ? 'rgba(196,241,53,0.15)' : 'rgba(255,255,255,0.05)',
+                      color: active ? '#C4F135' : '#555',
+                      border: `1px solid ${active ? 'rgba(196,241,53,0.3)' : '#222'}`,
+                      borderRadius: 5, padding: '1px 5px',
+                      letterSpacing: '0.04em',
+                      transition: 'all 0.2s',
+                    }}>
+                      {count}
+                    </span>
+                  )}
+                  {active && (
+                    <span style={{
+                      width: 4, height: 4, borderRadius: '50%',
+                      background: '#C4F135',
+                      display: 'inline-block',
+                      animation: 'pulse 2s infinite',
+                      marginLeft: count != null ? -2 : 0,
+                    }} />
+                  )}
                 </Link>
               );
             })}
@@ -161,16 +217,31 @@ export default function Navbar() {
 
         {mobileOpen && (
           <div style={{ borderTop: '1px solid #1C1C1C', padding: '10px 0 14px' }}>
-            {NAV_LINKS.map(link => (
-              <Link key={link.label} href={link.href} onClick={() => setMobileOpen(false)} style={{
-                display: 'block',
-                color: pathname === link.href ? '#FAFAFA' : '#666',
-                textDecoration: 'none', fontFamily: 'var(--font-display)',
-                fontWeight: 500, padding: '10px 4px', fontSize: 14, borderRadius: 8,
-              }}>
-                {link.label}
-              </Link>
-            ))}
+            {NAV_LINKS.map(link => {
+              const active = pathname === link.href;
+              const count = link.countKey ? counts[link.countKey] : null;
+              return (
+                <Link key={link.label} href={link.href} onClick={() => setMobileOpen(false)} style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  color: active ? '#FAFAFA' : '#666',
+                  textDecoration: 'none', fontFamily: 'var(--font-display)',
+                  fontWeight: 500, padding: '10px 4px', fontSize: 14, borderRadius: 8,
+                }}>
+                  {link.label}
+                  {count != null && (
+                    <span style={{
+                      fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700,
+                      background: active ? 'rgba(196,241,53,0.15)' : 'rgba(255,255,255,0.05)',
+                      color: active ? '#C4F135' : '#555',
+                      border: `1px solid ${active ? 'rgba(196,241,53,0.3)' : '#222'}`,
+                      borderRadius: 5, padding: '1px 5px',
+                    }}>
+                      {count}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
             <div style={{ paddingTop: 10 }}>
               <NetworkToggle />
             </div>
