@@ -184,27 +184,7 @@ export function Hero() {
         </Link>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, width: '100%', maxWidth: 760, position: 'relative', zIndex: 10 }}>
-        {stats.map(({ label, value }) => (
-          <div key={label} className="glass card" style={{ 
-            padding: '32px 18px', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            background: 'rgba(255,255,255,0.01)', 
-            border: '1px solid #141414',
-            minHeight: '120px'
-          }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, color: '#FAFAFA', lineHeight: 1, marginBottom: 10 }}>
-              {value}
-            </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#555', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
-              {label}
-            </div>
-          </div>
-        ))}
-      </div>
+
     </section>
   );
 }
